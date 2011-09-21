@@ -91,8 +91,35 @@ router::send(remote *rem, const process_id& proc, const message_set& ms)
    
    ms.pack(buf + sizeof(long int), msg_size, *world);
    
-   mem->send(rem->get_rank(), buf, msg_size);
+   if(!mem->send(rem->get_rank(), buf, msg_size)) {
+      pending_msg msg;
+      
+      msg.size = msg_size;
+      msg.dest = rem->get_rank();
+      msg.buf = buf;
+      
+      pending_messages.push_back(msg);
+   } else {
+      allocator<byte>().deallocate(buf, msg_size + sizeof(long int));
+   }
 #endif
+}
+
+void
+router::send_pending(void)
+{
+   while (has_pending_messages()) {
+      pending_msg msg(pending_messages.front());
+      
+      pending_messages.pop_front();
+      
+      printf("Sending one pending\n");
+      if(!mem->send(msg.dest, msg.buf, msg.size)) {
+         return;
+      } else {
+         allocator<byte>().deallocate(msg.buf, msg.size + sizeof(long int));
+      }
+   }
 }
 
 message_set*

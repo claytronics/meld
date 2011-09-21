@@ -73,7 +73,18 @@ private:
 
    void base_constructor(const size_t, int, char **, const bool);
    
+   struct pending_msg {
+      size_t size;
+      vm::process_id dest;
+      utils::byte* buf;
+   };
+   
+   std::list<pending_msg> pending_messages;
+   
 public:
+   
+   inline bool has_pending_messages(void) const { return !pending_messages.empty(); }
+   void send_pending(void);
    
    inline bool use_mpi(void) const { return world_size > 1; }
    

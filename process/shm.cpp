@@ -13,14 +13,22 @@ namespace process
    
 #define DEFAULT_MESSAGE_TYPE 1
    
-void
+bool
 shm::send(process_id to, byte* buf, const size_t size)
 {
    long int *ptr((long int*)buf);
    
    *ptr = DEFAULT_MESSAGE_TYPE; // the type does not matter since each process has its own queue
    
-   int ret = msgsnd(others[to], buf, size + sizeof(long int), 0);
+   int ret = msgsnd(others[to], buf, size + sizeof(long int), IPC_NOWAIT);
+   
+   if(ret == 0)
+      return true;
+      
+   printf("%s %d\n", strerror(errno), (int)size);
+   if(ret == -1) {
+      return false;
+   } 
    
    assert(ret == 0);
 }

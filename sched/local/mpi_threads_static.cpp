@@ -66,17 +66,21 @@ mpi_thread_static::busy_wait(void)
    ins_idle;
       
    while(!has_work()) {
-      BUSY_LOOP_MAKE_INACTIVE()
+      if(!state::ROUTER->has_pending_messages()) {
+         BUSY_LOOP_MAKE_INACTIVE()
       
-      if(attempt_token(term_barrier, leader_thread())) {
-         assert(all_threads_finished());
-         assert(is_inactive());
-         assert(!has_work());
-         assert(iteration_finished);
-         return false;
+         if(attempt_token(term_barrier, leader_thread())) {
+            assert(all_threads_finished());
+            assert(is_inactive());
+            assert(!has_work());
+            assert(iteration_finished);
+            return false;
+         }
+         
+      } else {
+         state::ROUTER->send_pending();
+         fetch_work(get_id());
       }
-      
-      fetch_work(get_id());
    }
    
    set_active_if_inactive();
@@ -100,6 +104,8 @@ mpi_thread_static::new_work_remote(remote *rem, const node::node_id node_id, mes
 bool
 mpi_thread_static::get_work(work& new_work)
 {  
+   state::ROUTER->send_pending();
+   
    do_mpi_cycle(get_id());
    
    return static_local::get_work(new_work);

@@ -26,7 +26,7 @@ private:
    
 public:
    
-   void send(vm::process_id, utils::byte *, const size_t);
+   bool send(vm::process_id, utils::byte *, const size_t);
    
    bool try_receive(utils::byte*, size_t*);
    
