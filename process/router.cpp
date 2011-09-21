@@ -46,7 +46,7 @@ router::set_nodes_total(const size_t total)
 
 #ifdef COMPILE_MPI
 
-req_obj
+void
 router::send(remote *rem, const process_id& proc, const message_set& ms)
 {
 #ifdef DEBUG_SERIALIZATION_TIME
@@ -55,12 +55,13 @@ router::send(remote *rem, const process_id& proc, const message_set& ms)
 
    assert(rem != NULL);
 
+#if 0
    const int tag(get_thread_tag(proc));
    const size_t msg_size(ms.get_storage_size());
    
    byte *buf(allocator<byte>().allocate(msg_size));
    
-   assert(msg_size < MPI_BUF_SIZE);
+   assert(msg_size < MAX_MSG_SIZE);
    
    ms.pack(buf, msg_size, *world);
    
@@ -81,6 +82,17 @@ router::send(remote *rem, const process_id& proc, const message_set& ms)
    MPI_Isend(buf, msg_size, MPI_PACKED, rem->get_rank(), tag, *world, &r.mpi_req);
 
    return r;
+#else
+   const size_t msg_size(ms.get_storage_size());
+   
+   byte *buf(allocator<byte>().allocate(sizeof(long int) + msg_size));
+   
+   assert(msg_size < MAX_MSG_SIZE);
+   
+   ms.pack(buf + sizeof(long int), msg_size, *world);
+   
+   mem->send(rem->get_rank(), buf, msg_size);
+#endif
 }
 
 message_set*
@@ -90,6 +102,7 @@ router::recv_attempt(const process_id proc, byte *recv_buf)
    utils::execution_time::scope s(serial_time);
 #endif
 
+#if 0
    const int tag(get_thread_tag(proc));
 
    optional<mpi::status> stat;
@@ -105,15 +118,25 @@ router::recv_attempt(const process_id proc, byte *recv_buf)
       mpi::status stat;
       {
          mutex::scoped_lock lock(mpi_mutex);
-         MPI_Recv(recv_buf, MPI_BUF_SIZE, MPI_PACKED, mpi::any_source, tag, *world, &stat.m_status);
+         MPI_Recv(recv_buf, MAX_MSG_SIZE, MPI_PACKED, mpi::any_source, tag, *world, &stat.m_status);
       }
       
       //cout << "Received with tag " << stat.m_status.MPI_TAG << " " << (int)proc << endl;
       assert(stat.m_status.MPI_TAG == tag);
-      message_set *ms(message_set::unpack(recv_buf, MPI_BUF_SIZE, *world));
+      message_set *ms(message_set::unpack(recv_buf, MAX_MSG_SIZE, *world));
       return ms;
    } else
       return NULL;
+#else
+   (void)proc;
+   size_t total;
+   if(mem->try_receive(recv_buf, &total)) {
+      message_set *ms(message_set::unpack(recv_buf, MAX_MSG_SIZE, *world));
+      return ms;
+   } else {
+      return NULL;
+   }
+#endif
 }
 
 bool
@@ -215,9 +238,8 @@ router::find_remote(const node::node_id id) const
 void
 router::base_constructor(const size_t num_threads, int argc, char **argv, const bool use_mpi)
 {
-#ifdef COMPILE_MPI
    if(argv != NULL && argc > 0 && use_mpi) {
-      static const int mpi_required_support(MPI_THREAD_MULTIPLE);
+      static const int mpi_required_support(MPI_THREAD_SINGLE);//MPI_THREAD_MULTIPLE);
       int mpi_thread_support;
       
       MPI_Init_thread(&argc, &argv, mpi_required_support, &mpi_thread_support);
@@ -229,6 +251,8 @@ router::base_constructor(const size_t num_threads, int argc, char **argv, const 
       world = new mpi::communicator();
    
       world_size = world->size();
+      
+      mem = new shm(world->rank(), world->size());
    
       remote_list.resize(world_size);
       for(remote::remote_id i(0); i != (remote::remote_id)world_size; ++i) {
@@ -236,21 +260,35 @@ router::base_constructor(const size_t num_threads, int argc, char **argv, const 
          if(i == world->rank())
             nthreads_other = num_threads;
          mpi::broadcast(*world, nthreads_other, i);
-         // cout << "Remote " << i << " threads " << nthreads_other << endl;
          remote_list[i] = new remote(i, nthreads_other);
       }
    
       state::REMOTE = remote::self = remote_list[world->rank()];
-   } else
+      
+      mem->setup_queues();
+      
+#if 0
+      utils::byte b[sizeof(long int) + 1];
+      if(world->rank() == 0) {
+         b[sizeof(long int)] = (utils::byte)100;
+         mem->send(1, b, 1);
+      } else {
+         utils::byte myb[MAX_MSG_SIZE];
+         size_t read;
+         if(mem->try_receive(myb, &read)) {
+            printf("Could read %d\n", (int)read);
+            printf("Received message: %d\n", (int)myb[sizeof(long int)]);
+         } else {
+            printf("not received\n");
+         }
+      }
 #endif
-   {
+   } else {
       world_size = 1;
       remote_list.resize(world_size);
       remote_list[0] = new remote(0, num_threads);
-#ifdef COMPILE_MPI
       env = NULL;
       world = NULL;
-#endif
       state::REMOTE = remote::self = remote_list[0];
    }
    
@@ -277,10 +315,10 @@ router::~router(void)
    for(remote::remote_id i(0); i != (remote::remote_id)world_size; ++i)
       delete remote_list[i];
 
-#ifdef COMPILE_MPI
    if(world && env) {
       delete world;
       delete env;
+      delete mem;
       
       sched::mpi_handler::end();
    
@@ -290,7 +328,6 @@ router::~router(void)
       cout << "Serialization time: " << serial_time << endl;
 #endif
    }
-#endif
 }
 
 }

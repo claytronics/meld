@@ -26,15 +26,18 @@ message_buffer::transmit_list(remote *rem, const process_id proc, message_set& m
    --total;
    
    assert(ms.get_storage_size() < MPI_BUFFER_THRESHOLD);
+   
+#if 0
    req_obj obj(state::ROUTER->send(rem, proc, ms));
    
    req_handler.add_request(rem, obj);
-   
+   assert(!req_handler.empty());
+#else
+   state::ROUTER->send(rem, proc, ms);
+#endif
 #ifdef DEBUG_REMOTE
    cout << "Sent " << ms.size() << " messages to " << rem->get_rank() << ":" << proc << endl;
 #endif
-   
-   assert(!req_handler.empty());
    
    ms.wipeout();
 }

@@ -99,7 +99,8 @@ OBJS = utils/utils.o \
 			 external/utils.o \
 			 stat/stat.o \
 			 stat/slice.o \
-			 stat/slice_set.o
+			 stat/slice_set.o \
+			 process/shm.o
 
 all: meld print predicates
 
@@ -322,6 +323,8 @@ stat/slice_set.o: stat/slice_set.hpp stat/slice_set.cpp \
 									utils/csv_line.hpp
 
 sched/common.o: sched/common.hpp sched/common.cpp
+
+process/shm.o: process/shm.hpp process/shm.cpp
 
 clean:
 	find . -name '*.o' | xargs rm -f

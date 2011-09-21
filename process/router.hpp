@@ -21,6 +21,7 @@
 #include "sched/mpi/message.hpp"
 #include "sched/mpi/request.hpp"
 #include "sched/mpi/token.hpp"
+#include "process/shm.hpp"
 
 namespace process
 {
@@ -59,16 +60,16 @@ private:
    size_t world_size;
    size_t nodes_per_remote;
 
-#ifdef COMPILE_MPI
    typedef std::list<boost::mpi::request> list_state_reqs;
    
    boost::mpi::environment *env;
    boost::mpi::communicator *world;
    
+   shm *mem;
+   
 #ifdef DEBUG_SERIALIZATION_TIME
    utils::execution_time serial_time;
 #endif
-#endif 
 
    void base_constructor(const size_t, int, char **, const bool);
    
@@ -82,7 +83,7 @@ public:
 
    inline void barrier(void) { world->barrier(); }
    
-   sched::req_obj send(remote *, const vm::process_id&, const sched::message_set&);
+   void send(remote *, const vm::process_id&, const sched::message_set&);
    
    bool was_received(const size_t, MPI_Request *) const;
    

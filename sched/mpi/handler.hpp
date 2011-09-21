@@ -26,7 +26,7 @@ private:
    
    message_buffer msg_buf;
    
-   utils::byte recv_buf[MPI_BUF_SIZE];
+   utils::byte recv_buf[MAX_MSG_SIZE];
    
    static utils::atomic<size_t> inside_counter;
    

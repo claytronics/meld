@@ -8,7 +8,7 @@
 // #define ASSERT_THREADS 1
 
 /* when this is active the allocator checks for allocate/dealloc correctness */
-//#define ALLOCATOR_ASSERT 1
+// #define ALLOCATOR_ASSERT 1
 
 /* when this is active it activates extra trie checking code */
 #define TRIE_ASSERT 1
@@ -62,5 +62,7 @@ const size_t STEAL_NODES_FACTOR(1000);
 
 /* threshold to use in global/threads_static to flush work to other threads */
 const size_t THREADS_GLOBAL_WORK_FLUSH(20);
+
+const size_t MAX_MSG_SIZE(MPI_BUF_SIZE);
 
 #endif
