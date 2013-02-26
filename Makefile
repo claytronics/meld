@@ -12,7 +12,7 @@ endif
 
 PROFILING = #-pg
 OPTIMIZATIONS = -O0
-ARCH = -march=x86-64
+ARCH = -march=armv7
 #DEBUG = -g -DDEBUG_RULES
 WARNINGS = -Wall -Wextra #-Werror
 C0X = -std=c++0x
