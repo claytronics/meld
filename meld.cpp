@@ -42,7 +42,7 @@ static vm::machine_arguments
 read_arguments(int argc, char **argv)
 {
 	vm::machine_arguments program_arguments;
-	
+
    progname = *argv++;
    --argc;
 
@@ -71,7 +71,7 @@ read_arguments(int argc, char **argv)
          case 'c': {
             if (sched_type != SCHED_UNKNOWN)
                help();
-            
+
             parse_sched(argv[1]);
             argc--;
             argv++;
@@ -92,7 +92,7 @@ read_arguments(int argc, char **argv)
          case 'i':
             if(argc < 2)
                help();
-               
+
             statistics::set_stat_file(string(argv[1]));
             argc--;
             argv++;
@@ -105,7 +105,7 @@ read_arguments(int argc, char **argv)
 	     cout << "DEBUGGING MODE -- type 'help' for options" << endl;
 	     debugger::setDebuggingMode(true);
 	   } else if (string(argv[1]) == "MPI"){
-         debugger::setMpiDebuggingMode(true);
+           debugger::setMpiDebuggingMode(true);
 	   } else if (string(argv[1]) == "SIM"){
 	     debugger::setSimDebuggingMode(true);
 	   } else {
@@ -113,10 +113,10 @@ read_arguments(int argc, char **argv)
 	     exit(0);
 	   }
 	   break;
-	   
-	   
+
+
 			case '-':
-				
+
 				for(--argc, ++argv ; argc > 0; --argc, ++argv)
 					program_arguments.push_back(string(*argv));
 			break;
@@ -145,12 +145,12 @@ main(int argc, char **argv)
 		cerr << "Error: please provide a program to run" << endl;
       return EXIT_FAILURE;
    }
-   
+
 	if(!file_exists(program)) {
 		cerr << "Error: file " << program << " does not exist or is not readable" << endl;
 		return EXIT_FAILURE;
 	}
-	
+
    try {
       run_program(argc, argv, program, margs, data_file);
    } catch(vm::load_file_error& err) {

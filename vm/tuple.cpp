@@ -203,6 +203,7 @@ tuple::~tuple(void)
          case FIELD_LIST_INT: int_list::dec_refs(get_int_list(i)); break;
          case FIELD_LIST_FLOAT: float_list::dec_refs(get_float_list(i)); break;
          case FIELD_LIST_NODE: node_list::dec_refs(get_node_list(i)); break;
+         case FIELD_STRING: get_string(i)->dec_refs(); break;
          default: break;
       }
    }
@@ -333,6 +334,48 @@ tuple::unpack(byte *buf, const size_t buf_size, int *pos, vm::program *prog)
    
    return ret;
    
+}
+
+void
+tuple::copy_runtime(void)
+{
+   for(field_num i(0); i < num_fields(); ++i) {
+      switch(get_field_type(i)) {
+         case FIELD_LIST_INT: {
+               int_list *old(get_int_list(i));
+               int_list *ne(int_list::copy(old));
+
+               int_list::dec_refs(old);
+               set_int_list(i, ne);
+            }
+            break;
+         case FIELD_LIST_FLOAT: {
+               float_list *old(get_float_list(i));
+               float_list *ne(float_list::copy(old));
+
+               float_list::dec_refs(old);
+               set_float_list(i, ne);
+           }
+           break;
+         case FIELD_LIST_NODE: {
+               node_list *old(get_node_list(i));
+               node_list *ne(node_list::copy(old));
+
+               node_list::dec_refs(old);
+               set_node_list(i, ne);
+           }
+           break;
+         case FIELD_STRING: {
+               rstring::ptr old(get_string(i));
+               rstring::ptr ne(old->copy());
+
+               old->dec_refs();
+               set_string(i, ne);
+            }
+            break;
+         default: break;
+      }
+   }
 }
 
 ostream& operator<<(ostream& cout, const tuple& tuple)

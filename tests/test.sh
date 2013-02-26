@@ -74,7 +74,7 @@ run_mpi () {
 
         echo -n "Running ${TEST} with MPI on [${ITER}] processes ..."
         run_diff "${TO_RUN}"
-        echo " DONE!"
+        echo "DONE!"
 
         let ITER=$ITER+1
     done
