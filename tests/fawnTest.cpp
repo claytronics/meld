@@ -47,8 +47,9 @@ int main(int argc, char* argv[])
         }
         sum = 0;
 
-        world.send(nextProcess(world),SENDNEXT, str);
-        world.recv(prevProcess(world),SENDNEXT, msg1);
+        world.send(nextProcess(world), SENDNEXT, str);
+        world.irecv(prevProcess(world), SENDNEXT, msg1);
+	
 
         if (rdvs){
             world.send(prevProcess(world),WAIT,str);
