@@ -48,7 +48,10 @@ int main(int argc, char* argv[])
         sum = 0;
 
         world.send(nextProcess(world), SENDNEXT);
-        world.irecv(prevProcess(world), SENDNEXT);
+	if (rdvs){
+		world.probe(prevProcess(world),SENDNEXT);
+	}
+        world.recv(prevProcess(world), SENDNEXT);
 	
 
       /*  if (rdvs){
