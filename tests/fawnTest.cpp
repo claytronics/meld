@@ -48,10 +48,12 @@ int main(int argc, char* argv[])
         sum = 0;
 
         world.send(nextProcess(world), SENDNEXT);
-	if (rdvs){
+	/*if (rdvs){
 		world.probe(prevProcess(world),SENDNEXT);
-	}
-        world.recv(prevProcess(world), SENDNEXT);
+	}*/
+
+	if (world.iprobe(prevProcess(world), SENDNEXT))
+        	world.recv(prevProcess(world), SENDNEXT);
 	
 
       /*  if (rdvs){
