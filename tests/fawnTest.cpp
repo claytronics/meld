@@ -52,7 +52,7 @@ int main(int argc, char* argv[])
 		world.probe(prevProcess(world),SENDNEXT);
 	}*/
 
-	if (world.iprobe(prevProcess(world), SENDNEXT))
+	while(world.iprobe(prevProcess(world), SENDNEXT))
         	world.recv(prevProcess(world), SENDNEXT);
 	
 
