@@ -48,19 +48,13 @@ int main(int argc, char* argv[])
         sum = 0;
 
         world.send(nextProcess(world), SENDNEXT);
-	/*if (rdvs){
-		world.probe(prevProcess(world),SENDNEXT);
-	}*/
-
-	while(world.iprobe(prevProcess(world), SENDNEXT))
-        	world.recv(prevProcess(world), SENDNEXT);
+        world.recv(prevProcess(world), SENDNEXT);
 	
 
-      /*  if (rdvs){
-            world.send(prevProcess(world),WAIT,str);
-            world.probe(nextProcess(world),WAIT);
-            world.recv(nextProcess(world),WAIT,msg2);
-        }*/
+       if (rdvs){
+            world.send(prevProcess(world),WAIT);
+            world.recv(nextProcess(world),WAIT);
+        }
     }
 
     return 0;
