@@ -176,6 +176,7 @@ base::do_work(db::node *node)
 }
 
 
+// Loop of execution
 void
 base::do_loop(void)
 {
@@ -201,8 +202,10 @@ void
 base::loop(void)
 {
    // start process pool
+   // multi-thread memory manager / allocator
    mem::ensure_pool();
 
+   // Init is based on scheduler type
    init(state.all->NUM_THREADS);
 
    do_loop();
@@ -224,6 +227,7 @@ base::start(void)
 {
    pthread_setspecific(sched_key, this);
    if(id == 0) {
+       // Main thread
       thread = new boost::thread();
       loop();
    } else

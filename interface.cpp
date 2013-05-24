@@ -123,6 +123,7 @@ run_program(int argc, char **argv, const char *program, const vm::machine_argume
 
 	try {
         /* save time to compute execution time */
+        /* calculate execution time */
       double start_time(0.0);
       execution_time tm;
       
@@ -132,7 +133,12 @@ run_program(int argc, char **argv, const char *program, const vm::machine_argume
          }
       }
 
+      /* defunct */
       router rout(num_threads, argc, argv, false);
+
+      /* instantiate machine
+       * serial: 1 thread, sched_serial
+       * margs: meld argv, argc*/
       machine mac(program, rout, num_threads, sched_type, margs);
 
 #ifdef USE_UI
@@ -141,6 +147,7 @@ run_program(int argc, char **argv, const char *program, const vm::machine_argume
       }
 #endif
 
+      /* initiates threads */
       mac.start();
 
       if(time_execution) {

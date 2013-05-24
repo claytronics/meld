@@ -264,6 +264,7 @@ machine::init_thread(sched::base *sched)
 	sched->start();
 }
 
+// Start all schedulers in the VM
 void
 machine::start(void)
 {
@@ -272,6 +273,7 @@ machine::start(void)
 	
    deactivate_signals();
    
+   // Statistics sampling
    if(stat_enabled()) {
       // initiate alarm thread
       alarm_thread = new boost::thread(bind(&machine::slice_function, this));
@@ -281,6 +283,7 @@ machine::start(void)
       this->all->ALL_THREADS[i]->start();
    this->all->ALL_THREADS[0]->start();
    
+   // Wait for threads to finish, if thread > 1
    for(size_t i(1); i < all->NUM_THREADS; ++i)
       this->all->ALL_THREADS[i]->join();
       
@@ -346,6 +349,7 @@ machine::start(void)
    }
 }
 
+/* Implementation specific function */
 static inline database::create_node_fn
 get_creation_function(const scheduler_type sched_type)
 {
@@ -372,9 +376,9 @@ machine::machine(const string& file, router& _rout, const size_t th,
    sched_type(_sched_type),
    rout(_rout),
    alarm_thread(NULL),
-   slices(th)
+   slices(th) /* th = number of threads, slices is for statistics */
 {
-    this->all->PROGRAM = new vm::program(file);
+    this->all->PROGRAM = new vm::program(file); /* predicates information, byte code for all the rules */
     this->all->ROUTER = &_rout;
     
     if(margs.size() < this->all->PROGRAM->num_args_needed())
@@ -385,6 +389,7 @@ machine::machine(const string& file, router& _rout, const size_t th,
    this->all->NUM_THREADS = th;
    this->all->MACHINE = this;
    
+   // Instantiate the scheduler object
    switch(sched_type) {
       case SCHED_SERIAL:
          this->all->ALL_THREADS.push_back(dynamic_cast<sched::base*>(new sched::serial_local(this->all)));

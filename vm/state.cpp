@@ -587,6 +587,7 @@ state::start_matching(void)
 	fill_n(predicates, all->PROGRAM->num_predicates(), false);
 }
 
+// Reads the fact and check which rules can be applied and execute the rules
 void
 state::run_node(db::node *no)
 {
@@ -599,6 +600,7 @@ state::run_node(db::node *no)
 #endif
 
    assert(local_tuples.empty());
+   // Gather_next_tuples is implementation specific
 	sched->gather_next_tuples(node, local_tuples);
    start_matching();
 	current_level = mark_rules_using_local_tuples(local_tuples);

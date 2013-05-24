@@ -10,6 +10,7 @@
 #include "sched/base.hpp"
 #include "queue/intrusive.hpp"
 
+// Node type for sequential scheduler
 namespace sched
 { 
 

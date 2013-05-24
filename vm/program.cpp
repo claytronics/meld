@@ -43,6 +43,7 @@ strat_level program::MAX_STRAT_LEVEL(0);
 // most integers in the byte-code have 4 bytes
 BOOST_STATIC_ASSERT(sizeof(uint_val) == 4);
 
+/* interprets predicates, argus, types, interprets the code */
 program::program(const string& _filename):
    filename(_filename),
    init(NULL), priority_pred(NULL)
@@ -55,6 +56,7 @@ program::program(const string& _filename):
       throw load_file_error(filename, "unable to open file");
 
    // read magic
+   // determines meld file type
    uint32_t magic1, magic2;
    READ_CODE(&magic1, sizeof(magic1));
    READ_CODE(&magic2, sizeof(magic2));
@@ -62,6 +64,7 @@ program::program(const string& _filename):
       throw load_file_error(filename, "not a meld byte code file");
 
    // read version
+   // version of byte code
    uint32_t major_version, minor_version;
    READ_CODE(&major_version, sizeof(uint32_t));
    READ_CODE(&minor_version, sizeof(uint32_t));
@@ -80,6 +83,8 @@ program::program(const string& _filename):
    code.resize(num_predicates);
 
    // skip nodes
+   // node: a node in a graph
+   // node: local computation, send facts
    uint_val num_nodes;
 	READ_CODE(&num_nodes, sizeof(uint_val));
 
