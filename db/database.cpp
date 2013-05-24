@@ -33,6 +33,7 @@ database::database(const string& filename, create_node_fn _create_fn, vm::all *_
    
    all->ROUTER->set_nodes_total(nodes_total, all); // can throw database_error
    
+   // MPI stuff
    const size_t nodes_to_skip(remote::self->get_nodes_base());
    
    if(nodes_to_skip > 0)

@@ -116,6 +116,7 @@ finish(void)
 {
 }
 
+/* program=meld */
 bool
 run_program(int argc, char **argv, const char *program, const vm::machine_arguments& margs)
 {
@@ -123,6 +124,7 @@ run_program(int argc, char **argv, const char *program, const vm::machine_argume
 	assert(num_threads > 0);
 
 	try {
+        /* calculate execution time */
       double start_time(0.0);
       execution_time tm;
       
@@ -137,7 +139,12 @@ run_program(int argc, char **argv, const char *program, const vm::machine_argume
          }
       }
 
+      /* defunct */
       router rout(num_threads, argc, argv, is_mpi_sched(sched_type));
+
+      /* instantiate machine
+       * serial: 1 thread, sched_serial
+       * margs: meld argv, argc*/
       machine mac(program, rout, num_threads, sched_type, margs);
 
 #ifdef USE_UI
@@ -146,6 +153,7 @@ run_program(int argc, char **argv, const char *program, const vm::machine_argume
       }
 #endif
 
+      /* initiates threads */
       mac.start();
 
       if(time_execution) {

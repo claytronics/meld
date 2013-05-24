@@ -26,6 +26,7 @@ namespace vm
 
 typedef std::vector<std::string> machine_arguments;
 
+/* state of the virtual machine */
 class all
 {
    private:
@@ -44,7 +45,7 @@ class all
    size_t NUM_NODES_PER_PROCESS;
 	machine_arguments ARGUMENTS;
    static const double TASK_STEALING_FACTOR = 0.2;
-   std::vector<sched::base*> ALL_THREADS;
+   std::vector<sched::base*> ALL_THREADS; /* schedulers */
 
    inline void set_const(const const_id& id, const tuple_field d) { consts[id] = d; }
 

@@ -20,6 +20,7 @@
 #include "ui/macros.hpp"
 #endif
 
+// Store all nodes in VM
 namespace db
 {
 

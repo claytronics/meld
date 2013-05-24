@@ -44,6 +44,8 @@ serial_local::assert_end_iteration(void) const
    assert_static_nodes_end_iteration(id, state.all);
 }
 
+// Look through the scheduler's queue finding any node that has new facts to
+// process
 node*
 serial_local::get_work(void)
 {

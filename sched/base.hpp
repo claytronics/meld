@@ -21,6 +21,7 @@
 #include "runtime/string.hpp"
 #include "vm/state.hpp"
 
+// Master class of the whole thing
 namespace process {
    class remote;
 }
