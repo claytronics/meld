@@ -114,6 +114,7 @@ finish(void)
 {
 }
 
+/* program = meld program */
 bool
 run_program(int argc, char **argv, const char *program, const vm::machine_arguments& margs)
 {
@@ -121,6 +122,7 @@ run_program(int argc, char **argv, const char *program, const vm::machine_argume
 	assert(num_threads > 0);
 
 	try {
+        /* save time to compute execution time */
       double start_time(0.0);
       execution_time tm;
       
