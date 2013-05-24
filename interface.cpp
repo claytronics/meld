@@ -89,8 +89,6 @@ parse_sched(char *sched)
       fail_sched(sched);
    
    // attempt to parse the scheduler string
-   match_threads("thp", sched, SCHED_THREADS_PRIO) ||
-      match_threads("th", sched, SCHED_THREADS) ||
       match_serial("sl", sched, SCHED_SERIAL) ||
 		match_serial("ui", sched, SCHED_SERIAL_UI) ||
       fail_sched(sched);
@@ -127,17 +125,12 @@ run_program(int argc, char **argv, const char *program, const vm::machine_argume
       execution_time tm;
       
       if(time_execution) {
-#ifdef COMPILE_MPI
-         if(is_mpi_sched(sched_type))
-            start_time = MPI_Wtime();
-         else
-#endif
          {
             tm.start();
          }
       }
 
-      router rout(num_threads, argc, argv, is_mpi_sched(sched_type));
+      router rout(num_threads, argc, argv, false);
       machine mac(program, rout, num_threads, sched_type, margs);
 
 #ifdef USE_UI
@@ -149,16 +142,6 @@ run_program(int argc, char **argv, const char *program, const vm::machine_argume
       mac.start();
 
       if(time_execution) {
-#ifdef COMPILE_MPI
-         if(is_mpi_sched(sched_type)) {
-            double total_time(MPI_Wtime() - start_time);
-            size_t ms = static_cast<size_t>(total_time * 1000);
-            
-            if(remote::self->get_rank() == 0)
-               cout << "Time: " << ms << " ms" << endl;
-         }
-         else
-#endif
          {
             tm.stop();
             size_t ms = tm.milliseconds();
