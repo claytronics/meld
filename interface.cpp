@@ -128,9 +128,7 @@ run_program(int argc, char **argv, const char *program, const vm::machine_argume
       execution_time tm;
       
       if(time_execution) {
-         {
             tm.start();
-         }
       }
 
       /* defunct */

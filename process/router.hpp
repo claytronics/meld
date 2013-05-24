@@ -7,9 +7,6 @@
 #include <vector>
 #include <list>
 #include <stdexcept>
-#ifdef COMPILE_MPI
-#include <boost/mpi.hpp>
-#endif
 
 #include "process/remote.hpp"
 #include "db/tuple.hpp"
@@ -60,17 +57,6 @@ private:
    size_t world_size;
    size_t nodes_per_remote;
 
-#ifdef COMPILE_MPI
-   typedef std::list<boost::mpi::request> list_state_reqs;
-   
-   boost::mpi::environment *env;
-   boost::mpi::communicator *world;
-   
-#ifdef DEBUG_SERIALIZATION_TIME
-   utils::execution_time serial_time;
-#endif
-#endif 
-
    void base_constructor(const size_t, int, char **, const bool);
    
 public:
@@ -81,31 +67,7 @@ public:
 
    inline void barrier(void)
    {
-#ifdef COMPILE_MPI
-      world->barrier();
-#endif
    }
-   
-#ifdef COMPILE_MPI
-
-   
-   sched::req_obj send(remote *, const vm::process_id&, const sched::message_set&);
-   
-   bool was_received(const size_t, MPI_Request *) const;
-   
-   sched::message_set* recv_attempt(const vm::process_id, utils::byte *, vm::program *);
-
-   void send_token(const sched::token&);
-   
-   bool receive_token(sched::token&);
-   
-   void send_end_iteration(const size_t, const remote::remote_id);
-   
-   bool received_end_iteration(size_t&, const remote::remote_id);
-   void receive_end_iteration(const remote::remote_id);
-   
-   bool reduce_continue(const bool);
-#endif
    
    remote* find_remote(const db::node::node_id) const;
    

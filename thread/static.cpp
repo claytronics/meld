@@ -130,14 +130,6 @@ static_local::retrieve_tuples(void)
    }
 }
 
-#ifdef COMPILE_MPI
-void
-static_local::new_work_remote(remote *, const node::node_id, message *)
-{
-   assert(false);
-}
-#endif
-
 #ifdef TASK_STEALING
 void
 static_local::make_steal_request(void)

@@ -6,10 +6,6 @@
 #include <ostream>
 #include <list>
 
-#ifdef COMPILE_MPI
-#include <mpi.h>
-#endif
-
 #ifdef USE_UI
 #include <json_spirit.h>
 #endif

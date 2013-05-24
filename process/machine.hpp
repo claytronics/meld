@@ -9,9 +9,6 @@
 #include <vector>
 #include <boost/thread/mutex.hpp>
 #include <boost/thread/barrier.hpp>
-#ifdef COMPILE_MPI
-#include <boost/mpi.hpp>
-#endif
 
 #include "db/database.hpp"
 #include "process/router.hpp"

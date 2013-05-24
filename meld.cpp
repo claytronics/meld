@@ -113,14 +113,8 @@ main(int argc, char **argv)
       num_threads = 1;
    }
 
-   if(program == NULL && sched_type == SCHED_UNKNOWN) {
-      cerr << "Error: please provide scheduler type and a program to run" << endl;
-      return EXIT_FAILURE;
-   } else if(program == NULL && sched_type != SCHED_UNKNOWN) {
+   if(program == NULL && sched_type != SCHED_UNKNOWN) {
 		cerr << "Error: please provide a program to run" << endl;
-      return EXIT_FAILURE;
-   } else if(program != NULL && sched_type == SCHED_UNKNOWN) {
-		cerr << "Error: please pick a scheduler to use" << endl;
       return EXIT_FAILURE;
    }
    
