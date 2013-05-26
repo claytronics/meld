@@ -33,32 +33,6 @@ num_cpus_available(void)
 }
 
 static inline bool
-match_mpi(const char *name, char *arg, const scheduler_type type)
-{
-   const size_t len(strlen(name));
-
-   if(strlen(arg) == len && strncmp(name, arg, len) == 0) {
-      sched_type = type;
-      arg += len;
-      num_threads = num_cpus_available();
-      return true;
-   } else if(strlen(arg) > len && strncmp(name, arg, len) == 0) {
-      sched_type = type;
-      arg += len;
-      num_threads = (size_t)atoi(arg);
-      return true;
-   }
-   
-   return false;
-}
-
-static inline bool
-match_threads(const char *name, char *arg, const scheduler_type type)
-{
-   return match_mpi(name, arg, type);
-}
-
-static inline bool
 match_serial(const char *name, char *arg, const scheduler_type type)
 {
    const size_t len(strlen(name));
