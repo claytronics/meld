@@ -26,12 +26,14 @@ inline bool is_mpi_sched(const scheduler_type)
 
 inline bool is_work_stealing_sched(const scheduler_type type)
 {
-   return type == SCHED_THREADS || type == SCHED_THREADS_PRIO;
+   //return type == SCHED_THREADS || type == SCHED_THREADS_PRIO;
+   return false;
 }
 
 inline bool is_priority_sched(const scheduler_type type)
 {
-   return type == SCHED_THREADS_PRIO;
+   //return type == SCHED_THREADS_PRIO;
+   return false;
 }
 
 }
