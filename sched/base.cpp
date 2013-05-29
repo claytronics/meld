@@ -226,8 +226,8 @@ base::start(void)
    if(id == 0) {
       thread = new boost::thread();
       loop();
-   } else
-      thread = new boost::thread(bind(&base::loop, this));
+   } //else   //removing multithread
+      //thread = new boost::thread(bind(&base::loop, this));
 }
 
 base::~base(void)

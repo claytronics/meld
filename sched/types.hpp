@@ -19,23 +19,27 @@ inline bool is_serial_sched(const scheduler_type type)
    return type == SCHED_SERIAL || type == SCHED_SERIAL_UI || type == SCHED_SIM;
 }
 
+
+// keeping only sched_serial.
+/*
 inline bool is_mpi_sched(const scheduler_type)
 {
    return false;
-}
+} 
 
 inline bool is_work_stealing_sched(const scheduler_type type)
 {
-   //return type == SCHED_THREADS || type == SCHED_THREADS_PRIO;
-   return false;
-}
+//   return type == SCHED_THREADS || type == SCHED_THREADS_PRIO;
+return false;
+} 
 
 inline bool is_priority_sched(const scheduler_type type)
 {
-   //return type == SCHED_THREADS_PRIO;
-   return false;
-}
+//   return type == SCHED_THREADS_PRIO;
+return false;
 
+} 
+*/  
 }
 
 #endif
