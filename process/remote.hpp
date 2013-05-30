@@ -61,7 +61,7 @@ public:
    
    inline db::node::node_id get_nodes_base(void) const
    {
-      return nodes_base;
+      return 0;
    }
    
    inline size_t get_nodes_per_proc(void) const
@@ -79,15 +79,12 @@ public:
    
    inline db::node::node_id find_first_node(const vm::process_id id) const
    {
-      return get_nodes_base() + id * nodes_per_proc;
+      return 0;
    }
    
    inline db::node::node_id find_last_node(const vm::process_id id) const
    {
-      if(num_threads - 1 == id)
-         return get_nodes_base() + get_total_nodes();
-      else
-         return find_first_node(id + 1);
+       return total_nodes;
    }
    
    inline remote_id get_rank(void) const { return addr; }

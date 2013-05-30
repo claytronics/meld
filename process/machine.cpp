@@ -35,16 +35,7 @@ namespace process
 bool
 machine::same_place(const node::node_id id1, const node::node_id id2) const
 {
-   if(id1 == id2)
-      return true;
-   
-   remote *rem1(rout.find_remote(id1));
-   remote *rem2(rout.find_remote(id2));
-   
-   if(rem1 != rem2)
-      return false;
-   
-   return rem1->find_proc_owner(id1) == rem1->find_proc_owner(id2);
+   return id1 == id2;
 }
 
 void
@@ -144,35 +135,8 @@ machine::route_self(sched::base *sched, node *node, simple_tuple *stpl, const ui
 void
 machine::route(const node* from, sched::base *sched_caller, const node::node_id id, simple_tuple* stpl, const uint_val delay)
 {  
-   remote* rem(rout.find_remote(id));
-   
    assert(sched_caller != NULL);
    assert(id <= this->all->DATABASE->max_id());
-   
-   if(rem == remote::self) {
-      // on this machine
-      
-      node *node(this->all->DATABASE->find_node(id));
-      
-      sched::base *sched_other(sched_caller->find_scheduler(node));
-		const predicate *pred(stpl->get_predicate());
-
-      if(delay > 0) {
-			work new_work(node, stpl);
-         sched_caller->new_work_delay(sched_caller, from, new_work, delay);
-      } else if(pred->is_action_pred()) {
-			run_action(sched_other, node, stpl->get_tuple(), sched_caller != sched_other);
-			delete stpl;
-		} else if(sched_other == sched_caller) {
-			work new_work(node, stpl);
-      
-         sched_caller->new_work(from, new_work);
-      } else {
-         work new_work(node, stpl);
-
-         sched_caller->new_work_other(sched_other, new_work);
-      }
-   }
 }
 
 static inline string
@@ -305,38 +269,10 @@ machine::start(void)
    const bool will_print(show_database || dump_database);
 
    if(will_print) {
-      if(rout.use_mpi()) {
-         if(show_database) {
-            const string filename(get_output_filename("db", remote::self->get_rank()));
-            ofstream fp(filename.c_str());
-            
-            all->DATABASE->print_db(fp);
-         }
-         if(dump_database) {
-            const string filename(get_output_filename("dump", remote::self->get_rank()));
-            ofstream fp(filename.c_str());
-            all->DATABASE->dump_db(fp);
-         }
-         
-         rout.barrier();
-         
-         // read and output files
-         if(remote::self->is_leader()) {
-            if(show_database) {
-               for(size_t i(0); i < remote::world_size; ++i)
-                  file_print_and_remove(get_output_filename("db", i));
-            }
-            if(dump_database) {
-               for(size_t i(0); i < remote::world_size; ++i)
-                  file_print_and_remove(get_output_filename("dump", i));
-            }
-         }
-      } else {
          if(show_database)
             all->DATABASE->print_db(cout);
          if(dump_database)
             all->DATABASE->dump_db(cout);
-      }
    }
 
    if(memory_statistics) {
@@ -369,17 +305,15 @@ get_creation_function(const scheduler_type sched_type)
    throw machine_error("unknown scheduler type");
 }
 
-machine::machine(const string& file, router& _rout, const size_t th,
+machine::machine(const string& file, const size_t th,
 		const scheduler_type _sched_type, const machine_arguments& margs):
    all(new vm::all()),
    filename(file),
    sched_type(_sched_type),
-   rout(_rout),
    alarm_thread(NULL),
    slices(th) /* th = number of threads, slices is for statistics */
 {
     this->all->PROGRAM = new vm::program(file); /* predicates information, byte code for all the rules */
-    this->all->ROUTER = &_rout;
     
     if(margs.size() < this->all->PROGRAM->num_args_needed())
         throw machine_error(string("this program requires ") + utils::to_string(all->PROGRAM->num_args_needed()) + " arguments");
