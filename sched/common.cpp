@@ -28,7 +28,7 @@ void
 assert_static_nodes_end(const process_id id, vm::all *all)
 {
    const node::node_id first(0);
-   const node::node_id final(all->DATABASE->nodes_total);
+   const node::node_id final(all->DATABASE->nodes_total - 1);
    database::map_nodes::iterator it(all->DATABASE->get_node_iterator(first));
    database::map_nodes::iterator end(all->DATABASE->get_node_iterator(final));
 

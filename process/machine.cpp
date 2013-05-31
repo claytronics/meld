@@ -35,7 +35,7 @@ namespace process
 bool
 machine::same_place(const node::node_id id1, const node::node_id id2) const
 {
-   return id1 == id2;
+   return true;
 }
 
 void
