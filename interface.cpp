@@ -137,7 +137,7 @@ run_program(int argc, char **argv, const char *program, const vm::machine_argume
          }
       }
 
-      router rout(num_threads, argc, argv, is_mpi_sched(sched_type));
+      router rout(num_threads, argc, argv, false);
       machine mac(program, rout, num_threads, sched_type, margs);
 
 #ifdef USE_UI
