@@ -84,7 +84,7 @@ public:
    
    inline db::node::node_id find_last_node(const vm::process_id id) const
    {
-       return total_nodes;
+       return total_nodes - 1;
    }
    
    inline remote_id get_rank(void) const { return addr; }
