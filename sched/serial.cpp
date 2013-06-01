@@ -84,7 +84,7 @@ serial_local::terminate_iteration(void)
 void
 serial_local::generate_aggs(void)
 {
-   iterate_static_nodes(id);
+   iterate_static_nodes();
 }
 
 void

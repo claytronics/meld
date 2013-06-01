@@ -115,7 +115,7 @@ threads_single::new_work_remote(remote *, const node::node_id, message *)
 void
 threads_single::generate_aggs(void)
 {
-   iterate_static_nodes(id);
+   iterate_static_nodes();
 }
 
 bool

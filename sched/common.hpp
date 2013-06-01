@@ -16,7 +16,7 @@ void assert_static_nodes_end_iteration(const vm::process_id, vm::all *);
 void assert_static_nodes_end(const vm::process_id, vm::all *);
 #endif
 
-#define iterate_static_nodes(ID)                                                       \
+#define iterate_static_nodes()                                                       \
    database::map_nodes::const_iterator it(state.all->DATABASE->nodes_begin());    \
    database::map_nodes::const_iterator end(state.all->DATABASE->nodes_end());     \
    for(; it != end; ++it)                                                              \

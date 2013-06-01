@@ -358,7 +358,7 @@ dynamic_local::generate_aggs(void)
       node_iteration(node);
    }
 #else
-   iterate_static_nodes(id);
+   iterate_static_nodes();
 #endif
 }
 

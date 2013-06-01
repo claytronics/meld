@@ -227,7 +227,7 @@ static_local::answer_steal_requests(void)
 void
 static_local::generate_aggs(void)
 {
-   iterate_static_nodes(id);
+   iterate_static_nodes();
 }
 
 bool

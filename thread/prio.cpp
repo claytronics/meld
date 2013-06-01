@@ -397,7 +397,7 @@ threads_prio::new_work_other(sched::base *, work& new_work)
 void
 threads_prio::generate_aggs(void)
 {
-   iterate_static_nodes(id);
+   iterate_static_nodes();
 }
 
 bool
