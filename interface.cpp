@@ -110,12 +110,6 @@ run_program(int argc, char **argv, const char *program, const vm::machine_argume
        * margs: meld argv, argc*/
       machine mac(program, num_threads, sched_type, margs);
 
-#ifdef USE_UI
-      if(ui::man != NULL) {
-         ui::man->set_all(mac.get_all());
-      }
-#endif
-
       /* initiates threads */
       mac.start();
 
@@ -123,7 +117,6 @@ run_program(int argc, char **argv, const char *program, const vm::machine_argume
          {
             tm.stop();
             size_t ms = tm.milliseconds();
-            
             cout << "Time: " << ms << " ms" << endl;
          }
       }

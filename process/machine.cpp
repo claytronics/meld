@@ -1,21 +1,17 @@
 #include <iostream>
 #include <signal.h>
 
-#include "ui/manager.hpp"
 #include "process/machine.hpp"
 #include "vm/program.hpp"
 #include "vm/state.hpp"
 #include "vm/exec.hpp"
 #include "runtime/list.hpp"
-#include "sched/mpi/message.hpp"
 #include "mem/thread.hpp"
 #include "mem/stat.hpp"
 #include "stat/stat.hpp"
 #include "utils/fs.hpp"
 #include "interface.hpp"
 #include "sched/serial.hpp"
-#include "sched/serial_ui.hpp"
-#include "sched/sim.hpp"
 #include "thread/prio.hpp"
 #include "thread/static.hpp"
 
@@ -46,46 +42,6 @@ machine::run_action(sched::base *sched, node* node, vm::tuple *tpl, const bool f
 	assert(tpl->is_action());
 	
    switch(pid) {
-      case SETCOLOR_PREDICATE_ID:
-#ifdef USE_UI
-      if(state::UI) {
-         LOG_SET_COLOR(node, tpl->get_int(0), tpl->get_int(1), tpl->get_int(2));
-      }
-#endif
-#ifdef USE_SIM
-      if(state::SIM) {
-			((sim_sched*)sched)->set_color(node, tpl->get_int(0), tpl->get_int(1), tpl->get_int(2));
-      }
-#endif
-      break;
-      case SETCOLOR2_PREDICATE_ID:
-#ifdef USE_SIM
-      if(state::SIM) {
-         int r(0), g(0), b(0);
-         switch(tpl->get_int(0)) {
-            case 0: r = 255; break; // RED
-            case 1: r = 255; g = 160; break; // ORANGE
-            case 2: r = 255; g = 247; break; // YELLOW
-            case 3: g = 255; break; // GREEN
-            case 4: g = 191; b = 255; break; // AQUA
-            case 5: b = 255; break; // BLUE
-            case 6: r = 255; g = 255; b = 255; break; // WHITE
-            case 7: r = 139; b = 204; break; // PURPLE
-            case 8: r = 255; g = 192; b = 203; break; // PINK
-            case -1: return; break;
-            default: break;
-         }
-			((sim_sched*)sched)->set_color(node, r, g, b);
-      }
-#endif
-      break;
-      case SETEDGELABEL_PREDICATE_ID:
-#ifdef USE_UI
-      if(state::UI) {
-         LOG_SET_EDGE_LABEL(node->get_id(), tpl->get_node(0), tpl->get_string(1)->get_content());
-      }
-#endif
-      break;
       case SET_PRIORITY_PREDICATE_ID:
       if(from_other)
          sched->set_node_priority_other(node, tpl->get_float(0));
@@ -292,13 +248,9 @@ get_creation_function(const scheduler_type sched_type)
    switch(sched_type) {
       case SCHED_SERIAL:
          return database::create_node_fn(sched::serial_local::create_node);
-		case SCHED_SERIAL_UI:
-			return database::create_node_fn(sched::serial_ui_local::create_node);
-#ifdef USE_SIM
-		case SCHED_SIM:
-			return database::create_node_fn(sched::sim_sched::create_node);
-#endif
       case SCHED_UNKNOWN:
+         return NULL;
+      default:
          return NULL;
    }
    
@@ -328,15 +280,8 @@ machine::machine(const string& file, const size_t th,
       case SCHED_SERIAL:
          this->all->ALL_THREADS.push_back(dynamic_cast<sched::base*>(new sched::serial_local(this->all)));
          break;
-		case SCHED_SERIAL_UI:
-			this->all->ALL_THREADS.push_back(dynamic_cast<sched::base*>(new sched::serial_ui_local(this->all)));
-            break;
-#ifdef USE_SIM
-		case SCHED_SIM:
-			this->all->ALL_THREADS.push_back(dynamic_cast<sched::base*>(new sched::sim_sched(this->all)));
-			break;
-#endif
       case SCHED_UNKNOWN: assert(false); break;
+      default: break;
    }
    
    assert(this->all->ALL_THREADS.size() == all->NUM_THREADS);

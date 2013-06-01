@@ -85,17 +85,11 @@ SRCS = utils/utils.cpp \
 			 mem/stat.cpp \
 			 sched/base.cpp \
 			 sched/common.cpp \
-			 sched/mpi/message.cpp \
-			 sched/mpi/message_buffer.cpp \
-			 sched/mpi/request.cpp \
 			 sched/serial.cpp \
-			 sched/serial_ui.cpp \
 			 thread/static.cpp \
 			 thread/prio.cpp \
 			 sched/thread/threaded.cpp \
 			 sched/thread/assert.cpp \
-			 sched/mpi/tokenizer.cpp \
-			 sched/mpi/handler.cpp \
 			 external/math.cpp \
 			 external/lists.cpp \
 			 external/utils.cpp \
@@ -108,7 +102,6 @@ SRCS = utils/utils.cpp \
 			 ui/manager.cpp \
 			 ui/client.cpp \
 			 interface.cpp \
-			 sched/sim.cpp
 
 OBJS = $(patsubst %.cpp,%.o,$(SRCS))
 
@@ -133,9 +126,6 @@ predicates: $(OBJS) predicates.o
 
 server: $(OBJS) server.o
 	$(COMPILE) server.o -o server $(LDFLAGS)
-
-simulator: $(OBJS) simulator.o
-	$(COMPILE) simulator.o -o simulator $(LDFLAGS)
 
 depend:
 	makedepend -- $(CXXFLAGS) -- $(shell find . -name '*.cpp')

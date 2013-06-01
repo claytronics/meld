@@ -90,8 +90,8 @@ serial_local::generate_aggs(void)
 void
 serial_local::init(const size_t)
 {
-   database::map_nodes::iterator it(state.all->DATABASE->get_node_iterator(0));
-   database::map_nodes::iterator end(state.all->DATABASE->get_node_iterator(state.all->DATABASE->nodes_total - 1));
+   database::map_nodes::const_iterator it(state.all->DATABASE->nodes_begin());
+   database::map_nodes::const_iterator end(state.all->DATABASE->nodes_end());
    
    for(; it != end; ++it)
    {

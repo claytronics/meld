@@ -5,7 +5,6 @@
 #include "process/router.hpp"
 #include "vm/state.hpp"
 #include "db/database.hpp"
-#include "sched/mpi/handler.hpp"
 
 using namespace process;
 using namespace boost;

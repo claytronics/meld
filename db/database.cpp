@@ -1,4 +1,3 @@
-
 #include "vm/defs.hpp"
 #include "db/database.hpp"
 #include "vm/state.hpp"
@@ -11,7 +10,7 @@ using namespace utils;
 
 namespace db
 {
-   
+
 database::database(const string& filename, create_node_fn _create_fn, vm::all *_all):
    all(_all), create_fn(_create_fn), nodes_total(0)
 {
@@ -33,10 +32,12 @@ database::database(const string& filename, create_node_fn _create_fn, vm::all *_
    max_node_id = 0;
    max_translated_id = 0;
 
+   // Create all of the nodes
    for(size_t i(0); i < nodes_total; ++i) {
       fp.read((char*)&fake_id, sizeof(node::node_id));
       fp.read((char*)&real_id, sizeof(node::node_id));
 
+      // Implementation specific, create node
       node *node(create_fn(fake_id, real_id, all));
 
       translation[fake_id] = real_id;
@@ -49,7 +50,7 @@ database::database(const string& filename, create_node_fn _create_fn, vm::all *_
    }
 
    original_max_node_id = max_node_id;
-   }
+}
 }
 
 database::~database(void)
