@@ -14,7 +14,6 @@ namespace db {
 namespace process {
    class remote;
    class machine;
-   class router;
 }
 
 namespace sched {
@@ -39,8 +38,6 @@ class all
    
    db::database *DATABASE;
    process::machine *MACHINE;
-   //process::remote *REMOTE;
-   process::router *ROUTER;
    size_t NUM_THREADS;
    size_t NUM_NODES_PER_PROCESS;
 	machine_arguments ARGUMENTS;

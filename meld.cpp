@@ -4,7 +4,6 @@
 #include "process/machine.hpp"
 #include "utils/utils.hpp"
 #include "utils/fs.hpp"
-#include "process/router.hpp"
 #include "vm/state.hpp"
 
 #include "interface.hpp"

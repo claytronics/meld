@@ -14,7 +14,6 @@
 
 #include "process/machine.hpp"
 #include "utils/utils.hpp"
-#include "process/router.hpp"
 #include "interface.hpp"
 #include "version.hpp"
 #include "utils/atomic.hpp"

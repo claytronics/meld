@@ -19,10 +19,6 @@
 #include <json_spirit.h>
 #endif
 
-namespace process {
-   class router;
-}
-
 namespace vm {
 
 const size_t INIT_PREDICATE_ID(0);

@@ -6,7 +6,6 @@
 #include <assert.h>
 
 #include "interface.hpp"
-#include "process/router.hpp"
 #include "stat/stat.hpp"
 #include "utils/time.hpp"
 #include "utils/fs.hpp"
