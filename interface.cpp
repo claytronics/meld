@@ -10,7 +10,6 @@
 #include "utils/time.hpp"
 #include "utils/fs.hpp"
 #include "process/machine.hpp"
-#include "ui/manager.hpp"
 
 using namespace process;
 using namespace sched;

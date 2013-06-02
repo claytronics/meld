@@ -15,11 +15,6 @@
 #include "utils/spinlock.hpp"
 #include "vm/program.hpp"
 
-#ifdef USE_UI
-#include <json_spirit.h>
-#include "ui/macros.hpp"
-#endif
-
 // Store all nodes in VM
 namespace db
 {
@@ -71,9 +66,6 @@ public:
    
    void print_db(std::ostream&) const;
    void dump_db(std::ostream&) const;
-#ifdef USE_UI
-	json_spirit::Value dump_json(void) const;
-#endif
    
    void print(std::ostream&) const;
    

@@ -15,9 +15,6 @@
 #include "vm/rule.hpp"
 #include "runtime/string.hpp"
 #include "queue/heap_implementation.hpp"
-#ifdef USE_UI
-#include <json_spirit.h>
-#endif
 
 namespace vm {
 
@@ -100,9 +97,6 @@ public:
    void print_bytecode(std::ostream&) const;
    void print_predicates(std::ostream&) const;
    void print_bytecode_by_predicate(std::ostream&, const std::string&) const;
-#ifdef USE_UI
-	json_spirit::Value dump_json(void) const;
-#endif
    
    predicate* get_predicate(const predicate_id&) const;
    predicate* get_route_predicate(const size_t&) const;

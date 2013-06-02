@@ -6,9 +6,6 @@
 #include <ostream>
 #include <list>
 
-#ifdef USE_UI
-#include <json_spirit.h>
-#endif
 
 #include "vm/defs.hpp"
 #include "vm/predicate.hpp"
@@ -96,9 +93,6 @@ public:
    inline bool is_reused(void) const { return pred->is_reused_pred(); }
    
    void print(std::ostream&) const;
-#ifdef USE_UI
-	json_spirit::Value dump_json(void) const;
-#endif
    
    tuple *copy_except(const field_num) const;
    tuple *copy(void) const;

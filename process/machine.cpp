@@ -120,12 +120,6 @@ machine::route(const node* from, sched::base *sched_caller, const node::node_id 
   }
 }
 
-static inline string
-get_output_filename(const string other, const remote::remote_id id)
-{
-   return string("meld_output." + other + "." + utils::to_string(id));
-}
-
 void
 machine::deactivate_signals(void)
 {
