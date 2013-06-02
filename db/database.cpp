@@ -37,9 +37,6 @@ database::database(const string& filename, create_node_fn _create_fn, vm::all *_
       fp.read((char*)&fake_id, sizeof(node::node_id));
       fp.read((char*)&real_id, sizeof(node::node_id));
 
-      cerr << "Fake_id: " << fake_id << endl;
-      cerr << "Real_id: " << real_id << endl;
-
       // Implementation specific, create node
       node *node(create_fn(fake_id, real_id, all));
 
@@ -65,7 +62,7 @@ database::~database(void)
 node*
 database::find_node(const node::node_id id) const
 {
-   map_nodes::const_iterator it(nodes.begin());
+   map_nodes::const_iterator it(nodes.find(id));
 
    if(it == nodes.end()) {
       cerr << "Could not find node with id " << id << endl;

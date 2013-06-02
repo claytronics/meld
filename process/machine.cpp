@@ -93,6 +93,27 @@ machine::route(const node* from, sched::base *sched_caller, const node::node_id 
 {  
    assert(sched_caller != NULL);
    assert(id <= this->all->DATABASE->max_id());
+
+  node *node(this->all->DATABASE->find_node(id));
+
+  sched::base *sched_other(sched_caller->find_scheduler(node));
+    const predicate *pred(stpl->get_predicate());
+
+  if(delay > 0) {
+        work new_work(node, stpl);
+     sched_caller->new_work_delay(sched_caller, from, new_work, delay);
+  } else if(pred->is_action_pred()) {
+        run_action(sched_other, node, stpl->get_tuple(), sched_caller != sched_other);
+        delete stpl;
+    } else if(sched_other == sched_caller) {
+        work new_work(node, stpl);
+
+     sched_caller->new_work(from, new_work);
+  } else {
+     work new_work(node, stpl);
+
+     sched_caller->new_work_other(sched_other, new_work);
+  }
 }
 
 static inline string
