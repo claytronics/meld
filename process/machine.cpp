@@ -42,6 +42,10 @@ machine::run_action(sched::base *sched, node* node, vm::tuple *tpl, const bool f
 	assert(tpl->is_action());
 	
    switch(pid) {
+      case SETCOLOR_PREDICATE_ID:
+      case SETCOLOR2_PREDICATE_ID:
+      case SETEDGELABEL_PREDICATE_ID:
+      break;
       case SET_PRIORITY_PREDICATE_ID:
       if(from_other)
          sched->set_node_priority_other(node, tpl->get_float(0));
