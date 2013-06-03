@@ -16,4 +16,5 @@ inline bool is_serial_sched(const scheduler_type type)
 {
    return type == SCHED_SERIAL || type == SCHED_SERIAL_UI;
 }
+}
 #endif
