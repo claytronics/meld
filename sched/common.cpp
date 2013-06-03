@@ -1,7 +1,6 @@
 
 #include "sched/common.hpp"
 #include "db/database.hpp"
-#include "process/remote.hpp"
 #include "vm/state.hpp"
 
 using namespace vm;

@@ -78,7 +78,6 @@ SRCS = utils/utils.cpp \
 			 db/trie.cpp \
 			 db/neighbor_agg_configuration.cpp \
 			 process/machine.cpp \
-			 process/remote.cpp \
 			 mem/thread.cpp \
 			 mem/center.cpp \
 			 mem/stat.cpp \

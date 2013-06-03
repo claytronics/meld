@@ -4,7 +4,6 @@
 #include "thread/single.hpp"
 #include "db/database.hpp"
 #include "db/tuple.hpp"
-#include "process/remote.hpp"
 #include "sched/thread/assert.hpp"
 #include "vm/state.hpp"
 #include "utils/time.hpp"
@@ -228,8 +227,8 @@ threads_single::get_work(work& new_work)
 void
 threads_single::init(const size_t)
 {
-   database::map_nodes::iterator it(state::DATABASE->get_node_iterator(remote::self->find_first_node(id)));
-   database::map_nodes::iterator end(state::DATABASE->get_node_iterator(remote::self->find_last_node(id)));
+   database::map_nodes::const_iterator it(state.all->DATABASE->nodes_begin());
+   database::map_nodes::const_iterator end(state.all->DATABASE->nodes_end());
    
    for(; it != end; ++it)
    {
