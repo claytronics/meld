@@ -67,7 +67,7 @@ sim_sched::init(const size_t num_threads)
 {
 	if(slave)
 		return;
-		
+// Only happens once.		
 	assert(num_threads == 1);
 	
    database::map_nodes::iterator it(state.all->DATABASE->get_node_iterator(remote::self->find_first_node(id)));
@@ -141,16 +141,13 @@ sim_sched::init(const size_t num_threads)
 void
 sim_sched::new_work_delay(sched::base *target, const db::node *_src, work& new_work, const uint_val delay)
 {
-   if(thread_mode) {
-      sim_node *to(dynamic_cast<sim_node*>(new_work.get_node()));
-      to->add_delay_work(new_work, delay);
-   } else {
+
       work_info info;
       info.work = new_work;
       info.timestamp = state.sim_instr_counter;
       info.src = dynamic_cast<sim_node*>((node*)_src);
       delay_queue.push(info, utils::get_timestamp() + delay);
-   }
+ 
 }
 
 void
@@ -160,9 +157,10 @@ sim_sched::new_work(const node *_src, work& new_work)
    
 	db::simple_tuple *stpl(new_work.get_tuple());
 	
-	if(thread_mode) {
-      to->pending.push(stpl);
-	} else {
+
+
+
+{
 		if(current_node == NULL) {
          heap_priority pr;
 			pr.int_priority = 0; // this is the init tuple...
@@ -194,16 +192,14 @@ sim_sched::send_pending_messages(void)
 void
 sim_sched::add_received_tuple(sim_node *no, size_t ts, db::simple_tuple *stpl)
 {
-   if(thread_mode) {
-      no->pending.push(stpl);
-   } else {
+
       heap_priority pr;
       pr.int_priority = ts;
       if(stpl->get_count() > 0)
          no->tuple_pqueue.insert(stpl, pr);
       else
          no->rtuple_pqueue.insert(stpl, pr);
-   }
+
 }
 
 void
@@ -253,9 +249,7 @@ void
 sim_sched::instantiate_all_nodes(void)
 {
    assert(!all_instantiated);
-   assert(thread_mode);
-
-   for(database::map_nodes::const_iterator it(state.all->DATABASE->nodes_begin()),
+  for(database::map_nodes::const_iterator it(state.all->DATABASE->nodes_begin()),
          end(state.all->DATABASE->nodes_end());
          it != end;
          ++it)
@@ -353,12 +347,8 @@ sim_sched::handle_create_n_nodes(deterministic_timestamp ts, size_t n, node::nod
    for(message_type i(0); i != n; ++i) {
       db::node *no(state.all->DATABASE->create_node_id(start_id + i));
       init_node(no);
-      if(thread_mode) {
-         sim_sched *th(new sim_sched(state.all, state.all->NUM_THREADS, (sim_node*)no));
-         no->set_owner(th);
-         state.all->MACHINE->init_thread(th);
-      }
-      if(!thread_mode || all_instantiated) {
+
+         if(all_instantiated) {
          sim_node *no_in((sim_node *)no);
          no_in->set_instantiated(true);
          for(face_t face = sim_node::INITIAL_FACE; face <= sim_node::FINAL_FACE; ++face) {
@@ -573,14 +563,18 @@ sim_sched::master_get_work(void)
 		if(!socket->available()) {
          send_pending_messages();
 			usleep(100);
-         if(thread_mode && !all_instantiated) {
-            utils::unix_timestamp now(utils::get_timestamp());
+
+
+if(!all_instantiated) {  
+          utils::unix_timestamp now(utils::get_timestamp());
 
             if(now > start_time + TIME_TO_INSTANTIATE) {
                instantiate_all_nodes();
                all_instantiated = true;
             }
          }
+
+
          if(!thread_mode) {
             check_delayed_queue();
          }
@@ -597,10 +591,7 @@ sim_sched::master_get_work(void)
 		assert(length == (size_t)reply[0]);
 		
 		switch(reply[1]) {
-			case USE_THREADS:
-            cout << "Run in threads mode" << endl;
-            thread_mode = true;
-            break;
+
 			case CREATE_N_NODES:
             handle_create_n_nodes((deterministic_timestamp)reply[2],
                   (size_t)reply[4],
@@ -656,15 +647,6 @@ sim_sched::master_get_work(void)
 node*
 sim_sched::get_work(void)
 {
-	if(slave) {
-		while(current_node->pending.empty() && !current_node->delayed_available()) {
-			usleep(100);
-			if(stop_all)
-				return NULL;
-		}
-		return current_node;
-	}
-
    return master_get_work();
 }
 
@@ -689,12 +671,9 @@ sim_sched::set_color(db::node *n, const int r, const int g, const int b)
 void
 sim_sched::schedule_new_message(message_type *data)
 {
-	if(thread_mode) {
-		socket_messages.push(data);
-	} else {
-		boost::asio::write(*socket, boost::asio::buffer(data, data[0] + sizeof(message_type)));
+	boost::asio::write(*socket, boost::asio::buffer(data, data[0] + sizeof(message_type)));
 		delete []data;
-	}
+
 }
 
 void

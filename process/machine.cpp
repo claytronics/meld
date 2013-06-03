@@ -7,7 +7,7 @@
 #include "vm/state.hpp"
 #include "vm/exec.hpp"
 #include "runtime/list.hpp"
-#include "sched/mpi/message.hpp"
+//#include "sched/mpi/message.hpp"
 #include "mem/thread.hpp"
 #include "mem/stat.hpp"
 #include "stat/stat.hpp"
@@ -19,8 +19,8 @@
 //#include "thread/mpi_dynamic.hpp"
 //#include "thread/mpi_single.hpp"
 //#include "thread/mpi_static.hpp"
-#include "thread/prio.hpp"
-#include "thread/static.hpp"
+//#include "thread/prio.hpp"
+//#include "thread/static.hpp"
 
 using namespace process;
 using namespace db;
@@ -176,6 +176,8 @@ machine::route(const node* from, sched::base *sched_caller, const node::node_id 
          sched_caller->new_work_other(sched_other, new_work);
       }
    }
+
+/*
 #ifdef COMPILE_MPI
    else {
       // remote, mpi machine
@@ -188,6 +190,7 @@ machine::route(const node* from, sched::base *sched_caller, const node::node_id 
       sched_caller->new_work_remote(rem, id, msg);
    }
 #endif
+*/
 }
 
 static inline string
@@ -369,11 +372,11 @@ static inline database::create_node_fn
 get_creation_function(const scheduler_type sched_type)
 {
    switch(sched_type) {
+#if 0
       case SCHED_THREADS:
          return database::create_node_fn(sched::static_local::create_node);
       case SCHED_THREADS_PRIO:
          return database::create_node_fn(sched::threads_prio::create_node);
-#if 0
       case SCHED_THREADS_DYNAMIC_LOCAL:
          return database::create_node_fn(sched::dynamic_local::create_node);
       case SCHED_THREADS_DIRECT_LOCAL:
@@ -422,13 +425,13 @@ machine::machine(const string& file, router& _rout, const size_t th,
    
    // Instantiate the scheduler object
    switch(sched_type) {
+#if 0
       case SCHED_THREADS:
          sched::static_local::start(all->NUM_THREADS, this->all);
          break;
       case SCHED_THREADS_PRIO:
          sched::threads_prio::start(all->NUM_THREADS, this->all);
          break;
-#if 0
       case SCHED_THREADS_SINGLE_LOCAL:
          process_list = sched::threads_single::start(num_threads);
          break;
