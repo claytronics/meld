@@ -12,8 +12,6 @@
 #include "utils/fs.hpp"
 #include "interface.hpp"
 #include "sched/serial.hpp"
-#include "thread/prio.hpp"
-#include "thread/static.hpp"
 
 using namespace process;
 using namespace db;
