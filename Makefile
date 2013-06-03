@@ -78,24 +78,16 @@ SRCS = utils/utils.cpp \
 			 db/trie.cpp \
 			 db/neighbor_agg_configuration.cpp \
 			 process/machine.cpp \
-			 process/remote.cpp \
-			 process/router.cpp \
 			 mem/thread.cpp \
 			 mem/center.cpp \
 			 mem/stat.cpp \
 			 sched/base.cpp \
 			 sched/common.cpp \
-			 sched/mpi/message.cpp \
-			 sched/mpi/message_buffer.cpp \
-			 sched/mpi/request.cpp \
 			 sched/serial.cpp \
-			 sched/serial_ui.cpp \
 			 thread/static.cpp \
 			 thread/prio.cpp \
 			 sched/thread/threaded.cpp \
 			 sched/thread/assert.cpp \
-			 sched/mpi/tokenizer.cpp \
-			 sched/mpi/handler.cpp \
 			 external/math.cpp \
 			 external/lists.cpp \
 			 external/utils.cpp \
@@ -105,14 +97,11 @@ SRCS = utils/utils.cpp \
 			 stat/stat.cpp \
 			 stat/slice.cpp \
 			 stat/slice_set.cpp \
-			 ui/manager.cpp \
-			 ui/client.cpp \
 			 interface.cpp \
-			 sched/sim.cpp
 
 OBJS = $(patsubst %.cpp,%.o,$(SRCS))
 
-all: meld print predicates server simulator
+all: meld print predicates server
 	echo $(OBJS)
 
 -include Makefile.externs
@@ -133,9 +122,6 @@ predicates: $(OBJS) predicates.o
 
 server: $(OBJS) server.o
 	$(COMPILE) server.o -o server $(LDFLAGS)
-
-simulator: $(OBJS) simulator.o
-	$(COMPILE) simulator.o -o simulator $(LDFLAGS)
 
 depend:
 	makedepend -- $(CXXFLAGS) -- $(shell find . -name '*.cpp')

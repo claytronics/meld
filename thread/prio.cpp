@@ -4,7 +4,6 @@
 #include "thread/prio.hpp"
 #include "db/database.hpp"
 #include "db/tuple.hpp"
-#include "process/remote.hpp"
 #include "sched/thread/assert.hpp"
 #include "sched/common.hpp"
 #include "utils/time.hpp"
@@ -394,18 +393,10 @@ threads_prio::new_work_other(sched::base *, work& new_work)
 #endif
 }
 
-#ifdef COMPILE_MPI
-void
-threads_prio::new_work_remote(remote *, const node::node_id, message *)
-{
-   assert(false);
-}
-#endif
-
 void
 threads_prio::generate_aggs(void)
 {
-   iterate_static_nodes(id);
+   iterate_static_nodes();
 }
 
 bool
@@ -684,8 +675,8 @@ threads_prio::end(void)
 	size_t total_prioritized(0);
 	size_t total_nonprioritized(0);
 	
-   database::map_nodes::iterator it(state::DATABASE->get_node_iterator(remote::self->find_first_node(id)));
-   database::map_nodes::iterator end(state::DATABASE->get_node_iterator(remote::self->find_last_node(id)));
+   database::map_nodes::iterator it(state::DATABASE->get_node_iterator(state::DATABASE->nodes_begin()));
+   database::map_nodes::iterator end(state::DATABASE->get_node_iterator(state::DATABASE->nodes_end()));
    
    for(; it != end; ++it)
    {
@@ -905,8 +896,8 @@ threads_prio::init(const size_t)
 
    prio_queue.set_type(priority_type);
 
-   database::map_nodes::iterator it(state.all->DATABASE->get_node_iterator(remote::self->find_first_node(id)));
-   database::map_nodes::iterator end(state.all->DATABASE->get_node_iterator(remote::self->find_last_node(id)));
+   database::map_nodes::const_iterator it(state.all->DATABASE->nodes_begin());
+   database::map_nodes::const_iterator end(state.all->DATABASE->nodes_end());
    
 #ifdef DO_ONE_PASS_FIRST
    to_takeout = 0;

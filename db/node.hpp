@@ -24,9 +24,6 @@
 #include "vm/rule_matcher.hpp"
 #include "vm/all.hpp"
 
-#ifdef USE_UI
-#include <json_spirit.h>
-#endif
 
 namespace sched { class base; class mpi_handler; }
 namespace process { class process; class machine; }
@@ -119,9 +116,6 @@ public:
    
    void print(std::ostream&) const;
    void dump(std::ostream&) const;
-#ifdef USE_UI
-	json_spirit::Value dump_json(void) const;
-#endif
 
 	vm::rule_matcher matcher;
    

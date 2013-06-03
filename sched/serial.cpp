@@ -1,6 +1,6 @@
-
+#include "db/database.hpp"
+#include "db/node.hpp"
 #include "sched/serial.hpp"
-#include "process/remote.hpp"
 #include "sched/common.hpp"
 
 using namespace db;
@@ -84,14 +84,14 @@ serial_local::terminate_iteration(void)
 void
 serial_local::generate_aggs(void)
 {
-   iterate_static_nodes(id);
+   iterate_static_nodes();
 }
 
 void
 serial_local::init(const size_t)
 {
-   database::map_nodes::iterator it(state.all->DATABASE->get_node_iterator(remote::self->find_first_node(id)));
-   database::map_nodes::iterator end(state.all->DATABASE->get_node_iterator(remote::self->find_last_node(id)));
+   database::map_nodes::const_iterator it(state.all->DATABASE->nodes_begin());
+   database::map_nodes::const_iterator end(state.all->DATABASE->nodes_end());
    
    for(; it != end; ++it)
    {

@@ -2,7 +2,6 @@
 #include "thread/direct.hpp"
 #include "vm/state.hpp"
 #include "db/database.hpp"
-#include "process/remote.hpp"
 #include "utils/utils.hpp"
 #include "sched/common.hpp"
 #include "sched/thread/assert.hpp"
@@ -307,8 +306,8 @@ direct_local::init(const size_t)
    nodes = new node_set();
 #endif
 
-   database::map_nodes::iterator it(state::DATABASE->get_node_iterator(remote::self->find_first_node(id)));
-   database::map_nodes::iterator end(state::DATABASE->get_node_iterator(remote::self->find_last_node(id)));
+   database::map_nodes::const_iterator it(state.all->DATABASE->nodes_begin());
+   database::map_nodes::const_iterator end(state.all->DATABASE->nodes_end());
    
    for(; it != end; ++it)
    {
@@ -339,7 +338,7 @@ direct_local::generate_aggs(void)
       node_iteration(node);
    }
 #else
-   iterate_static_nodes(id);
+   iterate_static_nodes();
 #endif
 }
 

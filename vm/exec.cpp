@@ -9,9 +9,6 @@
 #include "vm/match.hpp"
 #include "db/tuple.hpp"
 #include "process/machine.hpp"
-#ifdef USE_UI
-#include "ui/manager.hpp"
-#endif
 
 using namespace vm;
 using namespace vm::instr;
@@ -317,15 +314,6 @@ execute_send_self(tuple *tuple, state& state)
    if(state.use_local_tuples || state.persistent_only) {
       const predicate *pred(tuple->get_predicate());
 
-#ifdef USE_UI
-      if(state::UI) {
-         if(tuple->is_persistent()) {
-            LOG_PERSISTENT_DERIVATION(state.node, tuple);
-         } else if(tuple->is_linear() && !tuple->is_action()) {
-            LOG_LINEAR_DERIVATION(state.node, tuple);
-         }
-      }
-#endif
       if(pred->get_strat_level() != state.current_level) {
          simple_tuple *stuple(new simple_tuple(tuple, state.count));
          assert(stuple->can_be_consumed());
@@ -377,11 +365,6 @@ execute_send(const pcounter& pc, state& state)
 #ifdef DEBUG_MODE
       cout << "\t" << *tuple << " -> " << dest_val << endl;
 #endif
-#ifdef USE_UI
-      if(state::UI) {
-         LOG_TUPLE_SEND(state.node, state.all->DATABASE->find_node((node::node_id)dest_val), tuple);
-      }
-#endif
       simple_tuple *stuple(new simple_tuple(tuple, state.count));
       state.all->MACHINE->route(state.node, state.sched, (node::node_id)dest_val, stuple);
    }
@@ -409,11 +392,6 @@ execute_send_delay(const pcounter& pc, state& state)
    } else {
 #ifdef DEBUG_MODE
       cout << "\t" << *tuple << " -> " << dest_val << endl;
-#endif
-#ifdef USE_UI
-      if(state::UI) {
-         LOG_TUPLE_SEND(state.node, state.all->DATABASE->find_node((node::node_id)dest_val), tuple);
-      }
 #endif
       state.all->MACHINE->route(state.node, state.sched, (node::node_id)dest_val, stuple, send_delay_time(pc));
    }
@@ -1522,11 +1500,6 @@ execute_remove(pcounter pc, state& state)
 {
    const reg_num reg(remove_source(pc));
 
-#ifdef USE_UI
-   if(state::UI) {
-      LOG_LINEAR_CONSUMPTION(state.node, state.get_tuple(reg));
-   }
-#endif
 #ifdef CORE_STATISTICS
    state.stat_predicate_success[state.get_tuple(reg)->get_predicate_id()]++;
 #endif
@@ -1656,12 +1629,6 @@ execute_rule(const pcounter& pc, state& state)
 
    state.current_rule = rule_id;
 
-#ifdef USE_UI
-   if(state::UI) {
-      vm::rule *rule(state.all->PROGRAM->get_rule(state.current_rule));
-      LOG_RULE_START(state.node, rule);
-   }
-#endif
 
 #ifdef CORE_STATISTICS
 	if(state.stat_rules_activated == 0 && state.stat_inside_rule) {
@@ -1678,12 +1645,6 @@ execute_rule_done(const pcounter& pc, state& state)
    (void)pc;
    (void)state;
 
-#ifdef USE_UI
-   if(state::UI) {
-      vm::rule *rule(state.all->PROGRAM->get_rule(state.current_rule));
-      LOG_RULE_APPLIED(state.node, rule);
-   }
-#endif
 
 #ifdef CORE_STATISTICS
 	state.stat_rules_ok++;
@@ -1707,11 +1668,6 @@ execute_new_node(const pcounter& pc, state& state)
 
    state.set_node(reg, new_node->get_id());
 
-#ifdef USE_UI
-   if(state::UI) {
-      LOG_NEW_NODE(new_node);
-   }
-#endif
 }
 
 static inline void
@@ -1802,12 +1758,6 @@ eval_loop:
 		if(state.print_instrs)
          instr_print_simple(pc, 0, state.all->PROGRAM, cout);
 #endif      
-
-#ifdef USE_SIM
-      if(state::SIM) {
-         ++state.sim_instr_counter;
-      }
-#endif
 
 #ifdef CORE_STATISTICS
 		state.stat_instructions_executed++;

@@ -4,7 +4,6 @@
 #include "thread/static.hpp"
 #include "db/database.hpp"
 #include "db/tuple.hpp"
-#include "process/remote.hpp"
 #include "sched/thread/assert.hpp"
 #include "vm/state.hpp"
 #include "sched/common.hpp"
@@ -130,14 +129,6 @@ static_local::retrieve_tuples(void)
    }
 }
 
-#ifdef COMPILE_MPI
-void
-static_local::new_work_remote(remote *, const node::node_id, message *)
-{
-   assert(false);
-}
-#endif
-
 #ifdef TASK_STEALING
 void
 static_local::make_steal_request(void)
@@ -235,7 +226,7 @@ static_local::answer_steal_requests(void)
 void
 static_local::generate_aggs(void)
 {
-   iterate_static_nodes(id);
+   iterate_static_nodes();
 }
 
 bool
@@ -380,11 +371,8 @@ static_local::end(void)
 void
 static_local::init(const size_t)
 {
-   const node::node_id first_node(remote::self->find_first_node(id));
-   const node::node_id last_node(remote::self->find_last_node(id));
-
-   database::map_nodes::iterator it(state.all->DATABASE->get_node_iterator(first_node));
-   database::map_nodes::iterator end(state.all->DATABASE->get_node_iterator(last_node));
+   database::map_nodes::const_iterator it(state.all->DATABASE->nodes_begin());
+   database::map_nodes::const_iterator end(state.all->DATABASE->nodes_end());
    
    for(; it != end; ++it)
    {
