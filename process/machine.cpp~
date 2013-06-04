@@ -1,26 +1,19 @@
 #include <iostream>
 #include <signal.h>
 
-#include "ui/manager.hpp"
 #include "process/machine.hpp"
 #include "vm/program.hpp"
 #include "vm/state.hpp"
 #include "vm/exec.hpp"
 #include "runtime/list.hpp"
-//#include "sched/mpi/message.hpp"
 #include "mem/thread.hpp"
 #include "mem/stat.hpp"
 #include "stat/stat.hpp"
 #include "utils/fs.hpp"
 #include "interface.hpp"
 #include "sched/serial.hpp"
-#include "sched/serial_ui.hpp"
-#include "sched/sim.hpp"
-//#include "thread/mpi_dynamic.hpp"
-//#include "thread/mpi_single.hpp"
-//#include "thread/mpi_static.hpp"
-//#include "thread/prio.hpp"
-//#include "thread/static.hpp"
+#include "thread/prio.hpp"
+#include "thread/static.hpp"
 
 using namespace process;
 using namespace db;
@@ -38,16 +31,7 @@ namespace process
 bool
 machine::same_place(const node::node_id id1, const node::node_id id2) const
 {
-   if(id1 == id2)
-      return true;
-   
-   remote *rem1(rout.find_remote(id1));
-   remote *rem2(rout.find_remote(id2));
-   
-   if(rem1 != rem2)
-      return false;
-   
-   return rem1->find_proc_owner(id1) == rem1->find_proc_owner(id2);
+   return true;
 }
 
 void
@@ -59,44 +43,8 @@ machine::run_action(sched::base *sched, node* node, vm::tuple *tpl, const bool f
 	
    switch(pid) {
       case SETCOLOR_PREDICATE_ID:
-#ifdef USE_UI
-      if(state::UI) {
-         LOG_SET_COLOR(node, tpl->get_int(0), tpl->get_int(1), tpl->get_int(2));
-      }
-#endif
-#ifdef USE_SIM
-      if(state::SIM) {
-			((sim_sched*)sched)->set_color(node, tpl->get_int(0), tpl->get_int(1), tpl->get_int(2));
-      }
-#endif
-      break;
       case SETCOLOR2_PREDICATE_ID:
-#ifdef USE_SIM
-      if(state::SIM) {
-         int r(0), g(0), b(0);
-         switch(tpl->get_int(0)) {
-            case 0: r = 255; break; // RED
-            case 1: r = 255; g = 160; break; // ORANGE
-            case 2: r = 255; g = 247; break; // YELLOW
-            case 3: g = 255; break; // GREEN
-            case 4: g = 191; b = 255; break; // AQUA
-            case 5: b = 255; break; // BLUE
-            case 6: r = 255; g = 255; b = 255; break; // WHITE
-            case 7: r = 139; b = 204; break; // PURPLE
-            case 8: r = 255; g = 192; b = 203; break; // PINK
-            case -1: return; break;
-            default: break;
-         }
-			((sim_sched*)sched)->set_color(node, r, g, b);
-      }
-#endif
-      break;
       case SETEDGELABEL_PREDICATE_ID:
-#ifdef USE_UI
-      if(state::UI) {
-         LOG_SET_EDGE_LABEL(node->get_id(), tpl->get_node(0), tpl->get_string(1)->get_content());
-      }
-#endif
       break;
       case SET_PRIORITY_PREDICATE_ID:
       if(from_other)
@@ -147,53 +95,29 @@ machine::route_self(sched::base *sched, node *node, simple_tuple *stpl, const ui
 void
 machine::route(const node* from, sched::base *sched_caller, const node::node_id id, simple_tuple* stpl, const uint_val delay)
 {  
-   remote* rem(rout.find_remote(id));
-   
    assert(sched_caller != NULL);
    assert(id <= this->all->DATABASE->max_id());
-   
-   if(rem == remote::self) {
-      // on this machine
-      
-      node *node(this->all->DATABASE->find_node(id));
-      
-      sched::base *sched_other(sched_caller->find_scheduler(node));
-		const predicate *pred(stpl->get_predicate());
 
-      if(delay > 0) {
-			work new_work(node, stpl);
-         sched_caller->new_work_delay(sched_caller, from, new_work, delay);
-      } else if(pred->is_action_pred()) {
-			run_action(sched_other, node, stpl->get_tuple(), sched_caller != sched_other);
-			delete stpl;
-		} else if(sched_other == sched_caller) {
-			work new_work(node, stpl);
-      
-         sched_caller->new_work(from, new_work);
-      } else {
-         work new_work(node, stpl);
+  node *node(this->all->DATABASE->find_node(id));
 
-         sched_caller->new_work_other(sched_other, new_work);
-      }
-   }
-#ifdef COMPILE_MPI
-   else {
-      // remote, mpi machine
-      
-      assert(rout.use_mpi());
-      assert(delay == 0);
-      
-      message *msg(new message(id, stpl));
-      
-      sched_caller->new_work_remote(rem, id, msg);
-   }
-#endif
-}
+  sched::base *sched_other(sched_caller->find_scheduler(node));
+    const predicate *pred(stpl->get_predicate());
 
-static inline string
-get_output_filename(const string other, const remote::remote_id id)
-{
-   return string("meld_output." + other + "." + utils::to_string(id));
+  if(delay > 0) {
+        work new_work(node, stpl);
+     sched_caller->new_work_delay(sched_caller, from, new_work, delay);
+  } else if(pred->is_action_pred()) {
+        run_action(sched_other, node, stpl->get_tuple(), sched_caller != sched_other);
+        delete stpl;
+    } else if(sched_other == sched_caller) {
+        work new_work(node, stpl);
+
+     sched_caller->new_work(from, new_work);
+  } else {
+     work new_work(node, stpl);
+
+     sched_caller->new_work_other(sched_other, new_work);
+  }
 }
 
 void
@@ -279,6 +203,7 @@ machine::init_thread(sched::base *sched)
 	sched->start();
 }
 
+// Start all schedulers in the VM
 void
 machine::start(void)
 {
@@ -287,6 +212,7 @@ machine::start(void)
 	
    deactivate_signals();
    
+   // Statistics sampling
    if(stat_enabled()) {
       // initiate alarm thread
       alarm_thread = new boost::thread(bind(&machine::slice_function, this));
@@ -296,6 +222,7 @@ machine::start(void)
       this->all->ALL_THREADS[i]->start();
    this->all->ALL_THREADS[0]->start();
    
+   // Wait for threads to finish, if thread > 1
    for(size_t i(1); i < all->NUM_THREADS; ++i)
       this->all->ALL_THREADS[i]->join();
       
@@ -317,38 +244,10 @@ machine::start(void)
    const bool will_print(show_database || dump_database);
 
    if(will_print) {
-      if(rout.use_mpi()) {
-         if(show_database) {
-            const string filename(get_output_filename("db", remote::self->get_rank()));
-            ofstream fp(filename.c_str());
-            
-            all->DATABASE->print_db(fp);
-         }
-         if(dump_database) {
-            const string filename(get_output_filename("dump", remote::self->get_rank()));
-            ofstream fp(filename.c_str());
-            all->DATABASE->dump_db(fp);
-         }
-         
-         rout.barrier();
-         
-         // read and output files
-         if(remote::self->is_leader()) {
-            if(show_database) {
-               for(size_t i(0); i < remote::world_size; ++i)
-                  file_print_and_remove(get_output_filename("db", i));
-            }
-            if(dump_database) {
-               for(size_t i(0); i < remote::world_size; ++i)
-                  file_print_and_remove(get_output_filename("dump", i));
-            }
-         }
-      } else {
          if(show_database)
             all->DATABASE->print_db(cout);
          if(dump_database)
             all->DATABASE->dump_db(cout);
-      }
    }
 
    if(memory_statistics) {
@@ -361,52 +260,31 @@ machine::start(void)
    }
 }
 
+/* Implementation specific function */
 static inline database::create_node_fn
 get_creation_function(const scheduler_type sched_type)
 {
    switch(sched_type) {
-#if 0
-      case SCHED_THREADS:
-         return database::create_node_fn(sched::static_local::create_node);
-      case SCHED_THREADS_PRIO:
-         return database::create_node_fn(sched::threads_prio::create_node);
-      case SCHED_THREADS_DYNAMIC_LOCAL:
-         return database::create_node_fn(sched::dynamic_local::create_node);
-      case SCHED_THREADS_DIRECT_LOCAL:
-         return database::create_node_fn(sched::direct_local::create_node);
-      case SCHED_MPI_AND_THREADS_STATIC_LOCAL:
-         return database::create_node_fn(sched::mpi_thread_static::create_node);
-      case SCHED_MPI_AND_THREADS_DYNAMIC_LOCAL:
-         return database::create_node_fn(sched::mpi_thread_dynamic::create_node);
-      case SCHED_MPI_AND_THREADS_SINGLE_LOCAL:
-         return database::create_node_fn(sched::mpi_thread_single::create_node);
-#endif
       case SCHED_SERIAL:
          return database::create_node_fn(sched::serial_local::create_node);
-		case SCHED_SERIAL_UI:
-			return database::create_node_fn(sched::serial_ui_local::create_node);
-#ifdef USE_SIM
-		case SCHED_SIM:
-			return database::create_node_fn(sched::sim_sched::create_node);
-#endif
       case SCHED_UNKNOWN:
+         return NULL;
+      default:
          return NULL;
    }
    
    throw machine_error("unknown scheduler type");
 }
 
-machine::machine(const string& file, router& _rout, const size_t th,
+machine::machine(const string& file, const size_t th,
 		const scheduler_type _sched_type, const machine_arguments& margs):
    all(new vm::all()),
    filename(file),
    sched_type(_sched_type),
-   rout(_rout),
    alarm_thread(NULL),
-   slices(th)
+   slices(th) /* th = number of threads, slices is for statistics */
 {
-    this->all->PROGRAM = new vm::program(file);
-    this->all->ROUTER = &_rout;
+    this->all->PROGRAM = new vm::program(file); /* predicates information, byte code for all the rules */
     
     if(margs.size() < this->all->PROGRAM->num_args_needed())
         throw machine_error(string("this program requires ") + utils::to_string(all->PROGRAM->num_args_needed()) + " arguments");
@@ -416,45 +294,13 @@ machine::machine(const string& file, router& _rout, const size_t th,
    this->all->NUM_THREADS = th;
    this->all->MACHINE = this;
    
+   // Instantiate the scheduler object
    switch(sched_type) {
-#if 0
-      case SCHED_THREADS:
-         sched::static_local::start(all->NUM_THREADS, this->all);
-         break;
-      case SCHED_THREADS_PRIO:
-         sched::threads_prio::start(all->NUM_THREADS, this->all);
-         break;
-      case SCHED_THREADS_SINGLE_LOCAL:
-         process_list = sched::threads_single::start(num_threads);
-         break;
-      case SCHED_THREADS_DYNAMIC_LOCAL:
-         process_list = sched::dynamic_local::start(num_threads);
-         break;
-      case SCHED_THREADS_DIRECT_LOCAL:
-         process_list = sched::direct_local::start(num_threads);
-         break;
-      case SCHED_MPI_AND_THREADS_STATIC_LOCAL:
-         process_list = sched::mpi_thread_static::start(num_threads);
-         break;
-      case SCHED_MPI_AND_THREADS_DYNAMIC_LOCAL:
-         process_list = sched::mpi_thread_dynamic::start(num_threads);
-         break;
-      case SCHED_MPI_AND_THREADS_SINGLE_LOCAL:
-         process_list = sched::mpi_thread_single::start(num_threads);
-         break;
-#endif
       case SCHED_SERIAL:
          this->all->ALL_THREADS.push_back(dynamic_cast<sched::base*>(new sched::serial_local(this->all)));
          break;
-		case SCHED_SERIAL_UI:
-			this->all->ALL_THREADS.push_back(dynamic_cast<sched::base*>(new sched::serial_ui_local(this->all)));
-			break;
-#ifdef USE_SIM
-		case SCHED_SIM:
-			this->all->ALL_THREADS.push_back(dynamic_cast<sched::base*>(new sched::sim_sched(this->all)));
-			break;
-#endif
       case SCHED_UNKNOWN: assert(false); break;
+      default: break;
    }
    
    assert(this->all->ALL_THREADS.size() == all->NUM_THREADS);

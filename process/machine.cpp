@@ -218,13 +218,13 @@ machine::start(void)
       alarm_thread = new boost::thread(bind(&machine::slice_function, this));
    }
    
-   for(size_t i(1); i < all->NUM_THREADS; ++i)
-      this->all->ALL_THREADS[i]->start();
+   //for(size_t i(1); i < all->NUM_THREADS; ++i)
+      //this->all->ALL_THREADS[i]->start();
    this->all->ALL_THREADS[0]->start();
    
    // Wait for threads to finish, if thread > 1
-   for(size_t i(1); i < all->NUM_THREADS; ++i)
-      this->all->ALL_THREADS[i]->join();
+   //for(size_t i(1); i < all->NUM_THREADS; ++i)
+      //this->all->ALL_THREADS[i]->join();
       
 #ifndef NDEBUG
    for(size_t i(1); i < all->NUM_THREADS; ++i)
