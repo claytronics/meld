@@ -19,7 +19,7 @@ using boost::asio::ip::tcp;
 // when running in thread mode, the VM waits this milliseconds to instantiate all neighbor facts
 static const int TIME_TO_INSTANTIATE = 500;
 
-#define CREATE_N_NODES 1
+#define SETID 1
 #define RUN_NODE 2
 #define NODE_RUN 3
 #define STOP 4
@@ -32,7 +32,7 @@ static const int TIME_TO_INSTANTIATE = 500;
 #define RECEIVE_MESSAGE 13
 #define ACCEL 14
 #define SHAKE 15
-#define SETID 18
+#define CREATE_N_NODES 18
 
 // debug messages for simulation
 // #define DEBUG
