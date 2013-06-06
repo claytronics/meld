@@ -32,6 +32,7 @@ static const int TIME_TO_INSTANTIATE = 500;
 #define RECEIVE_MESSAGE 13
 #define ACCEL 14
 #define SHAKE 15
+#define SETID 18
 
 // debug messages for simulation
 // #define DEBUG
