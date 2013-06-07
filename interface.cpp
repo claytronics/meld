@@ -103,6 +103,11 @@ run_program(int argc, char **argv, const char *program, const vm::machine_argume
             tm.start();
       }
 
+      /* TODO MPI: instantiate the processeses
+       * store the number of processes
+       * if mpi then store world.rank
+       * otherwise, the number of process is 1*/
+
       /* instantiate machine
        * serial: 1 thread, sched_serial
        * margs: meld argv, argc*/
