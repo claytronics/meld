@@ -571,23 +571,23 @@ sim_sched::master_get_work(void)
 	
 	while(true) {
 		if(!socket->available()) {
-      		send_pending_messages();
+         send_pending_messages();
 			usleep(100);
-         	if(thread_mode && !all_instantiated) {
-            	utils::unix_timestamp now(utils::get_timestamp());
+         if(thread_mode && !all_instantiated) {
+            utils::unix_timestamp now(utils::get_timestamp());
 
-            	if(now > start_time + TIME_TO_INSTANTIATE) {
-            	    instantiate_all_nodes();
-               		all_instantiated = true;
-            	}
-         	}
-         	if(!thread_mode) {
-         	   check_delayed_queue();
-         	}
+            if(now > start_time + TIME_TO_INSTANTIATE) {
+               instantiate_all_nodes();
+               all_instantiated = true;
+            }
+         }
+         if(!thread_mode) {
+            check_delayed_queue();
+         }
 			continue;
 		} else {
 //         cout << "Not available" << endl;
-      	}
+      }
 		
 		size_t length =
 			socket->read_some(boost::asio::buffer(reply, sizeof(message_type)));

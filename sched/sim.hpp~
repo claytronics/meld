@@ -105,7 +105,7 @@ public:
    
    virtual db::node* get_work(void);
    
-   virtual uint64_t init_tcp(const size_t);
+   virtual uint64_t init(const size_t);
    virtual void end(void) {}
    virtual bool terminate_iteration(void);
    virtual int main(void);

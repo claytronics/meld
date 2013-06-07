@@ -96,6 +96,7 @@ SRCS = utils/utils.cpp \
 			 stat/slice.cpp \
 			 stat/slice_set.cpp \
 			 interface.cpp \
+			 sched/sim_tcp.cpp \
 
 OBJS = $(patsubst %.cpp,%.o,$(SRCS))
 
