@@ -1860,9 +1860,7 @@ eval_loop:
             break;
             
          case SEND_INSTR:
-	    state.all->DATABASE->print_db(cout);
 	    runBreakPoint("fact","Fact has been derived.");
-	    state.all->DATABASE->print_db(cout);
             execute_send(pc, state);
             break;
 

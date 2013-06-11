@@ -1,5 +1,6 @@
 
-/* Interface for debugging*/
+/* Interface for debugging- spawns a  prompt that will controll the main thread
+ if it hits a specifies break point*/
 
 #include <pthread.h>
 #include <iostream>
@@ -9,40 +10,43 @@
 #include "debug_handler.hpp"
 
 using namespace std;
+using namespace vm;
 
-
-void *run_debugger();
-void *run_debugger_wrapper(void* vargp);
-void parseline(string line);
+/*function prototypes*/
+void *run_debugger(void * curState);
+void parseline(string line, state& st);
 int handle_command(string command);
 void help();
 
-int paused = 1;
+/*to store the last input in the debugger*/
+int lastInstruction = 0;
+string lastBuild = "";
 
 
 
-/*spawn the debbugging prompt*/
-void debug(){
+
+/*spawn the debbugging prompt as a separate thread to
+  controll the main one*/
+void debug(state& st){
 
   pthread_t tid;
-  pthread_create(&tid,NULL,run_debugger_wrapper, NULL);
+  pthread_create(&tid,NULL,run_debugger, &st);
 
 }
 
 
-void *run_debugger_wrapper(void *vargp){
-  (void)vargp;
-  return run_debugger();
-}
 
 //continuously attend command line prompt
-void *run_debugger(){ 
+void *run_debugger(void * curState){
+ 
   string inpt;
+  state st = *(state *)curState;
+
   while(true){
     if (isTheSystemPaused()){
       cout << ">";
       getline(cin,inpt);
-      parseline(inpt);
+      parseline(inpt,st);
     }
   }
   return NULL;
@@ -52,7 +56,7 @@ void *run_debugger(){
 
 
 /*parses the command line*/
-void parseline(string line){
+void parseline(string line, state& st){
 
   string build = "";
   int wordCount = 1;
@@ -61,9 +65,12 @@ void parseline(string line){
 
   /*empty input*/
   if (line == ""){
+    //enterlast stored command
+    debugController(st,lastInstruction, lastBuild);
     return;
   }
 
+  /*loop through input line*/
   for (unsigned int i = 0; i < line.length(); i++){
     
 
@@ -73,34 +80,36 @@ void parseline(string line){
     } else {
       if (wordCount == 1)
 	command = handle_command(build);
-      if (wordCount == 2){
-	if (command == BREAKPOINT)
-	  inputInstruction(command,build);
-	else 
-	  inputInstruction(command,"");
-	break;
-      }
-      wordCount++;
-      build = "";
+    wordCount++;
+    build = "";
     }
-    
   }
+    
 
   /*no whitespace at all*/
   if (wordCount == 1){
       command = handle_command(build);
-      inputInstruction(command, build);
+      debugController(st,command, build);
+      lastInstruction = command;
+      lastBuild = build;
+      return;
   }
   
-  if (command == BREAKPOINT && wordCount == 1)
+  /*if not enough info*/
+  if (command == BREAKPOINT && wordCount == 1){
       cout << "Please specify breakpoint type" << endl;
+      return;
+  }
 
+  /*handle breakpoints*/
   if (wordCount == 2){
 	if (command == BREAKPOINT)
-	  inputInstruction(command,build);
+	  debugController(st,command,build);
 	else 
-	  inputInstruction(command,"");
-      }
+	  debugController(st,command,"");
+      lastInstruction = command;
+      lastBuild = build;
+  }
 
 }
 
@@ -110,21 +119,28 @@ int handle_command(string command){
 
   int retVal;
 
-  if (command == "breakpoint"){
+  if (command == "break"){
     retVal = BREAKPOINT;
   } else if (command == "help"){
+    cout << endl;
+    cout << "*******************************************************************" << endl;
+    cout << endl;
     help();
+    cout << endl;
+    cout << "*******************************************************************" << endl;
+    cout << endl;
     retVal = NOTHING;
-  } else if (command == "run") {
-    cout << "Resuming VM ... " << endl;
-    continueExecution();
-    retVal = NOTHING;
-  } else if (command == "dump") {
-    cout << "Memory Dump" << endl;
-    retVal = DUMP;
-  } else if (command == "continue"){
+  } else if (command == "run"|| command == "r") {
     retVal = CONTINUE;
-  } else if (command == "quit"){
+  } else if (command == "dump"||command == "d") {
+    cout << endl;
+     cout << "*******************************************************************" << endl; 
+    cout << "Memory Dump:" << endl;
+    cout << endl;
+    retVal = DUMP;
+  } else if (command == "continue"||command == "c"){
+    retVal = CONTINUE;
+  } else if (command == "quit"||command == "q"){
     exit(0);
   } else {
     cout << "unknown command: type 'help' for options " << endl;
@@ -133,13 +149,17 @@ int handle_command(string command){
   return retVal;
 }
 
+
+/*prints the help screen*/
 void help(){
   cout << "DEBUGGER HELP" << endl;
-  cout << "\tbreakpoint- set break point" << endl;
-  cout << "\tdump - dump the state of the system" << endl;
-  cout << "\tcontinue - continue execution" << endl;
-  cout << "\trun - start the program" << endl;
-  cout << "\tquit - exit debugger" << endl;
+  cout << "\t-break fact|action|sense - set break point at specified type" << endl;
+  cout << "\t-dump or d - dump the state of the system" << endl;
+  cout << "\t-continue or c - continue execution" << endl;
+  cout << "\t-run or r - start the program" << endl;
+  cout << "\t-quit - exit debugger" << endl;
+  cout << endl;
+  cout << "\t-Press Enter to use last Input" << endl;
 }
   
 

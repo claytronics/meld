@@ -1,5 +1,6 @@
 
-/*FUNCTIONS TO HANDLE BREAKPOINTS, DUMPS, AND CONTINUES*/
+/*API TO HANDLE BREAKPOINTS, DUMPS, AND CONTINUES*/
+
 
 #include <pthread.h>
 #include <iostream>
@@ -13,36 +14,33 @@
 using namespace std;
 using namespace vm;
 
-void *debugController(void* st);
-void initiateDebugController();
+/*function prototypes*/
 void activateBreakPoint(string type);
 void runBreakPoint(string type, string msg);
 void pauseIt();
-void dumpSystemState();
+void dumpSystemState(vm::state& st);
 void continueExecution();
-bool isInDebuggingMode();
+void debugController(vm::state& currentState, int instruction, string specification);
+bool isTheSystemPaused();
 void setDebuggingMode(bool setting);
+bool isInDebuggingMode();
 
+
+/*command encodings*/
 #define DUMP 0
 #define CONTINUE 1
 #define BREAKPOINT 2
 #define NOTHING 3
 
-bool debug_BlockBreakPoint = false;
-bool debug_ActionBreakPoint = false;
-bool debug_SenseBreakPoint = false;
-bool debug_FactBreakPoint = false;
-bool isSystemPaused = true;
-int instruction = NOTHING;
-string typeOfBreak = "";
-bool isDebug = false;
 
+/*global variables to controll main thread*/
+static bool debug_BlockBreakPoint = false;
+static bool debug_ActionBreakPoint = false;
+static bool debug_SenseBreakPoint = false;
+static bool debug_FactBreakPoint = false;
+static bool isSystemPaused = true;
+static bool isDebug = false;
 
-
-#define DUMP 0
-#define CONTINUE 1
-#define BREAKPOINT 2
-#define NOTHING 3
 
 
 /*returns if the VM is paused for debugging or not*/
@@ -108,51 +106,37 @@ void pauseIt(){
 
 
 /*display the contents of VM*/
-void dumpSystemState(state& systemState){
-  cout << "muahhahahhahahahahahah! No memory dump for you!" << endl;
-  systemState.all->DATABASE->print_db(cout);
+void dumpSystemState(state& st){
+  st.all->DATABASE->print_db(cout);
+  cout << endl;
+  cout << "*******************************************************************" << endl;
+  cout << endl;
 }
+
 
 /*resume a paused system*/
 void continueExecution(){
   isSystemPaused = false;
 }
 
+/*turn debugging Mode on*/
 void setDebuggingMode(bool setting){
   isDebug = setting;
 }
 
+
+/*check id debugging mode is on*/
 bool isInDebuggingMode(){
   return isDebug;
 }
 
 
-/*used after instruction message is recieved*/
-/*the string speicification if used for a particular breakpoint*/
-int inputInstruction(int instr_encoding,string specification){
-  (void)specification;
-  instruction = instr_encoding;
-  if (instr_encoding == BREAKPOINT){
-    activateBreakPoint(specification);
-  }
-  return instruction;
-}
-  
-
-void initiateDebugController(state& st){
-  pthread_t tid;
-  pthread_create(&tid, NULL, debugController,&st);
-}
-
-/*ran as a separate thread*/
-void *debugController(void* st){
-
-  state currentState = *(state*)st;
+/*execute instruction based on encoding and specification*/
+void debugController(state& currentState,int instruction, string specification){
     
-  while(true){
     switch(instruction){
     case DUMP:
-      //dumpSystemState(currentState);
+      dumpSystemState(currentState);
       instruction = NOTHING;
       break;
     case CONTINUE:
@@ -160,16 +144,10 @@ void *debugController(void* st){
       instruction = NOTHING;
       break;
     case BREAKPOINT:
-      //activateBreakPoint("block");
+      activateBreakPoint(specification);
       instruction = NOTHING;
       break;
-    default:
-      break;
     }
-  }
-
-  return NULL;
-
 }
   
 

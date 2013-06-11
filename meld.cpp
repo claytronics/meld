@@ -1,13 +1,12 @@
 #include <iostream>
 #include <vector>
 
-
 #include "process/machine.hpp"
 #include "utils/utils.hpp"
 #include "utils/fs.hpp"
 #include "vm/state.hpp"
-#include "debug_prompt.hpp"
 #include "debug_handler.hpp"
+#include "debug_prompt.hpp"
 #include "interface.hpp"
 
 using namespace utils;
@@ -31,6 +30,7 @@ help(void)
 	cerr << "\t-s \t\tshows database" << endl;
    cerr << "\t-d \t\tdump database (debug option)" << endl;
    cerr << "\t-h \t\tshow this screen" << endl;
+   cerr << "\t-D \t\tgo into debugging mode" << endl;
 
    exit(EXIT_SUCCESS);
 }
@@ -88,12 +88,10 @@ read_arguments(int argc, char **argv)
             help();
             break;
          case 'D':
-	   cout << "DEBUGGING MODE SET" << endl;
-	   debug();
-	   initiateDebugController();
-	   pauseIt();
-	   //setDebuggingMode(true);
+	   cout << "DEBUGGING MODE- type help for options" << endl;
+	   setDebuggingMode(true);
 	   break;
+	   
 			case '-':
 				
 				for(--argc, ++argv ; argc > 0; --argc, ++argv)
@@ -113,9 +111,7 @@ read_arguments(int argc, char **argv)
 int
 main(int argc, char **argv)
 {
-  
    vm::machine_arguments margs(read_arguments(argc, argv));
-
 
    if(sched_type == SCHED_UNKNOWN) {
       sched_type = SCHED_SERIAL;
@@ -131,9 +127,6 @@ main(int argc, char **argv)
 		cerr << "Error: file " << program << " does not exist or is not readable" << endl;
 		return EXIT_FAILURE;
 	}
-
-
-	
 	
    try {
       run_program(argc, argv, program, margs);

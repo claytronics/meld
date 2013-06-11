@@ -2,7 +2,6 @@
 #define DEBUG_PROMPT_HPP
 
 
-void debug();
-void run_debugger();
+void debug(vm::state& st);
 
 #endif

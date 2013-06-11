@@ -6,7 +6,6 @@
 #include "vm/state.hpp"
 
 using namespace std;
-using namespace vm;
 
 #define DUMP 0
 #define CONTINUE 1
@@ -17,12 +16,10 @@ using namespace vm;
 void activateBreakPoint(string type);
 void runBreakPoint(string type, string msg);
 void pauseIt();
-void inputInstruction(int instr_encoding, string specification);
-void dumpSystemState();
+void dumpSystemState(vm::state& st);
 void continueExecution();
-void *debugController(void* st);
+void debugController(vm::state& currentState, int instruction, string specification);
 bool isTheSystemPaused();
-void initiateDebugController();
 void setDebuggingMode(bool setting);
 bool isInDebuggingMode();
 
