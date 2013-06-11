@@ -4,6 +4,7 @@
 #include <cstdlib>
 #include <cstring>
 #include <assert.h>
+#include <boost/mpi.hpp>
 
 #include "interface.hpp"
 #include "stat/stat.hpp"
@@ -16,6 +17,7 @@ using namespace sched;
 using namespace std;
 using namespace utils;
 using namespace vm;
+namespace mpi = boost::mpi;
 
 scheduler_type sched_type = SCHED_UNKNOWN;
 size_t num_threads = 0;
@@ -98,20 +100,27 @@ run_program(int argc, char **argv, const char *program, const vm::machine_argume
         /* calculate execution time */
       double start_time(0.0);
       execution_time tm;
-      
+
       if(time_execution) {
             tm.start();
       }
 
-      /* TODO MPI: instantiate the processeses
-       * store the number of processes
-       * if mpi then store world.rank
-       * otherwise, the number of process is 1*/
+      /* Because of Boost::MPI, even if the program is run without MPI, the
+       * code still works : 11th June 2013
+       */
+      mpi::environment env(argc, argv);
+      mpi::communicator world;
 
       /* instantiate machine
        * serial: 1 thread, sched_serial
-       * margs: meld argv, argc*/
-      machine mac(program, num_threads, sched_type, margs);
+       * margs: meld argv, argc*,
+       * each machine will have a mpi communicator in machine->WORLD
+       */
+      machine mac(program, num_threads, sched_type, world, margs);
+
+      /* Creat barrier here, to prevent processes from sneding messages to
+       * processes that have not been started yet */
+      world.barrier();
 
       /* initiates threads */
       mac.start();

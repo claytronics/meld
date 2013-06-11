@@ -92,30 +92,36 @@ machine::route_self(sched::base *sched, node *node, simple_tuple *stpl, const ui
 
 void
 machine::route(const node* from, sched::base *sched_caller, const node::node_id id, simple_tuple* stpl, const uint_val delay)
-{  
+{
    assert(sched_caller != NULL);
    assert(id <= this->all->DATABASE->max_id());
 
-  node *node(this->all->DATABASE->find_node(id));
+   /* TODO MPI route should take node_id, find the process id, and then
+    * determine how to send the message
+    */
+   if (id % this->all->WORLD.size() == this->all->WORLD.rank()) {
+       /* Belongs to the same process, does not require MPI */
+      node *node(this->all->DATABASE->find_node(id));
 
-  sched::base *sched_other(sched_caller->find_scheduler(node));
-    const predicate *pred(stpl->get_predicate());
+      sched::base *sched_other(sched_caller->find_scheduler(node));
+        const predicate *pred(stpl->get_predicate());
 
-  if(delay > 0) {
-        work new_work(node, stpl);
-     sched_caller->new_work_delay(sched_caller, from, new_work, delay);
-  } else if(pred->is_action_pred()) {
-        run_action(sched_other, node, stpl->get_tuple(), sched_caller != sched_other);
-        delete stpl;
-    } else if(sched_other == sched_caller) {
-        work new_work(node, stpl);
+      if(delay > 0) {
+            work new_work(node, stpl);
+         sched_caller->new_work_delay(sched_caller, from, new_work, delay);
+      } else if(pred->is_action_pred()) {
+            run_action(sched_other, node, stpl->get_tuple(), sched_caller != sched_other);
+            delete stpl;
+        } else if(sched_other == sched_caller) {
+            work new_work(node, stpl);
 
-     sched_caller->new_work(from, new_work);
-  } else {
-     work new_work(node, stpl);
+         sched_caller->new_work(from, new_work);
+      } else {
+         work new_work(node, stpl);
 
-     sched_caller->new_work_other(sched_other, new_work);
-  }
+         sched_caller->new_work_other(sched_other, new_work);
+      }
+   }
 }
 
 void
@@ -275,7 +281,7 @@ get_creation_function(const scheduler_type sched_type)
 }
 
 machine::machine(const string& file, const size_t th,
-		const scheduler_type _sched_type, const machine_arguments& margs):
+		const scheduler_type _sched_type, const boost::mpi::communicator world, const machine_arguments& margs):
    all(new vm::all()),
    filename(file),
    sched_type(_sched_type),
@@ -291,6 +297,7 @@ machine::machine(const string& file, const size_t th,
    this->all->DATABASE =  new database(filename, get_creation_function(_sched_type), this->all);
    this->all->NUM_THREADS = th;
    this->all->MACHINE = this;
+   this->all->WORLD = world;
    
    // Instantiate the scheduler object
    switch(sched_type) {

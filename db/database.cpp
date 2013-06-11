@@ -7,6 +7,7 @@ using namespace std;
 using namespace vm;
 using namespace process;
 using namespace utils;
+namespace mpi = boost::mpi;
 
 namespace db
 {
@@ -62,13 +63,16 @@ database::~database(void)
 node*
 database::find_node(const node::node_id id) const
 {
+    /* TODO Use MPI partition to find appropriate process to send to */
+    /* TODO ask flavio about find_node - what is the node id that's passed
+     * */
    map_nodes::const_iterator it(nodes.find(id));
 
    if(it == nodes.end()) {
       cerr << "Could not find node with id " << id << endl;
       abort();
    }
-   
+
    return it->second;
 }
 

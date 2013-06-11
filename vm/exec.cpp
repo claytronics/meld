@@ -302,6 +302,7 @@ execute_alloc(const pcounter& pc, state& state)
 static inline void
 execute_send_self(tuple *tuple, state& state)
 {
+    /* TODO ask flavio about send self */
 #ifdef DEBUG_MODE
    cout << "\t" << *tuple << " -> self " << state.node->get_id() << endl;
 #endif
@@ -345,6 +346,8 @@ execute_send_self(tuple *tuple, state& state)
 static inline void
 execute_send(const pcounter& pc, state& state)
 {
+    /* TODO ask flavio about send */
+    /* TODO ask flavio about MACHINE class / object */
    const reg_num msg(send_msg(pc));
    const reg_num dest(send_dest(pc));
    const node_val dest_val(state.get_node(dest));

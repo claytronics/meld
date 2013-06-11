@@ -45,6 +45,13 @@ do_serial ()
 	run_diff "${TO_RUN}"
 }
 
+do_mpi () {
+	SCHED=${1}
+	TO_RUN="mpiexec -n 1 ${EXEC} -f ${TEST} -c ${SCHED}"
+	
+	run_diff "${TO_RUN}"
+}
+
 do_test ()
 {
 	NTHREADS=${1}

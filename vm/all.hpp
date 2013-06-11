@@ -2,6 +2,7 @@
 #ifndef VM_ALL_HPP
 #define VM_ALL_HPP
 
+#include <boost/mpi.hpp>
 #include "vm/program.hpp"
 
 #define MAX_CONSTS 32
@@ -35,6 +36,7 @@ class all
    public:
 
    vm::program *PROGRAM;
+   boost::mpi::communicator WORLD;
    
    db::database *DATABASE;
    process::machine *MACHINE;

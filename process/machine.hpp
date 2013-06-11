@@ -9,6 +9,7 @@
 #include <vector>
 #include <boost/thread/mutex.hpp>
 #include <boost/thread/barrier.hpp>
+#include <boost/mpi.hpp>
 #include "db/database.hpp"
 #include "db/tuple.hpp"
 #include "db/node.hpp"
@@ -54,7 +55,7 @@ public:
 	void init_thread(sched::base *);
    void start(void);
 
-   explicit machine(const std::string&, const size_t, const sched::scheduler_type, const vm::machine_arguments& args = vm::machine_arguments());
+   explicit machine(const std::string&, const size_t, const sched::scheduler_type, const boost::mpi::communicator, const vm::machine_arguments& args = vm::machine_arguments());
 
    ~machine(void);
 };

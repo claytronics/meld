@@ -92,15 +92,18 @@ serial_local::init(const size_t)
 {
    database::map_nodes::const_iterator it(state.all->DATABASE->nodes_begin());
    database::map_nodes::const_iterator end(state.all->DATABASE->nodes_end());
-   
+
    for(; it != end; ++it)
    {
       serial_node *cur_node(dynamic_cast<serial_node*>(it->second));
-      
-      init_node(cur_node);
-      
-      assert(cur_node->in_queue());
-      assert(cur_node->has_work());
+      /* TODO MPI init_node only if the node belongs to the current process
+       * */
+      if (cur_node->get_id() % state.all->WORLD.size() == state.all->WORLD.rank()) {
+          init_node(cur_node);
+
+          assert(cur_node->in_queue());
+          assert(cur_node->has_work());
+      }
    }
 }
 

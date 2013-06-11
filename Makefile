@@ -35,10 +35,8 @@ CFLAGS = $(ARCH) $(PROFILING) $(OPTIMIZATIONS) $(WARNINGS) $(DEBUG) $(INCLUDE_DI
 LIBRARIES = -pthread -lm -lreadline -lboost_thread-mt -lboost_system-mt \
 				-lboost_date_time-mt -lboost_regex-mt $(UILIBRARIES)
 
-ifneq ($(COMPILE_MPI),)
-	LIBRARIES += -lmpi -lmpi_cxx -lboost_serialization-mt -lboost_mpi-mt
-	CFLAGS += -DCOMPILE_MPI=1
-endif
+LIBRARIES += -lmpi -lmpi_cxx -lboost_serialization-mt -lboost_mpi-mt
+CFLAGS += -DCOMPILE_MPI=1
 
 CXX = g++
 

@@ -9,6 +9,7 @@
 #include <stdexcept>
 #include <boost/function.hpp>
 #include <boost/static_assert.hpp>
+#include <boost/mpi.hpp>
 
 #include "conf.hpp"
 #include "db/node.hpp"
