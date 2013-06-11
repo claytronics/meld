@@ -1,8 +1,0 @@
-#ifndef DEBUG_HPP
-#define DEBUG_HPP
-
-
-void debug();
-void run_debugger();
-
-#endif
