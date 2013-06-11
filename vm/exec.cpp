@@ -9,6 +9,7 @@
 #include "vm/match.hpp"
 #include "db/tuple.hpp"
 #include "process/machine.hpp"
+#include "debug_handler.hpp"
 
 using namespace vm;
 using namespace vm::instr;
@@ -984,7 +985,7 @@ execute_iter(pcounter pc, const utils::byte options, const utils::byte options_a
    state.tuple_leaf = old_tuple_leaf;		\
 	state.tuple_queue = old_tuple_queue;	\
    state.is_linear = old_is_linear
-
+\
    if(state.persistent_only) {
       // do nothing
    } else if(iter_options_random(options)) {
@@ -1843,6 +1844,7 @@ eval_loop:
             }
             
          case REMOVE_INSTR:
+	    runBreakPoint("fact", "Fact has been consumed.");
             execute_remove(pc, state);
             break;
             
@@ -1858,6 +1860,9 @@ eval_loop:
             break;
             
          case SEND_INSTR:
+	    state.all->DATABASE->print_db(cout);
+	    runBreakPoint("fact","Fact has been derived.");
+	    state.all->DATABASE->print_db(cout);
             execute_send(pc, state);
             break;
 

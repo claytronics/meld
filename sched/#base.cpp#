@@ -15,7 +15,7 @@ using namespace vm;
 using namespace process;
 using namespace db;
 
-namespace sched
+name
 {
 	
 static bool init(void);
