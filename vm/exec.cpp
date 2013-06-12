@@ -1844,8 +1844,8 @@ eval_loop:
             }
             
          case REMOVE_INSTR:
-	    runBreakPoint("fact", "Fact has been consumed.");
             execute_remove(pc, state);
+	    runBreakPoint("fact", "Fact has been consumed.");
             break;
             
          case MOVE_INSTR:
@@ -1860,8 +1860,8 @@ eval_loop:
             break;
             
          case SEND_INSTR:
-	    runBreakPoint("fact","Fact has been derived.");
             execute_send(pc, state);
+	    runBreakPoint("fact","Fact has been derived.");
             break;
 
          case SEND_DELAY_INSTR:
