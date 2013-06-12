@@ -64,7 +64,7 @@ private:
    db::node* master_get_work(void);
    void handle_deterministic_computation(void);
    void handle_create_n_nodes(vm::deterministic_timestamp, size_t, db::node::node_id);
-   void sim_sched::handle_setid(vm::deterministic_timestamp ts, db::node::node_id node_id);
+   void handle_setid(vm::deterministic_timestamp ts, db::node::node_id node_id);
    db::node* handle_run_node(const vm::deterministic_timestamp, const db::node::node_id);
    void handle_receive_message(const vm::deterministic_timestamp, const db::node::node_id,
          const face_t, utils::byte *, int, const int);

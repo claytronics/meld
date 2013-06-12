@@ -127,7 +127,7 @@ sim_sched::new_work_delay(sched::base *target, const db::node *_src, work& new_w
 {
 	work_info info;
 	info.work = new_work;
-	info.timestamp = state.sim_instr_counter;
+	//info.timestamp = state.sim_instr_counter;
 	info.src = dynamic_cast<sim_node*>((node*)_src);
 	delay_queue.push(info, utils::get_timestamp() + delay);
 }
@@ -150,7 +150,7 @@ sim_sched::new_work(const node *_src, work& new_work)
 		sim_node *src(dynamic_cast<sim_node*>((node*)_src));
 		work_info info;
 		info.work = new_work;
-		info.timestamp = state.sim_instr_counter;
+		//info.timestamp = state.sim_instr_counter;
 		info.src = src;
 		tmp_work.push_back(info);
 	}
@@ -287,7 +287,7 @@ sim_sched::handle_deterministic_computation(void)
       nodes.insert(current_node);
    }
 
-   current_node->timestamp = state.sim_instr_counter;
+  // current_node->timestamp = state.sim_instr_counter;
    
    size_t i(0);
 	message_type reply[MAXLENGTH];
@@ -520,7 +520,7 @@ sim_sched::master_get_work(void)
 {
 	assert(!thread_mode && !slave);
 	message_type *reply;
-	
+  // size_t length;	
 	if(current_node) {
 		// we just did a round of computation
 		assert(!thread_mode);
@@ -549,7 +549,7 @@ sim_sched::master_get_work(void)
 //         cout << "Not available" << endl;
       	}
 		
-		assert(length == (size_t)reply[0]);
+	//	assert(length == (size_t)reply[0]);
 		
 		switch(reply[1]) {
 			case SETID: /*Adding the setid command to the interface _ankit*/
@@ -652,7 +652,7 @@ sim_sched::new_agg(work& w)
 void
 sim_sched::generate_aggs(void)
 {
-	iterate_static_nodes(id);
+	iterate_static_nodes();
 }
 
 bool
