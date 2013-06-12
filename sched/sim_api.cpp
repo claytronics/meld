@@ -3,6 +3,7 @@
 #include <string>
 
 #include "sched/sim.hpp"
+#include "sched/sim_tcp.hpp"
 #include "db/database.hpp"
 #include "process/remote.hpp"
 #include "sched/common.hpp"
