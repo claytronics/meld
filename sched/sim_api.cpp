@@ -328,6 +328,26 @@ sim_sched::handle_create_n_nodes(deterministic_timestamp ts, size_t n, node::nod
    }
 }
 
+
+/*function to set the id of the block _ankit*/
+void sim_sched::handle_setid(deterministic_timestamp ts, node::node_id node_id){
+	#ifdef DEBUG
+   cout << "Create node with " << start_id << endl;
+#endif
+	/*similar to create_n_nodes but without the loop _ankit*/
+      db::node *no(state.all->DATABASE->create_node_id(node_id));
+      init_node(no);
+      if(!thread_mode || all_instantiated) {
+         sim_node *no_in((sim_node *)no);
+         no_in->set_instantiated(true);
+         for(face_t face = sim_node::INITIAL_FACE; face <= sim_node::FINAL_FACE; ++face) {
+            add_vacant(ts, no_in, face, 1);
+         }
+         add_neighbor_count(ts, no_in, 0, 1);
+      }
+   	
+}
+
 void
 sim_sched::handle_receive_message(const deterministic_timestamp ts, db::node::node_id node,
       const face_t face, utils::byte *data, int offset, const int limit)
@@ -456,6 +476,7 @@ sim_sched::handle_accel(const deterministic_timestamp ts, const db::node::node_i
    }
 }
 
+
 void
 sim_sched::handle_shake(const deterministic_timestamp ts, const db::node::node_id node,
       const int_val x, const int_val y, const int_val z)
@@ -531,6 +552,9 @@ sim_sched::master_get_work(void)
 		assert(length == (size_t)reply[0]);
 		
 		switch(reply[1]) {
+			case SETID: /*Adding the setid command to the interface _ankit*/
+				handle_setid((deterministic_timestamp) reply[2], (db::node::node_id) reply[3]);
+				break;
 			case CREATE_N_NODES:
             	handle_create_n_nodes((deterministic_timestamp)reply[2],
                   (size_t)reply[4],
