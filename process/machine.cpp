@@ -124,16 +124,6 @@ machine::route(const node* from, sched::base *sched_caller, const node::node_id 
    }
 }
 
-/*
- * MPI
- * Given a node id, return whether or not the node is on the current process
- * @return true if node is on the current process, false otherwise
- */
-bool
-machine::on_current_process(const node::node_id id) {
-    return id % this->all->WORLD.size() == this->all->WORLD.rank();
-}
-
 void
 machine::deactivate_signals(void)
 {

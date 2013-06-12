@@ -40,7 +40,7 @@ run_diff ()
 do_serial ()
 {
 	SCHED=${1}
-	TO_RUN="${EXEC} -f ${TEST} -c ${SCHED}"
+	TO_RUN="mpirun -n 1 ${EXEC} -f ${TEST} -c ${SCHED}"
 	
 	run_diff "${TO_RUN}"
 }
