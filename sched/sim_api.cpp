@@ -54,10 +54,10 @@ using namespace std;
 	
 sim_sched::~sim_sched(void)
 {
-	if(socket != NULL) {
+//	if(socket != NULL) {
 		//socket->close();
 		//delete socket;
-	}
+//	}
 }
 	
 void
@@ -72,7 +72,7 @@ sim_sched::init(const size_t num_threads)
 	
 	try {
    	// add socket
-	// init_tcp();
+ 	init_tcp();
 	} catch(std::exception &e) {
 		throw machine_error("can't connect to simulator");
 	}
@@ -162,7 +162,7 @@ sim_sched::send_pending_messages(void)
 {
 	while(!socket_messages.empty()) {
 		message_type *data(socket_messages.pop());
-		//send_message(data);
+		send_message(data);
 		delete []data;
 	}
 }
@@ -265,7 +265,7 @@ sim_sched::send_send_message(const work_info& info, const deterministic_timestam
 
 	simple_tuple::wipeout(stpl);
 
-	//send_message(reply);
+	send_message(reply);
 }
 
 void
@@ -305,7 +305,7 @@ sim_sched::handle_deterministic_computation(void)
       reply[i++] = (message_type)(*it)->get_id();
    }
 
-	//send_message(reply);
+	send_message(reply);
    current_node = NULL;
 }
 
@@ -545,10 +545,9 @@ sim_sched::master_get_work(void)
          	if(!thread_mode) {
          	   check_delayed_queue();
          	}
-			continue;
+	
 		} else {
-//         cout << "Not available" << endl;
-      	}
+
 		
 	//	assert(length == (size_t)reply[0]);
 		
@@ -599,6 +598,7 @@ sim_sched::master_get_work(void)
 		        usleep(200);
 				return NULL;
          	default: cerr << "Unrecognized message " << reply[1] << endl;
+			}
 		}
 	}
 	assert(false);
@@ -640,7 +640,7 @@ sim_sched::set_color(db::node *n, const int r, const int g, const int b)
 void
 sim_sched::schedule_new_message(message_type *data)
 {
-	//send_message(data);
+	send_message(data);
 	delete []data;
 }
 
