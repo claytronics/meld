@@ -99,7 +99,7 @@ machine::route(const node* from, sched::base *sched_caller, const node::node_id 
    /* TODO MPI route should take node_id, find the process id, and then
     * determine how to send the message
     */
-   if (id % this->all->WORLD.size() == this->all->WORLD.rank()) {
+   if (this->all->DATABASE->on_current_process(id)){
        /* Belongs to the same process, does not require MPI */
       node *node(this->all->DATABASE->find_node(id));
 
@@ -122,6 +122,16 @@ machine::route(const node* from, sched::base *sched_caller, const node::node_id 
          sched_caller->new_work_other(sched_other, new_work);
       }
    }
+}
+
+/*
+ * MPI
+ * Given a node id, return whether or not the node is on the current process
+ * @return true if node is on the current process, false otherwise
+ */
+bool
+machine::on_current_process(const node::node_id id) {
+    return id % this->all->WORLD.size() == this->all->WORLD.rank();
 }
 
 void
@@ -293,10 +303,10 @@ machine::machine(const string& file, const size_t th,
     if(margs.size() < this->all->PROGRAM->num_args_needed())
         throw machine_error(string("this program requires ") + utils::to_string(all->PROGRAM->num_args_needed()) + " arguments");
    
+   this->all->MACHINE = this;
    this->all->ARGUMENTS = margs;
    this->all->DATABASE =  new database(filename, get_creation_function(_sched_type), this->all);
    this->all->NUM_THREADS = th;
-   this->all->MACHINE = this;
    this->all->WORLD = world;
    
    // Instantiate the scheduler object

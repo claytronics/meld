@@ -76,6 +76,16 @@ database::find_node(const node::node_id id) const
    return it->second;
 }
 
+/*
+ * MPI
+ * Given a node id, return whether or not the node is on the current process
+ * @return true if node is on the current process, false otherwise
+ */
+bool
+database::on_current_process(const node::node_id id) {
+    return id % this->all->WORLD.size() == this->all->WORLD.rank();
+}
+
 node*
 database::create_node_id(const db::node::node_id id)
 {

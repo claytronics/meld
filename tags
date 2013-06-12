@@ -648,6 +648,7 @@ WEST	sched/nodes/sim.hpp	/^   WEST = 3,$/;"	e	enum:sched::face_t
 WIDTH	scripts/heat_color.py	/^WIDTH = maxx * SCALE$/;"	v
 WIDTH	scripts/heat_count_color.py	/^WIDTH = maxx * SCALE$/;"	v
 WIDTH	scripts/plots/active_inactive.py	/^WIDTH = min(400, 1 * timetotal)$/;"	v
+WORLD	vm/all.hpp	/^   boost::mpi::communicator WORLD;$/;"	m	class:vm::all
 WRITE_COORDS	scripts/generate_heat_grid.py	/^WRITE_COORDS = True$/;"	v
 __INTRUSIVE_IN_PRIORITY_QUEUE	queue/intrusive.hpp	/^#define __INTRUSIVE_IN_PRIORITY_QUEUE(/;"	d
 __INTRUSIVE_IN_QUEUE	queue/intrusive.hpp	/^#define __INTRUSIVE_IN_QUEUE(/;"	d
@@ -771,6 +772,7 @@ argument_id	vm/defs.hpp	/^typedef size_t argument_id;$/;"	t	namespace:vm
 argument_size	vm/instr.hpp	/^const size_t argument_size = 1;$/;"	m	namespace:vm::instr
 as_persistent	vm/rule.hpp	/^      inline bool as_persistent(void) const { return is_persistent; }$/;"	f	class:vm::rule
 assert_end	db/node.cpp	/^node::assert_end(void) const$/;"	f	class:db::node
+assert_end	sched/mpi.cpp	/^            void assert_end(void) const {}$/;"	f	class:sched::mpi
 assert_end	sched/nodes/in_queue.hpp	/^   virtual void assert_end(void) const$/;"	f	class:sched::in_queue_node
 assert_end	sched/nodes/serial.hpp	/^   virtual void assert_end(void) const$/;"	f	class:sched::serial_node
 assert_end	sched/nodes/sim.hpp	/^   virtual void assert_end(void) const$/;"	f	class:sched::sim_node
@@ -780,6 +782,7 @@ assert_end	sched/serial.cpp	/^serial_local::assert_end(void) const$/;"	f	class:s
 assert_end	sched/sim.cpp	/^sim_sched::assert_end(void) const$/;"	f	class:sched::sim_sched
 assert_end	sched/sim_tcp.cpp	/^sim_sched::assert_end(void) const$/;"	f	class:sched::sim_sched
 assert_end_iteration	db/node.hpp	/^   virtual void assert_end_iteration(void) const {}$/;"	f	class:db::node
+assert_end_iteration	sched/mpi.cpp	/^            void assert_end_iteration(void) const {}$/;"	f	class:sched::mpi
 assert_end_iteration	sched/nodes/in_queue.hpp	/^   virtual void assert_end_iteration(void) const$/;"	f	class:sched::in_queue_node
 assert_end_iteration	sched/nodes/serial.hpp	/^   virtual void assert_end_iteration(void) const$/;"	f	class:sched::serial_node
 assert_end_iteration	sched/nodes/sim.hpp	/^   virtual void assert_end_iteration(void) const$/;"	f	class:sched::sim_node
@@ -1121,6 +1124,7 @@ do_insert	queue/safe_complex_pqueue.hpp	/^	void do_insert(heap_object node, cons
 do_loop	sched/base.cpp	/^base::do_loop(void)$/;"	f	class:sched::base
 do_match	vm/exec.cpp	/^do_match(const tuple *tuple, const field_num& field, const instr_val& val,$/;"	f	namespace:vm
 do_matches	vm/exec.cpp	/^do_matches(pcounter pc, const tuple *tuple, const state& state)$/;"	f	namespace:vm
+do_mpi	tests/test.sh	/^do_mpi () {$/;"	f
 do_node	scripts/generate_heat_grid.py	/^def do_node(row, col):$/;"	f
 do_persistent_tuples	vm/state.cpp	/^state::do_persistent_tuples(void)$/;"	f	class:vm::state
 do_pop	queue/safe_complex_pqueue.hpp	/^	heap_object do_pop(void)$/;"	f	class:queue::intrusive_safe_complex_pqueue
@@ -1330,16 +1334,19 @@ from_stack_to_reverse_list	runtime/list.hpp	/^from_stack_to_reverse_list(TStack&
 from_string	utils/utils.hpp	/^bool from_string(T& t, $/;"	f	namespace:utils
 gap	scripts/plots/active_inactive.py	/^	gap = heightdivision \/ 3.0$/;"	v
 gather_active_tuples	sched/base.hpp	/^	virtual db::simple_tuple_vector gather_active_tuples(db::node *, const vm::predicate_id) { return db::simple_tuple_vector(); }$/;"	f	class:sched::base
+gather_active_tuples	sched/mpi.cpp	/^            simple_tuple_vector gather_active_tuples(db::node *node, const vm::predicate_id pred) {}$/;"	f	class:sched::mpi
 gather_active_tuples	sched/serial.cpp	/^serial_local::gather_active_tuples(db::node *node, const vm::predicate_id pred)$/;"	f	class:sched::serial_local
 gather_active_tuples	sched/sim.cpp	/^sim_sched::gather_active_tuples(db::node *node, const vm::predicate_id pred)$/;"	f	class:sched::sim_sched
 gather_active_tuples	sched/sim_tcp.cpp	/^sim_sched::gather_active_tuples(db::node *node, const vm::predicate_id pred)$/;"	f	class:sched::sim_sched
 gather_next_tuples	sched/base.hpp	/^   virtual void gather_next_tuples(db::node *, db::simple_tuple_list&) { }$/;"	f	class:sched::base
+gather_next_tuples	sched/mpi.cpp	/^            void gather_next_tuples(db::node *node, simple_tuple_list& ls) {}$/;"	f	class:sched::mpi
 gather_next_tuples	sched/serial.cpp	/^serial_local::gather_next_tuples(db::node *node, simple_tuple_list& ls)$/;"	f	class:sched::serial_local
 gather_next_tuples	sched/sim.cpp	/^sim_sched::gather_next_tuples(db::node *node, simple_tuple_list& ls)$/;"	f	class:sched::sim_sched
 gather_next_tuples	sched/sim_tcp.cpp	/^sim_sched::gather_next_tuples(db::node *node, simple_tuple_list& ls)$/;"	f	class:sched::sim_sched
 general_pqueue	queue/safe_general_pqueue.hpp	/^class general_pqueue$/;"	c	namespace:queue
 generate	db/agg_configuration.cpp	/^agg_configuration::generate(const aggregate_type typ, const field_num field,$/;"	f	class:db::agg_configuration
 generate	db/tuple_aggregate.cpp	/^tuple_aggregate::generate(void)$/;"	f	class:db::tuple_aggregate
+generate_aggs	sched/mpi.cpp	/^            void generate_aggs(void) {}$/;"	f	class:sched::mpi
 generate_aggs	sched/serial.cpp	/^serial_local::generate_aggs(void)$/;"	f	class:sched::serial_local
 generate_aggs	sched/sim.cpp	/^sim_sched::generate_aggs(void)$/;"	f	class:sched::sim_sched
 generate_aggs	sched/sim_tcp.cpp	/^sim_sched::generate_aggs(void)$/;"	f	class:sched::sim_sched
@@ -1487,6 +1494,7 @@ get_uint	db/trie.cpp	/^trie_hash::get_uint(const uint_val& val) const$/;"	f	clas
 get_underlying_tuple	db/trie.hpp	/^	inline vm::tuple *get_underlying_tuple(void) const { return tpl->get_tuple(); }$/;"	f	class:db::tuple_trie_leaf
 get_underlying_tuple	process/work.hpp	/^   inline vm::tuple* get_underlying_tuple(void) const { return get_tuple()->get_tuple(); }$/;"	f	class:process::node_work
 get_val_stack	vm/match.hpp	/^   inline void get_val_stack(match_val_stack& stk) const {$/;"	f	class:vm::match
+get_work	sched/mpi.cpp	/^            node *get_work(void) {}$/;"	f	class:sched::mpi
 get_work	sched/nodes/unsafe_static.hpp	/^   inline process::node_work get_work(void)$/;"	f	class:sched::unsafe_static_node
 get_work	sched/serial.cpp	/^serial_local::get_work(void)$/;"	f	class:sched::serial_local
 get_work	sched/sim.cpp	/^sim_sched::get_work(void)$/;"	f	class:sched::sim_sched
@@ -1599,6 +1607,7 @@ index_size	vm/instr.hpp	/^const size_t index_size = 1;$/;"	m	namespace:vm::instr
 init	db/node.cpp	/^node::init(void)$/;"	f	class:db::node
 init	mem/thread.cpp	/^init(void)$/;"	f	namespace:mem
 init	sched/base.cpp	/^init(void)$/;"	f	namespace:sched
+init	sched/mpi.cpp	/^            void init(const size_t) {$/;"	f	class:sched::mpi
 init	sched/serial.cpp	/^serial_local::init(const size_t)$/;"	f	class:sched::serial_local
 init	sched/sim.cpp	/^sim_sched::init(const size_t num_threads)$/;"	f	class:sched::sim_sched
 init	sched/sim_tcp.cpp	/^sim_sched::init(const size_t num_threads)$/;"	f	class:sched::sim_sched
@@ -1942,6 +1951,7 @@ new	scripts/generate_chain.py	/^	new = i$/;"	v
 new	scripts/generate_cycle.py	/^	new = i$/;"	v
 new	scripts/generate_heat_chain.py	/^		new = i $/;"	v
 new	scripts/generate_heat_chain.py	/^		new = i$/;"	v
+new_agg	sched/mpi.cpp	/^            void new_agg(work& w) {}$/;"	f	class:sched::mpi
 new_agg	sched/serial.cpp	/^serial_local::new_agg(work& w)$/;"	f	class:sched::serial_local
 new_agg	sched/sim.cpp	/^sim_sched::new_agg(work& w)$/;"	f	class:sched::sim_sched
 new_agg	sched/sim_tcp.cpp	/^sim_sched::new_agg(work& w)$/;"	f	class:sched::sim_sched
@@ -1949,6 +1959,7 @@ new_axioms_jump	vm/instr.hpp	/^inline code_offset_t new_axioms_jump(const pcount
 new_chunk	mem/chunkgroup.hpp	/^   chunk *new_chunk; \/\/ chunk with readily usable objects$/;"	m	class:mem::chunkgroup
 new_node_reg	vm/instr.hpp	/^inline reg_num new_node_reg(const pcounter pc) { return reg_get(pc, 1); }$/;"	f	namespace:vm::instr
 new_tuple	vm/program.cpp	/^program::new_tuple(const predicate_id& id) const$/;"	f	class:vm::program
+new_work	sched/mpi.cpp	/^            void new_work(const node *, work& new_work) {}$/;"	f	class:sched::mpi
 new_work	sched/serial.cpp	/^serial_local::new_work(const node *, work& new_work)$/;"	f	class:sched::serial_local
 new_work	sched/sim.cpp	/^sim_sched::new_work(const node *_src, work& new_work)$/;"	f	class:sched::sim_sched
 new_work	sched/sim_tcp.cpp	/^sim_sched::new_work(const node *_src, work& new_work)$/;"	f	class:sched::sim_sched
@@ -2047,6 +2058,7 @@ numthreads	scripts/generate_heat_grid.py	/^	numthreads = 1$/;"	v
 numthreads	scripts/generate_heat_grid.py	/^	numthreads = int(sys.argv[8])$/;"	v
 older	scripts/check_coloring.py	/^				older = colors[node]$/;"	v
 on_close	ui/manager.cpp	/^manager::on_close(connection_ptr conn)$/;"	f	class:ui::manager
+on_current_process	process/machine.cpp	/^machine::on_current_process(const node::node_id id) {$/;"	f	class:process::machine
 on_message	ui/manager.cpp	/^manager::on_message(connection_ptr conn, message_ptr msg)$/;"	f	class:ui::manager
 on_open	ui/manager.cpp	/^manager::on_open(connection_ptr conn)$/;"	f	class:ui::manager
 op_arg1	vm/instr.hpp	/^inline instr_val op_arg1(pcounter pc) { return val_get(pc, 1); }$/;"	f	namespace:vm::instr
@@ -2473,6 +2485,7 @@ sched	vm/state.hpp	/^   sched::base *sched;$/;"	m	class:vm::state
 sched	vm/state.hpp	/^namespace sched {$/;"	n
 sched_key	sched/base.cpp	/^pthread_key_t sched_key;$/;"	m	namespace:sched	file:
 sched_state	stat/stat.hpp	/^enum sched_state$/;"	g	namespace:statistics
+sched_type	interface.cpp	/^scheduler_type sched_type = SCHED_UNKNOWN;$/;"	v
 sched_type	process/machine.hpp	/^   const sched::scheduler_type sched_type;$/;"	m	class:process::machine
 schedule_new_message	sched/sim.cpp	/^sim_sched::schedule_new_message(message_type *data)$/;"	f	class:sched::sim_sched
 schedule_new_message	sched/sim_tcp.cpp	/^sim_sched::schedule_new_message(message_type *data)$/;"	f	class:sched::sim_sched
@@ -2736,6 +2749,7 @@ tap_pred	sched/mpi.hpp	/^	static vm::predicate *tap_pred;$/;"	m	class:sched::mpi
 tap_pred	sched/sim.hpp	/^	static vm::predicate *tap_pred;$/;"	m	class:sched::sim_sched
 target	db/neighbor_agg_configuration.hpp	/^   edge_set target;$/;"	m	class:db::neighbor_agg_configuration
 term_barrier	sched/thread/threaded.hpp	/^   static termination_barrier *term_barrier;$/;"	m	class:sched::threaded
+terminate_iteration	sched/mpi.cpp	/^            bool terminate_iteration(void) {}$/;"	f	class:sched::mpi
 terminate_iteration	sched/serial.cpp	/^serial_local::terminate_iteration(void)$/;"	f	class:sched::serial_local
 terminate_iteration	sched/sim.cpp	/^sim_sched::terminate_iteration(void)$/;"	f	class:sched::sim_sched
 terminate_iteration	sched/sim_tcp.cpp	/^sim_sched::terminate_iteration(void)$/;"	f	class:sched::sim_sched

@@ -98,7 +98,7 @@ serial_local::init(const size_t)
       serial_node *cur_node(dynamic_cast<serial_node*>(it->second));
       /* TODO MPI init_node only if the node belongs to the current process
        * */
-      if (cur_node->get_id() % state.all->WORLD.size() == state.all->WORLD.rank()) {
+      if (state.all->DATABASE->on_current_process(cur_node->get_id())) {
           init_node(cur_node);
 
           assert(cur_node->in_queue());

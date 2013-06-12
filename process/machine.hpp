@@ -57,6 +57,8 @@ public:
 
    explicit machine(const std::string&, const size_t, const sched::scheduler_type, const boost::mpi::communicator, const vm::machine_arguments& args = vm::machine_arguments());
 
+    bool on_current_process(const db::node::node_id);
+
    ~machine(void);
 };
 

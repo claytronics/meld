@@ -71,6 +71,7 @@ public:
    void print(std::ostream&) const;
    
    explicit database(const std::string&, create_node_fn, vm::all *);
+    bool on_current_process(const node::node_id id);
    
    ~database(void);
 };
