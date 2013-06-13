@@ -29,7 +29,7 @@ using boost::asio::ip::tcp;
 // debug messages for simulation
 // #define DEBUG
 
-namespace api
+namespace bbsimapi
 {
 
 vm::predicate* sim_sched::neighbor_pred(NULL);
