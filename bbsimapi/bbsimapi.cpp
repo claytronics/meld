@@ -2,8 +2,6 @@
 #include <boost/asio.hpp>
 #include <string>
 
-#include "sched/sim.hpp"
-#include "sched/sim_tcp.hpp"
 #include "db/database.hpp"
 #include "process/remote.hpp"
 #include "sched/common.hpp"
@@ -13,14 +11,8 @@
 using namespace db;
 using namespace vm;
 using namespace process;
-using namespace sim_tcp;
 using boost::asio::ip::tcp;
 
-
-#ifdef USE_SIM
-
-// when running in thread mode, the VM waits this milliseconds to instantiate all neighbor facts
-static const int TIME_TO_INSTANTIATE = 500;
 
 #define SETID 1
 #define STOP 4
@@ -32,16 +24,14 @@ static const int TIME_TO_INSTANTIATE = 500;
 #define RECEIVE_MESSAGE 13
 #define ACCEL 14
 #define SHAKE 15
-#define CREATE_N_NODES 18
+
 
 // debug messages for simulation
 // #define DEBUG
 
-namespace sched
+namespace api
 {
 
-bool sim_sched::thread_mode(false);
-int sim_sched::PORT(0);
 vm::predicate* sim_sched::neighbor_pred(NULL);
 vm::predicate* sim_sched::tap_pred(NULL);
 vm::predicate* sim_sched::neighbor_count_pred(NULL);
@@ -49,33 +39,17 @@ vm::predicate* sim_sched::accel_pred(NULL);
 vm::predicate* sim_sched::shake_pred(NULL);
 vm::predicate* sim_sched::vacant_pred(NULL);
 bool sim_sched::stop_all(false);
-bool sim_sched::all_instantiated(false);
 utils::unix_timestamp sim_sched::start_time(0);
 queue::push_safe_linear_queue<sim_sched::message_type*> sim_sched::socket_messages;
 
 using namespace std;
+
 	
-sim_sched::~sim_sched(void)
-{
-//	if(socket != NULL) {
-		//socket->close();
-		//delete socket;
-//	}
-}
-	
-void
-sim_sched::init(const size_t num_threads)
-{
-	if(slave)
-		return;
-		
-	assert(num_threads == 1);
-	
-//	state::SIM = true;
-	
+void init(const size_t num_threads)
+{	
 	try {
-   	// add socket
- 	sim_tcp::init_tcp();
+   	/* Calling the connect*/
+ 	init_tcp();
 	} catch(std::exception &e) {
 		throw machine_error("can't connect to simulator");
 	}
@@ -125,53 +99,8 @@ sim_sched::init(const size_t num_threads)
 
 	start_time = utils::get_timestamp();
 }
-
-void
-sim_sched::new_work_delay(sched::base *target, const db::node *_src, work& new_work, const uint_val delay)
-{
-	work_info info;
-	info.work = new_work;
-	//info.timestamp = state.sim_instr_counter;
-	info.src = dynamic_cast<sim_node*>((node*)_src);
-	delay_queue.push(info, utils::get_timestamp() + delay);
-}
-
-void
-sim_sched::new_work(const node *_src, work& new_work)
-{
-	sim_node *to(dynamic_cast<sim_node*>(new_work.get_node()));
-
-	db::simple_tuple *stpl(new_work.get_tuple());
-
-	if(current_node == NULL) {
-		heap_priority pr;
-		pr.int_priority = 0; // this is the init tuple...
-		if(stpl->get_count() > 0)
-			to->tuple_pqueue.insert(stpl, pr);
-		else
-			to->rtuple_pqueue.insert(stpl, pr);
-	} else {
-		sim_node *src(dynamic_cast<sim_node*>((node*)_src));
-		work_info info;
-		info.work = new_work;
-		//info.timestamp = state.sim_instr_counter;
-		info.src = src;
-		tmp_work.push_back(info);
-	}
-}
-
-void
-sim_sched::send_pending_messages(void)
-{
-	while(!socket_messages.empty()) {
-		message_type *data(socket_messages.pop());
-		sim_tcp::send_message(data);
-		delete []data;
-	}
-}
-
-void
-sim_sched::add_received_tuple(sim_node *no, size_t ts, db::simple_tuple *stpl)
+/* ? to be kept in the api or the sim_sched*/
+static void add_received_tuple(sim_node *no, size_t ts, db::simple_tuple *stpl)
 {
 	heap_priority pr;
 	pr.int_priority = ts;
@@ -181,8 +110,8 @@ sim_sched::add_received_tuple(sim_node *no, size_t ts, db::simple_tuple *stpl)
 		no->rtuple_pqueue.insert(stpl, pr);
 }
 
-void
-sim_sched::add_neighbor(const size_t ts, sim_node *no, const node_val out, const face_t face, const int count)
+/* ? to be kept in the api or the sim_sched*/
+static void add_neighbor(const size_t ts, sim_node *no, const node_val out, const face_t face, const int count)
 {
    if(!neighbor_pred)
       return;
@@ -196,8 +125,7 @@ sim_sched::add_neighbor(const size_t ts, sim_node *no, const node_val out, const
    add_received_tuple(no, ts, stpl);
 }
 
-void
-sim_sched::add_neighbor_count(const size_t ts, sim_node *no, const size_t total, const int count)
+static void add_neighbor_count(const size_t ts, sim_node *no, const size_t total, const int count)
 {
    if(!neighbor_count_pred)
       return;
@@ -210,8 +138,7 @@ sim_sched::add_neighbor_count(const size_t ts, sim_node *no, const size_t total,
    add_received_tuple(no, ts, stpl);
 }
 
-void
-sim_sched::add_vacant(const size_t ts, sim_node *no, const face_t face, const int count)
+static void add_vacant(const size_t ts, sim_node *no, const face_t face, const int count)
 {
    if(!vacant_pred)
       return;
@@ -224,30 +151,9 @@ sim_sched::add_vacant(const size_t ts, sim_node *no, const face_t face, const in
    add_received_tuple(no, ts, stpl);
 }
 
-void
-sim_sched::instantiate_all_nodes(void)
-{
-	assert(!all_instantiated);
-	for(database::map_nodes::const_iterator
-		it(state.all->DATABASE->nodes_begin()),end(state.all->DATABASE->nodes_end());
-		it!=end;++it){
-	node *n(it->second);
-	sim_node *no((sim_node *)n);
 
-	no->set_instantiated(true);
-	add_neighbor_count(0, no, no->get_neighbor_count(), 1);
-	for(face_t face = sim_node::INITIAL_FACE; face <= sim_node::FINAL_FACE; ++face) {
-		vm::node_val *neighbor(no->get_node_at_face(face));
-		if(*neighbor == sim_node::NO_NEIGHBOR)
-			add_vacant(0, no, face, 1);
-		else
-			add_neighbor(0, no, *neighbor, face, 1);
-		}
-	}
-}
-
-void
-sim_sched::send_send_message(const work_info& info, const deterministic_timestamp ts)
+/*Sends the message*/
+static void send_send_message(const work_info& info, const deterministic_timestamp ts)
 {
 	message_type reply[MAXLENGTH];
 
@@ -274,70 +180,9 @@ sim_sched::send_send_message(const work_info& info, const deterministic_timestam
 	sim_tcp::send_message(reply);
 }
 
-void
-sim_sched::handle_deterministic_computation(void)
-{/*
-   std::set<sim_node*> nodes; // all touched nodes
-
-   for(list<work_info>::iterator it(tmp_work.begin()), end(tmp_work.end());
-      it != end;
-      ++it)
-   {
-      const work_info& info(*it);
-      send_send_message(info, info.timestamp);
-      nodes.insert(dynamic_cast<sim_node*>(info.work.get_node()));
-   }
-
-   tmp_work.clear();
-
-   if(!current_node->pending.empty()) {
-      nodes.insert(current_node);
-   }
-	/* Removed by Xing, need to consult _ankit*/
-  // current_node->timestamp = state.sim_instr_counter;
- /*  
-   size_t i(0);
-	message_type reply[MAXLENGTH];
-   reply[i++] = (4 + nodes.size()) * sizeof(message_type);
-   reply[i++] = NODE_RUN;
-   reply[i++] = (message_type)current_node->timestamp;
-   reply[i++] = (message_type)current_node->get_id();
-   reply[i++] = (message_type)nodes.size();
-   
-   for(set<sim_node*>::iterator it(nodes.begin()), end(nodes.end());
-      it != end;
-      ++it)
-   {
-      reply[i++] = (message_type)(*it)->get_id();
-   }
-
-	send_message(reply);
-   current_node = NULL;*/
-}
-
-void
-sim_sched::handle_create_n_nodes(deterministic_timestamp ts, size_t n, node::node_id start_id)
-{
-#ifdef DEBUG
-   cout << "Create " << n << " nodes from " << start_id << endl;
-#endif
-   for(message_type i(0); i != n; ++i) {
-      db::node *no(state.all->DATABASE->create_node_id(start_id + i));
-      init_node(no);
-      if(!thread_mode || all_instantiated) {
-         sim_node *no_in((sim_node *)no);
-         no_in->set_instantiated(true);
-         for(face_t face = sim_node::INITIAL_FACE; face <= sim_node::FINAL_FACE; ++face) {
-            add_vacant(ts, no_in, face, 1);
-         }
-         add_neighbor_count(ts, no_in, 0, 1);
-      }
-   }
-}
-
 
 /*function to set the id of the block _ankit*/
-void sim_sched::handle_setid(deterministic_timestamp ts, node::node_id node_id){
+static void handle_setid(deterministic_timestamp ts, node::node_id node_id){
 	#ifdef DEBUG
    cout << "Create node with " << start_id << endl;
 #endif
@@ -355,11 +200,9 @@ void sim_sched::handle_setid(deterministic_timestamp ts, node::node_id node_id){
    	
 }
 
-void
-sim_sched::handle_receive_message(const deterministic_timestamp ts, db::node::node_id node,
+static void handle_receive_message(const deterministic_timestamp ts, db::node::node_id node,
       const face_t face, utils::byte *data, int offset, const int limit)
 {
-   assert(!thread_mode);
    sim_node *origin(dynamic_cast<sim_node*>(state.all->DATABASE->find_node(node)));
    sim_node *target(NULL);
 
@@ -383,8 +226,7 @@ sim_sched::handle_receive_message(const deterministic_timestamp ts, db::node::no
       target->rtuple_pqueue.insert(stpl, pr);
 }
 
-void
-sim_sched::handle_add_neighbor(const deterministic_timestamp ts, const db::node::node_id in,
+static void handle_add_neighbor(const deterministic_timestamp ts, const db::node::node_id in,
       const db::node::node_id out, const face_t face)
 {
 #ifdef DEBUG
@@ -421,8 +263,7 @@ sim_sched::handle_add_neighbor(const deterministic_timestamp ts, const db::node:
    }
 }
 
-void
-sim_sched::handle_remove_neighbor(const deterministic_timestamp ts,
+static void handle_remove_neighbor(const deterministic_timestamp ts,
       const db::node::node_id in, const face_t face)
 {
 #ifdef DEBUG
@@ -450,8 +291,7 @@ sim_sched::handle_remove_neighbor(const deterministic_timestamp ts,
    *neighbor = sim_node::NO_NEIGHBOR;
 }
 
-void
-sim_sched::handle_tap(const deterministic_timestamp ts, const db::node::node_id node)
+static void handle_tap(const deterministic_timestamp ts, const db::node::node_id node)
 {
    cout << ts << " tap(" << node << ")" << endl;
    
@@ -465,8 +305,7 @@ sim_sched::handle_tap(const deterministic_timestamp ts, const db::node::node_id 
    }
 }
 
-void
-sim_sched::handle_accel(const deterministic_timestamp ts, const db::node::node_id node,
+static void handle_accel(const deterministic_timestamp ts, const db::node::node_id node,
       const int_val f)
 {
    cout << ts << " accel(" << node << ", " << f << ")" << endl;
@@ -484,8 +323,7 @@ sim_sched::handle_accel(const deterministic_timestamp ts, const db::node::node_i
 }
 
 
-void
-sim_sched::handle_shake(const deterministic_timestamp ts, const db::node::node_id node,
+static void handle_shake(const deterministic_timestamp ts, const db::node::node_id node,
       const int_val x, const int_val y, const int_val z)
 {
    cout << ts << " shake(" << node << ", " << x << ", " << y << ", " << z << ")" << endl;
@@ -504,69 +342,27 @@ sim_sched::handle_shake(const deterministic_timestamp ts, const db::node::node_i
    }
 }
 
-void
-sim_sched::check_delayed_queue(void)
+/*earlier master_get_work()*/
+node* poll(void)
 {
-   const utils::unix_timestamp now(utils::get_timestamp());
-
-   while(!delay_queue.empty()) {
-      const utils::unix_timestamp best(delay_queue.top_priority());
-
-      if(best < now) {
-         work_info info(delay_queue.pop());
-         sim_node *target(dynamic_cast<sim_node*>(info.work.get_node()));
-         sim_sched::send_send_message(info, max(dynamic_cast<sim_node*>(info.src)->timestamp, target->timestamp + 1));
-      } else {
-         return;
-      }
-   }
-}
-
-node*
-sim_sched::master_get_work(void)
-{
-	assert(!thread_mode && !slave);
 	message_type *reply;
   // size_t length;	
-	if(current_node) {
-		// we just did a round of computation
-		assert(!thread_mode);
 
-      handle_deterministic_computation();
-	}
-	
 	while(true) {
-
-		if((reply =(message_type*) sim_tcp::poll()) == NULL) {
-      		send_pending_messages();
+	/*Change the name of the poll function here*/
+		if((reply =(message_type*)tcp_poll()) == NULL) {
+      		//Send pending message is delelted.
+			//send_pending_messages();
 			usleep(100);
-         	if(thread_mode && !all_instantiated) {
-            	utils::unix_timestamp now(utils::get_timestamp());
-
-            	if(now > start_time + TIME_TO_INSTANTIATE) {
-            	    instantiate_all_nodes();
-               		all_instantiated = true;
-            	}
-         	}
-         	if(!thread_mode) {
-         	   check_delayed_queue();
-         	}
-	
 		} else {
 
-		
 	//	assert(length == (size_t)reply[0]);
 		
 		switch(reply[1]) {
 			case SETID: /*Adding the setid command to the interface _ankit*/
 				handle_setid((deterministic_timestamp) reply[2], (db::node::node_id) reply[3]);
 				break;
-			case CREATE_N_NODES:
-            	handle_create_n_nodes((deterministic_timestamp)reply[2],
-                  (size_t)reply[4],
-                  (db::node::node_id)reply[5]);
-				break;
-         	case RECEIVE_MESSAGE:
+			case RECEIVE_MESSAGE:
             	handle_receive_message((deterministic_timestamp)reply[2],
                    (db::node::node_id)reply[3],
                    (face_t)reply[4],
@@ -600,7 +396,7 @@ sim_sched::master_get_work(void)
 			case STOP:
 				stop_all = true;
 		        sleep(1);
-		        send_pending_messages();
+		        //send_pending_messages();
 		        usleep(200);
 				return NULL;
          	default: cerr << "Unrecognized message " << reply[1] << endl;
@@ -611,24 +407,10 @@ sim_sched::master_get_work(void)
 	return NULL;
 }
 
-node*
-sim_sched::get_work(void)
-{
-	if(slave) {
-		while(current_node->pending.empty() && !current_node->delayed_available()) {
-			usleep(100);
-			if(stop_all)
-				return NULL;
-		}
-		return current_node;
-	}
-   return master_get_work();
-}
 
-void
-sim_sched::set_color(db::node *n, const int r, const int g, const int b)
+void send_set_color(db::node *n, const int r, const int g, const int b)
 {
-	message_type *data = new message_type[8];
+	message_type data[8];
     size_t i(0);
 	
 	data[i++] = 7 * sizeof(message_type);
@@ -640,63 +422,48 @@ sim_sched::set_color(db::node *n, const int r, const int g, const int b)
 	data[i++] = (message_type)b; // B
     data[i++] = 0; // intensity
 
-    schedule_new_message(data);
+    send_message(&data);
+	
 }
 
-void
-sim_sched::schedule_new_message(message_type *data)
+static void send_message(message_type *msg)
 {
-	sim_tcp::send_message(data);
-	delete []data;
+   boost::asio::write(*tcp_socket, boost::asio::buffer(msg, msg[0] + sizeof(message_type)));
 }
 
-void
-sim_sched::new_agg(work& w)
-{
-    new_work(w.get_node(), w);
-}
+static void init_tcp()
+    {
+        try {
+            boost::asio::io_service io_service;
+            tcp::resolver resolver(io_service);
+            tcp::resolver::query query(tcp::v4(), "127.0.0.1", "5000");
+            tcp::resolver::iterator iterator = resolver.resolve(query);
 
-void
-sim_sched::generate_aggs(void)
-{
-	iterate_static_nodes();
-}
+            tcp_socket = new tcp::socket(io_service);
+            tcp_socket->connect(*iterator);
+        } catch(std::exception &e) {
+            cout<<"Could not connect!"<<endl;
+        }
+    }
+	
+static message_type *tcp_poll()
+    {
+        message_type msg[1024];
+        try {
+            if(tcp_socket->available())
+            {
+                size_t length = tcp_socket->read_some(boost::asio::buffer(msg, sizeof(message_type)));
+                length = tcp_socket->read_some(boost::asio::buffer(msg + 1,  msg[0]));
+                return msg;		
+            }
+        } catch(std::exception &e) {
+            cout<<"Could not recieve!"<<endl;
+            return NULL;
+        }
+        return NULL;
+    }
 
-bool
-sim_sched::terminate_iteration(void)
-{
-    generate_aggs();
-	return false;
-}
 
-void
-sim_sched::assert_end(void) const
-{
-    assert_static_nodes_end(id, state.all);
-}
-
-void
-sim_sched::assert_end_iteration(void) const
-{
-	assert_static_nodes_end_iteration(id, state.all);
-}
-
-simple_tuple_vector
-sim_sched::gather_active_tuples(db::node *node, const vm::predicate_id pred)
-{
-	return simple_tuple_vector();
-}
-
-void
-sim_sched::gather_next_tuples(db::node *node, simple_tuple_list& ls)
-{
-	sim_node *no((sim_node*)node);
-	no->pending.pop_list(ls);
-   /* if(state.sim_instr_use) {
-	    no->get_tuples_until_timestamp(ls, state.sim_instr_limit);
-    }*/
-    no->add_delayed_tuples(ls);
-}
 
 }
-#endif
+
