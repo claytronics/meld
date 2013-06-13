@@ -10,6 +10,8 @@
 #include <unistd.h>
 #include "vm/state.hpp"
 #include "db/database.hpp"
+#include "debug_prompt.hpp"
+#include "debug_list.hpp"
 
 using namespace std;
 using namespace vm;
@@ -24,6 +26,8 @@ void debugController(vm::state& currentState, int instruction, string specificat
 bool isTheSystemPaused();
 void setDebuggingMode(bool setting);
 bool isInDebuggingMode();
+debugList getFactList();
+void setupFactList();
 
 
 /*command encodings*/
@@ -40,7 +44,17 @@ static bool debug_SenseBreakPoint = false;
 static bool debug_FactBreakPoint = false;
 static bool isSystemPaused = true;
 static bool isDebug = false;
+static debugList factBreakList = NULL;
 
+
+
+void setupFactList(){
+  factBreakList = newBreakpointList();
+}
+
+debugList getFactList(){
+  return factBreakList;
+};
 
 
 /*returns if the VM is paused for debugging or not*/
@@ -106,8 +120,17 @@ void pauseIt(){
 
 
 /*display the contents of VM*/
-void dumpSystemState(state& st){
-  st.all->DATABASE->print_db(cout);
+void dumpSystemState(state& st, int nodeNumber ){
+  cout << "*******************************************************************" << endl; 
+  cout << "Memory Dump:" << endl;
+  cout << endl;
+  cout << endl;
+
+  if (nodeNumber == -1)
+    st.all->DATABASE->print_db(cout);
+  else 
+    st.all->DATABASE->print_db_debug(cout,(unsigned int)nodeNumber);
+    
   cout << endl;
   cout << "*******************************************************************" << endl;
   cout << endl;
@@ -136,7 +159,10 @@ void debugController(state& currentState,int instruction, string specification){
     
     switch(instruction){
     case DUMP:
-      dumpSystemState(currentState);
+      if (specification == "all")
+	dumpSystemState(currentState,-1);
+      else 
+	dumpSystemState(currentState, atoi(specification.c_str()));
       instruction = NOTHING;
       break;
     case CONTINUE:

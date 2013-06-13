@@ -992,7 +992,7 @@ tuple_trie::print(ostream& cout) const
       it != end();
       it++)
    {
-      simple_tuple *stuple(*it);
+     simple_tuple *stuple(*it);
 		if(left_to_write == FACTS_PER_LINE)
 			cout << "\t";
       cout << *stuple;

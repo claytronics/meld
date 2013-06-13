@@ -8,14 +8,15 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "debug_handler.hpp"
+#include "debug_list.hpp"
 
 using namespace std;
 using namespace vm;
 
 /*function prototypes*/
 void *run_debugger(void * curState);
-void parseline(string line, state& st);
-int handle_command(string command);
+void parseline(string line, state& st, debugList& factBreaks);
+int handle_command(string command, debugList& factList);
 void help();
 
 /*to store the last input in the debugger*/
@@ -29,6 +30,8 @@ string lastBuild = "";
   controll the main one*/
 void debug(state& st){
 
+  setupFactList();
+  
   pthread_t tid;
   pthread_create(&tid,NULL,run_debugger, &st);
 
@@ -41,12 +44,13 @@ void *run_debugger(void * curState){
  
   string inpt;
   state st = *(state *)curState;
+  debugList factBreaks = getFactList();
 
   while(true){
     if (isTheSystemPaused()){
       cout << ">";
       getline(cin,inpt);
-      parseline(inpt,st);
+      parseline(inpt,st,factBreaks);
     }
   }
   return NULL;
@@ -56,7 +60,7 @@ void *run_debugger(void * curState){
 
 
 /*parses the command line*/
-void parseline(string line, state& st){
+void parseline(string line, state& st, debugList& factBreaks){
 
   string build = "";
   int wordCount = 1;
@@ -79,7 +83,7 @@ void parseline(string line, state& st){
       build += line[i];
     } else {
       if (wordCount == 1)
-	command = handle_command(build);
+	command = handle_command(build,factBreaks);
     wordCount++;
     build = "";
     }
@@ -88,22 +92,24 @@ void parseline(string line, state& st){
 
   /*no whitespace at all*/
   if (wordCount == 1){
-      command = handle_command(build);
+    command = handle_command(build,factBreaks);
+    if (command != BREAKPOINT && command!=DUMP){
       debugController(st,command, build);
       lastInstruction = command;
       lastBuild = build;
       return;
+    }
   }
   
   /*if not enough info*/
-  if (command == BREAKPOINT && wordCount == 1){
-      cout << "Please specify breakpoint type" << endl;
+  if ((command == BREAKPOINT||command == DUMP)&& wordCount == 1){
+      cout << "Please specify- type help for options" << endl;
       return;
   }
 
-  /*handle breakpoints*/
+  /*handle breakpointsand dumps*/
   if (wordCount == 2){
-	if (command == BREAKPOINT)
+	if (command == BREAKPOINT||command == DUMP)
 	  debugController(st,command,build);
 	else 
 	  debugController(st,command,"");
@@ -115,7 +121,7 @@ void parseline(string line, state& st){
 
 
 /*recognizes and sets different modes for the debugger*/
-int handle_command(string command){
+int handle_command(string command, debugList& factList){
 
   int retVal;
 
@@ -133,14 +139,11 @@ int handle_command(string command){
   } else if (command == "run"|| command == "r") {
     retVal = CONTINUE;
   } else if (command == "dump"||command == "d") {
-    cout << endl;
-     cout << "*******************************************************************" << endl; 
-    cout << "Memory Dump:" << endl;
-    cout << endl;
     retVal = DUMP;
   } else if (command == "continue"||command == "c"){
     retVal = CONTINUE;
   } else if (command == "quit"||command == "q"){
+    listFree(factList);
     exit(0);
   } else {
     cout << "unknown command: type 'help' for options " << endl;
@@ -154,7 +157,7 @@ int handle_command(string command){
 void help(){
   cout << "DEBUGGER HELP" << endl;
   cout << "\t-break fact|action|sense - set break point at specified type" << endl;
-  cout << "\t-dump or d - dump the state of the system" << endl;
+  cout << "\t-dump or d <nodeID> <all> - dump the state of the system" << endl;
   cout << "\t-continue or c - continue execution" << endl;
   cout << "\t-run or r - start the program" << endl;
   cout << "\t-quit - exit debugger" << endl;

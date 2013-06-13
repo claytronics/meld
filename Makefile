@@ -98,7 +98,8 @@ SRCS = utils/utils.cpp \
 			 interface.cpp \
 			 debug_prompt.cpp \
 			 debug_handler.cpp \
-
+			 debug_list.cpp \
+			
 OBJS = $(patsubst %.cpp,%.o,$(SRCS))
 
 all: meld print predicates server

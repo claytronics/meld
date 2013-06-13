@@ -4,6 +4,7 @@
 
 #include <string>
 #include "vm/state.hpp"
+#include "debug_list.hpp"
 
 using namespace std;
 
@@ -22,5 +23,7 @@ void debugController(vm::state& currentState, int instruction, string specificat
 bool isTheSystemPaused();
 void setDebuggingMode(bool setting);
 bool isInDebuggingMode();
+void setupFactList();
+debugList getFactList();
 
 #endif
