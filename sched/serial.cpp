@@ -49,6 +49,12 @@ serial_local::assert_end_iteration(void) const
 node*
 serial_local::get_work(void)
 {
+    /* MPI receive any pending messages */
+    if (state.all->WORLD.iprobe(boost::mpi::any_source, boost::mpi::any_tag)) {
+        state.all->WORLD.irecv(boost::mpi::any_source, boost::mpi::any_tag);
+        cout << "Process " << state.all->WORLD.rank() << ": received <-->" << endl;
+    }
+
    if(current_node != NULL) {
       if(!current_node->has_work()) {
          current_node->set_in_queue(false);

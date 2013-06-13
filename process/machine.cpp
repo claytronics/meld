@@ -99,7 +99,10 @@ machine::route(const node* from, sched::base *sched_caller, const node::node_id 
    /* TODO MPI route should take node_id, find the process id, and then
     * determine how to send the message
     */
+   cout << "Process " << this->all->WORLD.rank() << ":: id " << id << endl;
+
    if (this->all->DATABASE->on_current_process(id)){
+       cout << "Process " << this->all->WORLD.rank() << ": route to self " << endl;
        /* Belongs to the same process, does not require MPI */
       node *node(this->all->DATABASE->find_node(id));
 
@@ -112,7 +115,7 @@ machine::route(const node* from, sched::base *sched_caller, const node::node_id 
       } else if(pred->is_action_pred()) {
             run_action(sched_other, node, stpl->get_tuple(), sched_caller != sched_other);
             delete stpl;
-        } else if(sched_other == sched_caller) {
+      } else if(sched_other == sched_caller) {
             work new_work(node, stpl);
 
          sched_caller->new_work(from, new_work);
@@ -121,6 +124,13 @@ machine::route(const node* from, sched::base *sched_caller, const node::node_id 
 
          sched_caller->new_work_other(sched_other, new_work);
       }
+   } else {
+        /* Send to the correct process */
+       /* isend (destination process id, tag) */
+       /* TODO handle serializing the data to send over MPI */
+       cout << "Process " << this->all->WORLD.rank() << ": sends node id " << id
+           << " to process " << (id % this->all->WORLD.size()) << endl;
+        this->all->WORLD.isend(id % this->all->WORLD.size(), id);
    }
 }
 
