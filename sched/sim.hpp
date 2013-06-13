@@ -78,7 +78,7 @@ private:
    void handle_shake(const vm::deterministic_timestamp, const db::node::node_id,
          const vm::int_val, const vm::int_val, const vm::int_val);
    void check_delayed_queue(void);
-  // void send_send_message(const work_info&, const vm::deterministic_timestamp);
+   void send_send_message(const work_info&, const vm::deterministic_timestamp);
  
 public:
 	

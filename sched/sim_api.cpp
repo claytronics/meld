@@ -68,7 +68,7 @@ sim_sched::init(const size_t num_threads)
 		
 	assert(num_threads == 1);
 	
-	state::SIM = true;
+//	state::SIM = true;
 	
 	try {
    	// add socket
@@ -225,7 +225,9 @@ void
 sim_sched::instantiate_all_nodes(void)
 {
 	assert(!all_instantiated);
-
+	for(database::map_nodes::const_iterator
+		it(state.all->DATABASE->nodes_begin()),end(state.all->DATABASE->nodes_end());
+		it!=end;++it){
 	node *n(it->second);
 	sim_node *no((sim_node *)n);
 
@@ -237,6 +239,7 @@ sim_sched::instantiate_all_nodes(void)
 			add_vacant(0, no, face, 1);
 		else
 			add_neighbor(0, no, *neighbor, face, 1);
+		}
 	}
 }
 
@@ -270,7 +273,7 @@ sim_sched::send_send_message(const work_info& info, const deterministic_timestam
 
 void
 sim_sched::handle_deterministic_computation(void)
-{
+{/*
    std::set<sim_node*> nodes; // all touched nodes
 
    for(list<work_info>::iterator it(tmp_work.begin()), end(tmp_work.end());
@@ -287,9 +290,9 @@ sim_sched::handle_deterministic_computation(void)
    if(!current_node->pending.empty()) {
       nodes.insert(current_node);
    }
-
+	/* Removed by Xing, need to consult _ankit*/
   // current_node->timestamp = state.sim_instr_counter;
-   
+ /*  
    size_t i(0);
 	message_type reply[MAXLENGTH];
    reply[i++] = (4 + nodes.size()) * sizeof(message_type);
@@ -306,7 +309,7 @@ sim_sched::handle_deterministic_computation(void)
    }
 
 	send_message(reply);
-   current_node = NULL;
+   current_node = NULL;*/
 }
 
 void
@@ -531,7 +534,7 @@ sim_sched::master_get_work(void)
 	
 	while(true) {
 
-		if((reply = poll()) == NULL) {
+		if((reply =(message_type*) poll()) == NULL) {
       		send_pending_messages();
 			usleep(100);
          	if(thread_mode && !all_instantiated) {
@@ -686,9 +689,9 @@ sim_sched::gather_next_tuples(db::node *node, simple_tuple_list& ls)
 {
 	sim_node *no((sim_node*)node);
 	no->pending.pop_list(ls);
-    if(state.sim_instr_use) {
+   /* if(state.sim_instr_use) {
 	    no->get_tuples_until_timestamp(ls, state.sim_instr_limit);
-    }
+    }*/
     no->add_delayed_tuples(ls);
 }
 
