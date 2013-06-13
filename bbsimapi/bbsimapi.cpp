@@ -45,7 +45,7 @@ queue::push_safe_linear_queue<sim_sched::message_type*> sim_sched::socket_messag
 using namespace std;
 
 	
-void init(const size_t num_threads)
+void init()
 {	
 	try {
    	/* Calling the connect*/
@@ -99,7 +99,8 @@ void init(const size_t num_threads)
 
 	start_time = utils::get_timestamp();
 }
-/* ? to be kept in the api or the sim_sched*/
+
+/*Helper functions*/
 static void add_received_tuple(sim_node *no, size_t ts, db::simple_tuple *stpl)
 {
 	heap_priority pr;
@@ -341,6 +342,8 @@ static void handle_shake(const deterministic_timestamp ts, const db::node::node_
       add_received_tuple(no, ts, stpl);
    }
 }
+/*Helper functions end*/
+
 
 /*earlier master_get_work()*/
 node* poll(void)
@@ -426,6 +429,7 @@ void send_set_color(db::node *n, const int r, const int g, const int b)
 	
 }
 
+/*tcp helper functions begin*/
 static void send_message(message_type *msg)
 {
    boost::asio::write(*tcp_socket, boost::asio::buffer(msg, msg[0] + sizeof(message_type)));
@@ -462,7 +466,7 @@ static message_type *tcp_poll()
         }
         return NULL;
     }
-
+/*TCP helper functions end*/
 
 
 }
