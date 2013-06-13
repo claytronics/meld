@@ -92,7 +92,7 @@ public:
    {
       assert(false);
    }
-   virtual  void send_send_message(message_type* message);
+  // virtual  void send_send_message(message_type* message);
 	void* poll();
 #ifdef COMPILE_MPI
    virtual void new_work_remote(process::remote *, const db::node::node_id, message *)
