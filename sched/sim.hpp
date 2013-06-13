@@ -109,7 +109,7 @@ public:
    virtual void init(const size_t);
    virtual void end(void) {}
    virtual bool terminate_iteration(void);
-   virtual int main(void);
+//   virtual int main(void);
    static db::node* create_node(const db::node::node_id id, const db::node::node_id trans, vm::all *all)
    {
       return dynamic_cast<db::node*>(new sched::sim_node(id, trans, all));

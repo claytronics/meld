@@ -37,9 +37,11 @@ run_diff ()
 	rm test.out
 }
 
+echo $TEST
 do_serial ()
 {
 	SCHED=${1}
+    echo $SCHED
 	TO_RUN="${EXEC} -f ${TEST} -c ${SCHED}"
 	
 	run_diff "${TO_RUN}"

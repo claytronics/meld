@@ -13,7 +13,9 @@
 using namespace db;
 using namespace vm;
 using namespace process;
+using namespace sim_tcp;
 using boost::asio::ip::tcp;
+
 
 #ifdef USE_SIM
 
@@ -73,7 +75,7 @@ sim_sched::init(const size_t num_threads)
 	
 	try {
    	// add socket
- 	init_tcp();
+ 	sim_tcp::init_tcp();
 	} catch(std::exception &e) {
 		throw machine_error("can't connect to simulator");
 	}
@@ -163,7 +165,7 @@ sim_sched::send_pending_messages(void)
 {
 	while(!socket_messages.empty()) {
 		message_type *data(socket_messages.pop());
-		send_message(data);
+		sim_tcp::send_message(data);
 		delete []data;
 	}
 }
@@ -269,7 +271,7 @@ sim_sched::send_send_message(const work_info& info, const deterministic_timestam
 
 	simple_tuple::wipeout(stpl);
 
-	send_message(reply);
+	sim_tcp::send_message(reply);
 }
 
 void
@@ -513,7 +515,7 @@ sim_sched::check_delayed_queue(void)
       if(best < now) {
          work_info info(delay_queue.pop());
          sim_node *target(dynamic_cast<sim_node*>(info.work.get_node()));
-         send_send_message(info, max(dynamic_cast<sim_node*>(info.src)->timestamp, target->timestamp + 1));
+         sim_sched::send_send_message(info, max(dynamic_cast<sim_node*>(info.src)->timestamp, target->timestamp + 1));
       } else {
          return;
       }
@@ -535,7 +537,7 @@ sim_sched::master_get_work(void)
 	
 	while(true) {
 
-		if((reply =(message_type*) poll()) == NULL) {
+		if((reply =(message_type*) sim_tcp::poll()) == NULL) {
       		send_pending_messages();
 			usleep(100);
          	if(thread_mode && !all_instantiated) {
@@ -644,7 +646,7 @@ sim_sched::set_color(db::node *n, const int r, const int g, const int b)
 void
 sim_sched::schedule_new_message(message_type *data)
 {
-	send_message(data);
+	sim_tcp::send_message(data);
 	delete []data;
 }
 
