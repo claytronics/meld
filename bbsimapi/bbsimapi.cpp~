@@ -426,7 +426,7 @@ void process_message(message_type* reply){
 
 void send_set_color(db::node *n, const int r, const int g, const int b)
 {
-	message_type *data=new message_type[8];
+	message_type data=new message_type[8];
     size_t i(0);
 	
 	data[i++] = 7 * sizeof(message_type);
