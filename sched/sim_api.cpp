@@ -37,7 +37,8 @@ static const int TIME_TO_INSTANTIATE = 500;
 
 namespace sched
 {
-	
+
+bool sim_sched::thread_mode(false);
 int sim_sched::PORT(0);
 vm::predicate* sim_sched::neighbor_pred(NULL);
 vm::predicate* sim_sched::tap_pred(NULL);
