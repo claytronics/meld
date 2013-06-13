@@ -32,15 +32,16 @@ using boost::asio::ip::tcp;
 namespace bbsimapi
 {
 
-vm::predicate* sim_sched::neighbor_pred(NULL);
-vm::predicate* sim_sched::tap_pred(NULL);
-vm::predicate* sim_sched::neighbor_count_pred(NULL);
-vm::predicate* sim_sched::accel_pred(NULL);
-vm::predicate* sim_sched::shake_pred(NULL);
-vm::predicate* sim_sched::vacant_pred(NULL);
-bool sim_sched::stop_all(false);
-utils::unix_timestamp sim_sched::start_time(0);
-queue::push_safe_linear_queue<sim_sched::message_type*> sim_sched::socket_messages;
+vm::predicate* bbsimapi::neighbor_pred(NULL);
+vm::predicate* bbsimapi::tap_pred(NULL);
+vm::predicate* bbsimapi::neighbor_count_pred(NULL);
+vm::predicate* bbsimapi::accel_pred(NULL);
+vm::predicate* bbsimapi::shake_pred(NULL);
+vm::predicate* bbsimapi::vacant_pred(NULL);
+bool bbsimapi::stop_all(false);
+utils::unix_timestamp bbsimapi::start_time(0);
+/*Queues to be used.*/
+//queue::push_safe_linear_queue<sim_sched::message_type*> bbsimapi::socket_messages;
 
 using namespace std;
 
@@ -153,7 +154,7 @@ static void add_vacant(const size_t ts, sim_node *no, const face_t face, const i
 }
 
 
-/*Sends the message*/
+/*Sends the "SEND_MESSAGE" command*/
 static void send_send_message(const work_info& info, const deterministic_timestamp ts)
 {
 	message_type reply[MAXLENGTH];
@@ -178,7 +179,7 @@ static void send_send_message(const work_info& info, const deterministic_timesta
 
 	simple_tuple::wipeout(stpl);
 
-	sim_tcp::send_message(reply);
+	send_message(reply);
 }
 
 
@@ -346,20 +347,26 @@ static void handle_shake(const deterministic_timestamp ts, const db::node::node_
 
 
 /*earlier master_get_work()*/
-node* poll(void)
+message_type* poll(void)
 {
 	message_type *reply;
   // size_t length;	
 
-	while(true) {
+	
 	/*Change the name of the poll function here*/
 		if((reply =(message_type*)tcp_poll()) == NULL) {
       		//Send pending message is delelted.
 			//send_pending_messages();
-			usleep(100);
-		} else {
+			//usleep(100);
+			return NULL;
+		}
+		return reply
+		
+}
 
-	//	assert(length == (size_t)reply[0]);
+void process_message(message_type* reply){
+		
+		assert(reply!=NULL);
 		
 		switch(reply[1]) {
 			case SETID: /*Adding the setid command to the interface _ankit*/
@@ -405,9 +412,6 @@ node* poll(void)
          	default: cerr << "Unrecognized message " << reply[1] << endl;
 			}
 		}
-	}
-	assert(false);
-	return NULL;
 }
 
 
@@ -430,7 +434,7 @@ void send_set_color(db::node *n, const int r, const int g, const int b)
 }
 
 /*tcp helper functions begin*/
-static void send_message(message_type *msg)
+void send_message(message_type *msg)
 {
    boost::asio::write(*tcp_socket, boost::asio::buffer(msg, msg[0] + sizeof(message_type)));
 }
