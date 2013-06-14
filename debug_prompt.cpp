@@ -156,7 +156,14 @@ int handle_command(string command, debugList& factList){
 /*prints the help screen*/
 void help(){
   cout << "DEBUGGER HELP" << endl;
-  cout << "\t-break fact|action|sense - set break point at specified type" << endl;
+  cout << "\t-break <Specification>- set break point at specified place" << endl;
+  cout << "\t\t-Specification Format:" << endl;
+  cout << "\t\t  <type>:<name>@<node> OR" << endl;
+  cout << "\t\t  <type>:<name>        OR" << endl;
+  cout << "\t\t  <type>@<node>" << endl;
+  cout << "\t\t    -type - fact|action|sense|block - a type MUST be specified" << endl;
+  cout << "\t\t    -name - the name of certain type ex. the name of a fact" << endl;
+  cout << "\t\t    -node - the number of the node" << endl;
   cout << "\t-dump or d <nodeID> <all> - dump the state of the system" << endl;
   cout << "\t-continue or c - continue execution" << endl;
   cout << "\t-run or r - start the program" << endl;

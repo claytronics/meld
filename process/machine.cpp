@@ -78,7 +78,7 @@ machine::run_action(sched::base *sched, node* node, vm::tuple *tpl, const bool f
    }
 
 	delete tpl;
-	runBreakPoint("action","");
+	//runBreakPoint("action","");
 }
 
 void

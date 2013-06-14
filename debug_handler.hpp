@@ -14,8 +14,8 @@ using namespace std;
 #define NOTHING 3
 
 
-void activateBreakPoint(string type);
-void runBreakPoint(string type, string msg);
+void activateBreakPoint(string specification);
+void runBreakPoint(char* type, string msg, char* name, int nodeID);
 void pauseIt();
 void dumpSystemState(vm::state& st);
 void continueExecution();

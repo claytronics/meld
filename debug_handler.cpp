@@ -18,7 +18,7 @@ using namespace vm;
 
 /*function prototypes*/
 void activateBreakPoint(string type);
-void runBreakPoint(string type, string msg);
+void runBreakPoint(char* type, string msg, char* name, int nodeID);
 void pauseIt();
 void dumpSystemState(vm::state& st);
 void continueExecution();
@@ -38,20 +38,18 @@ void setupFactList();
 
 
 /*global variables to controll main thread*/
-static bool debug_BlockBreakPoint = false;
-static bool debug_ActionBreakPoint = false;
-static bool debug_SenseBreakPoint = false;
-static bool debug_FactBreakPoint = false;
 static bool isSystemPaused = true;
 static bool isDebug = false;
 static debugList factBreakList = NULL;
 
 
 
+//starts the new fact list
 void setupFactList(){
   factBreakList = newBreakpointList();
 }
 
+//returns the pointer to the list of break points
 debugList getFactList(){
   return factBreakList;
 };
@@ -62,52 +60,125 @@ bool isTheSystemPaused(){
   return isSystemPaused;
 }
 
+//returns the index of a character in a string, 
+//if it is not there it returns -1
+int characterInStringIndex(string str, char character){
+  for(unsigned int i = 0; i < str.length(); i++){
+    if (str[i] == character)
+      return (int)i;
+  }
+  return -1;
+}
+
+//extracts the type from the specification
+string getType(string specification){
+  string build = "";
+    for (unsigned int i = 0; i < specification.length(); i++){
+      if(specification[i] == ':' || specification[i] == '@') 
+	return build;
+      else 
+	build += specification[i];
+    }
+    return build;
+}
+
+//extracts the name from the specification
+//returns "" if name is not present
+string getName(string specification){
+  string build = "";
+  //find index of colon
+  int index = characterInStringIndex(specification, ':');
+  // if colon not there
+  if (index == -1)
+    return "";
+  for (unsigned int i = index +1; 
+       i < specification.length(); i++){
+    if (specification[i] == '@')
+      return build;
+    else
+      build += specification[i];
+  }
+  return build;
+}
+
+//extracts the node from the specification
+//returns "" if node is not given
+string getNode(string specification){
+  string build = "";
+  int index = characterInStringIndex(specification, '@');
+  if (index == -1)
+    return "";
+  for (unsigned int i = index+1; i < specification.length(); i++){
+    build+=specification[i];
+  }
+  return build;
+}
+
+      
+
 
 /*given the type, turn the breakPoint on*/
-void activateBreakPoint(string type){
-  if (type == "block"){
-    cout << "Breakpoint:block set" << endl;
-    debug_BlockBreakPoint = true;
-  } else if (type == "sense") {
-    cout << "Breakpoint:sense set" << endl;
-    debug_SenseBreakPoint = true;
-  } else if (type == "action") {
-    cout << "Breakpoint:action set" << endl;
-    debug_ActionBreakPoint = true;
-  } else if (type == "fact") {
-    cout << "Breakpoint:fact set" << endl;
-    debug_FactBreakPoint = true;
+void activateBreakPoint(string specification){
+
+  //to follow a format that a type must be presented first
+  if (specification[0] == ':'|| specification[0] == '@'){
+    cout << "Please Enter a Type" << endl;
+    return;
   }
+  
+  //parse for different specification formats
+  string type = getType(specification);
+  string name = getName(specification);
+  string nodeID = getNode(specification);
+
+  //if this type of break point is not valid
+  if (type!="block"&&type!="action"&&type!="fact"&&type!="sense"){
+    cout << "Please Enter a Valid Type-- type help for options" << endl;
+    return;
+  }
+
+  
+  //create mempory on heap to store break point information
+  char* type_copy = (char*)malloc(strlen(type.c_str())+1);
+  char* name_copy = (char*)malloc(strlen(name.c_str())+1);
+  int node_copy;
+
+  //move the memory over
+  memcpy(type_copy, (char*)type.c_str(),strlen(type.c_str())+1);
+  memcpy(name_copy, (char*)name.c_str(),strlen(name.c_str())+1);
+  
+  if (nodeID != "") 
+    node_copy = atoi(nodeID.c_str());
+  else 
+    node_copy = -1;
+
+  //insert the information in the breakpoint list
+  insertBreak(factBreakList,type_copy,name_copy, node_copy);
+
+  cout << "-->Breakpoint set with following conditions:" << endl;
+  cout << "\tType: " << type << endl;
+  if (name!="")
+    cout << "\tName: " << name << endl;
+  if (nodeID!="")
+    cout <<  "\tNode: " << nodeID << endl;
+    
+  
 }
 
 
 /*initiate the system to wait until further notice*/
-void runBreakPoint(string type,string msg){
-
-    /*Block Break Points*/
-  if (type == "block" && debug_BlockBreakPoint == true){
-    cout << "breakpoint: block" << endl;
-    cout << msg << endl;
+void runBreakPoint(char* type, string msg, char* name, int nodeID){
+  
+  
+  //if the specifications are a hit, then pause the system
+  if (isInBreakPointList(factBreakList,type,name,nodeID)){
     pauseIt();
-
-    /*Sense Break Points*/
-  } else if (type == "sense" && debug_SenseBreakPoint == true) {
-    cout << "breakpoint: sense" << endl; 
-    cout << msg << endl;
-    pauseIt();
-
-    /*Action Break Points*/
-  } else if (type == "action" && debug_ActionBreakPoint == true) {
-    cout << "breakpoint: action" << endl;
-    cout << msg << endl;
-    pauseIt();
-   
-    /*Fact Break Points*/
-  } else if (type == "fact" && debug_FactBreakPoint == true) {
-    cout << "breakpoint: fact" << endl;
-    cout << msg << endl;
-    pauseIt();
+    cout << "Breakpoint of type " << type << " reached ";
+    cout << "with specification: " << name << "@" << nodeID << endl;
+    cout << "\t-" <<  msg << endl;
   }
+  
+   
 }
 
 
