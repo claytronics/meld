@@ -9,7 +9,7 @@
 #include "vm/match.hpp"
 #include "db/tuple.hpp"
 #include "process/machine.hpp"
-#include "debug_handler.hpp"
+#include "debug/debug_handler.hpp"
 
 using namespace vm;
 using namespace vm::instr;

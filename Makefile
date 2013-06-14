@@ -96,9 +96,9 @@ SRCS = utils/utils.cpp \
 			 stat/slice.cpp \
 			 stat/slice_set.cpp \
 			 interface.cpp \
-			 debug_prompt.cpp \
-			 debug_handler.cpp \
-			 debug_list.cpp \
+			 debug/debug_prompt.cpp \
+			 debug/debug_handler.cpp \
+			 debug/debug_list.cpp \
 			
 OBJS = $(patsubst %.cpp,%.o,$(SRCS))
 

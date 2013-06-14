@@ -12,8 +12,8 @@
 #include "utils/fs.hpp"
 #include "interface.hpp"
 #include "sched/serial.hpp"
-#include "debug_handler.hpp"
-#include "debug_prompt.hpp"
+#include "debug/debug_handler.hpp"
+#include "debug/debug_prompt.hpp"
 
 using namespace process;
 using namespace db;

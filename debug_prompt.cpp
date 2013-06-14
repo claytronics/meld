@@ -7,8 +7,8 @@
 #include <string>
 #include <stdio.h>
 #include <stdlib.h>
-#include "debug_handler.hpp"
-#include "debug_list.hpp"
+#include "debug/debug_handler.hpp"
+#include "debug/debug_list.hpp"
 
 using namespace std;
 using namespace vm;
@@ -31,7 +31,8 @@ string lastBuild = "";
 void debug(state& st){
 
   setupFactList();
-  
+
+
   pthread_t tid;
   pthread_create(&tid,NULL,run_debugger, &st);
 
