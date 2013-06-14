@@ -30,13 +30,11 @@ protected:
 	static vm::predicate *accel_pred;
 	static vm::predicate *shake_pred;
 	static vm::predicate *vacant_pred;
-	static bool thread_mode;
 	static bool stop_all;
    // for initial node instantiation
    static utils::unix_timestamp start_time;
    static bool all_instantiated;
 	static queue::push_safe_linear_queue<message_type*> socket_messages;
-	bool slave;
 	
  
 public:
@@ -88,7 +86,6 @@ public:
       sched::base(0, all),
       current_node(NULL),
 		socket(NULL),
-		slave(false)
    {
    }
 
@@ -96,7 +93,6 @@ public:
 		sched::base(id, all),
 		current_node(_node),
 		socket(NULL),
-		slave(true)
 	{
 	}
  

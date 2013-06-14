@@ -44,8 +44,7 @@ match_serial(const char *name, char *arg, const scheduler_type type)
    return false;
 }
 
-static inline bool
-fail_sched(char* sched)
+static inline bool fail_sched(char* sched)
 {
 	cerr << "Error: invalid scheduler " << sched << endl;
    exit(EXIT_FAILURE);
