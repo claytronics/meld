@@ -85,14 +85,14 @@ public:
    explicit sim_sched(vm::all *all):
       sched::base(0, all),
       current_node(NULL),
-		socket(NULL),
+		socket(NULL)
    {
    }
 
 	explicit sim_sched(vm::all *all, const vm::process_id id, sim_node *_node):
 		sched::base(id, all),
 		current_node(_node),
-		socket(NULL),
+		socket(NULL)
 	{
 	}
  
