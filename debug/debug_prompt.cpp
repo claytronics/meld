@@ -29,9 +29,8 @@ string lastBuild = "";
 /*spawn the debbugging prompt as a separate thread to
   controll the main one*/
 void debug(state& st){
-
+  
   setupFactList();
-
 
   pthread_t tid;
   pthread_create(&tid,NULL,run_debugger, &st);

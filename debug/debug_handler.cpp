@@ -167,12 +167,14 @@ void activateBreakPoint(string specification){
 /*initiate the system to wait until further notice*/
 void runBreakPoint(char* type, string msg, char* name, int nodeID){
   
+  if (!isInDebuggingMode())
+    return;
   
   //if the specifications are a hit, then pause the system
   if (isInBreakPointList(factBreakList,type,name,nodeID)){
     pauseIt();
-    cout << "Breakpoint of type " << type << " reached ";
-    cout << "with specification: " << name << "@" << nodeID << endl;
+    cout << "Breakpoint-->";
+    cout << type << ":" << name << "@" << nodeID << endl;
     cout << "\t-" <<  msg << endl;
   }
   
