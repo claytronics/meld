@@ -29,5 +29,5 @@ namespace api {
     /*
      * Initialize the API layer
      */
-    void init();
+    void init(int argc, char **argv);
 } // namespace api
