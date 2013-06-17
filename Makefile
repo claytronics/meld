@@ -96,7 +96,7 @@ SRCS = utils/utils.cpp \
 			 stat/slice.cpp \
 			 stat/slice_set.cpp \
 			 interface.cpp \
-			 bbsimapi/bbsimapi.cpp \
+			 api/bbsimapi.cpp \
 
 OBJS = $(patsubst %.cpp,%.o,$(SRCS))
 
