@@ -1,0 +1,53 @@
+Remaking Makefile.externs
+Makefile.externs ready
+g++ -march=x86-64  -O0 -Wall -Wextra  -g -I. -I/usr/lib/openmpi/include    -c -o utils/utils.o utils/utils.cpp
+g++ -march=x86-64  -O0 -Wall -Wextra  -g -I. -I/usr/lib/openmpi/include    -c -o utils/types.o utils/types.cpp
+g++ -march=x86-64  -O0 -Wall -Wextra  -g -I. -I/usr/lib/openmpi/include    -c -o utils/fs.o utils/fs.cpp
+g++ -march=x86-64  -O0 -Wall -Wextra  -g -I. -I/usr/lib/openmpi/include    -c -o vm/program.o vm/program.cpp
+g++ -march=x86-64  -O0 -Wall -Wextra  -g -I. -I/usr/lib/openmpi/include    -c -o vm/predicate.o vm/predicate.cpp
+g++ -march=x86-64  -O0 -Wall -Wextra  -g -I. -I/usr/lib/openmpi/include    -c -o vm/types.o vm/types.cpp
+g++ -march=x86-64  -O0 -Wall -Wextra  -g -I. -I/usr/lib/openmpi/include    -c -o vm/instr.o vm/instr.cpp
+g++ -march=x86-64  -O0 -Wall -Wextra  -g -I. -I/usr/lib/openmpi/include    -c -o vm/state.o vm/state.cpp
+g++ -march=x86-64  -O0 -Wall -Wextra  -g -I. -I/usr/lib/openmpi/include    -c -o vm/tuple.o vm/tuple.cpp
+g++ -march=x86-64  -O0 -Wall -Wextra  -g -I. -I/usr/lib/openmpi/include    -c -o vm/exec.o vm/exec.cpp
+g++ -march=x86-64  -O0 -Wall -Wextra  -g -I. -I/usr/lib/openmpi/include    -c -o vm/external.o vm/external.cpp
+g++ -march=x86-64  -O0 -Wall -Wextra  -g -I. -I/usr/lib/openmpi/include    -c -o vm/rule.o vm/rule.cpp
+g++ -march=x86-64  -O0 -Wall -Wextra  -g -I. -I/usr/lib/openmpi/include    -c -o vm/rule_matcher.o vm/rule_matcher.cpp
+g++ -march=x86-64  -O0 -Wall -Wextra  -g -I. -I/usr/lib/openmpi/include    -c -o db/node.o db/node.cpp
+g++ -march=x86-64  -O0 -Wall -Wextra  -g -I. -I/usr/lib/openmpi/include    -c -o db/tuple.o db/tuple.cpp
+g++ -march=x86-64  -O0 -Wall -Wextra  -g -I. -I/usr/lib/openmpi/include    -c -o db/agg_configuration.o db/agg_configuration.cpp
+g++ -march=x86-64  -O0 -Wall -Wextra  -g -I. -I/usr/lib/openmpi/include    -c -o db/tuple_aggregate.o db/tuple_aggregate.cpp
+g++ -march=x86-64  -O0 -Wall -Wextra  -g -I. -I/usr/lib/openmpi/include    -c -o db/neighbor_tuple_aggregate.o db/neighbor_tuple_aggregate.cpp
+g++ -march=x86-64  -O0 -Wall -Wextra  -g -I. -I/usr/lib/openmpi/include    -c -o db/database.o db/database.cpp
+g++ -march=x86-64  -O0 -Wall -Wextra  -g -I. -I/usr/lib/openmpi/include    -c -o db/trie.o db/trie.cpp
+g++ -march=x86-64  -O0 -Wall -Wextra  -g -I. -I/usr/lib/openmpi/include    -c -o db/neighbor_agg_configuration.o db/neighbor_agg_configuration.cpp
+g++ -march=x86-64  -O0 -Wall -Wextra  -g -I. -I/usr/lib/openmpi/include    -c -o process/machine.o process/machine.cpp
+g++ -march=x86-64  -O0 -Wall -Wextra  -g -I. -I/usr/lib/openmpi/include    -c -o mem/thread.o mem/thread.cpp
+g++ -march=x86-64  -O0 -Wall -Wextra  -g -I. -I/usr/lib/openmpi/include    -c -o mem/center.o mem/center.cpp
+g++ -march=x86-64  -O0 -Wall -Wextra  -g -I. -I/usr/lib/openmpi/include    -c -o mem/stat.o mem/stat.cpp
+g++ -march=x86-64  -O0 -Wall -Wextra  -g -I. -I/usr/lib/openmpi/include    -c -o sched/base.o sched/base.cpp
+g++ -march=x86-64  -O0 -Wall -Wextra  -g -I. -I/usr/lib/openmpi/include    -c -o sched/common.o sched/common.cpp
+g++ -march=x86-64  -O0 -Wall -Wextra  -g -I. -I/usr/lib/openmpi/include    -c -o sched/serial.o sched/serial.cpp
+g++ -march=x86-64  -O0 -Wall -Wextra  -g -I. -I/usr/lib/openmpi/include    -c -o sched/thread/threaded.o sched/thread/threaded.cpp
+g++ -march=x86-64  -O0 -Wall -Wextra  -g -I. -I/usr/lib/openmpi/include    -c -o sched/thread/assert.o sched/thread/assert.cpp
+g++ -march=x86-64  -O0 -Wall -Wextra  -g -I. -I/usr/lib/openmpi/include    -c -o external/math.o external/math.cpp
+g++ -march=x86-64  -O0 -Wall -Wextra  -g -I. -I/usr/lib/openmpi/include    -c -o external/lists.o external/lists.cpp
+g++ -march=x86-64  -O0 -Wall -Wextra  -g -I. -I/usr/lib/openmpi/include    -c -o external/utils.o external/utils.cpp
+g++ -march=x86-64  -O0 -Wall -Wextra  -g -I. -I/usr/lib/openmpi/include    -c -o external/strings.o external/strings.cpp
+g++ -march=x86-64  -O0 -Wall -Wextra  -g -I. -I/usr/lib/openmpi/include    -c -o external/others.o external/others.cpp
+g++ -march=x86-64  -O0 -Wall -Wextra  -g -I. -I/usr/lib/openmpi/include    -c -o external/core.o external/core.cpp
+g++ -march=x86-64  -O0 -Wall -Wextra  -g -I. -I/usr/lib/openmpi/include    -c -o stat/stat.o stat/stat.cpp
+g++ -march=x86-64  -O0 -Wall -Wextra  -g -I. -I/usr/lib/openmpi/include    -c -o stat/slice.o stat/slice.cpp
+g++ -march=x86-64  -O0 -Wall -Wextra  -g -I. -I/usr/lib/openmpi/include    -c -o stat/slice_set.o stat/slice_set.cpp
+g++ -march=x86-64  -O0 -Wall -Wextra  -g -I. -I/usr/lib/openmpi/include    -c -o interface.o interface.cpp
+g++ -march=x86-64  -O0 -Wall -Wextra  -g -I. -I/usr/lib/openmpi/include    -c -o bbsimapi/bbsimapi.o bbsimapi/bbsimapi.cpp
+g++ -march=x86-64  -O0 -Wall -Wextra  -g -I. -I/usr/lib/openmpi/include    -c -o meld.o meld.cpp
+g++ -march=x86-64  -O0 -Wall -Wextra  -g -I. -I/usr/lib/openmpi/include  utils/utils.o utils/types.o utils/fs.o vm/program.o vm/predicate.o vm/types.o vm/instr.o vm/state.o vm/tuple.o vm/exec.o vm/external.o vm/rule.o vm/rule_matcher.o db/node.o db/tuple.o db/agg_configuration.o db/tuple_aggregate.o db/neighbor_tuple_aggregate.o db/database.o db/trie.o db/neighbor_agg_configuration.o process/machine.o mem/thread.o mem/center.o mem/stat.o sched/base.o sched/common.o sched/serial.o sched/thread/threaded.o sched/thread/assert.o external/math.o external/lists.o external/utils.o external/strings.o external/others.o external/core.o stat/stat.o stat/slice.o stat/slice_set.o interface.o bbsimapi/bbsimapi.o meld.o -o meld   -pthread -lm -lreadline -lboost_thread-mt -lboost_system-mt -lboost_date_time-mt -lboost_regex-mt 
+g++ -march=x86-64  -O0 -Wall -Wextra  -g -I. -I/usr/lib/openmpi/include    -c -o print.o print.cpp
+g++ -march=x86-64  -O0 -Wall -Wextra  -g -I. -I/usr/lib/openmpi/include  utils/utils.o utils/types.o utils/fs.o vm/program.o vm/predicate.o vm/types.o vm/instr.o vm/state.o vm/tuple.o vm/exec.o vm/external.o vm/rule.o vm/rule_matcher.o db/node.o db/tuple.o db/agg_configuration.o db/tuple_aggregate.o db/neighbor_tuple_aggregate.o db/database.o db/trie.o db/neighbor_agg_configuration.o process/machine.o mem/thread.o mem/center.o mem/stat.o sched/base.o sched/common.o sched/serial.o sched/thread/threaded.o sched/thread/assert.o external/math.o external/lists.o external/utils.o external/strings.o external/others.o external/core.o stat/stat.o stat/slice.o stat/slice_set.o interface.o bbsimapi/bbsimapi.o print.o -o print   -pthread -lm -lreadline -lboost_thread-mt -lboost_system-mt -lboost_date_time-mt -lboost_regex-mt 
+g++ -march=x86-64  -O0 -Wall -Wextra  -g -I. -I/usr/lib/openmpi/include    -c -o predicates.o predicates.cpp
+g++ -march=x86-64  -O0 -Wall -Wextra  -g -I. -I/usr/lib/openmpi/include  utils/utils.o utils/types.o utils/fs.o vm/program.o vm/predicate.o vm/types.o vm/instr.o vm/state.o vm/tuple.o vm/exec.o vm/external.o vm/rule.o vm/rule_matcher.o db/node.o db/tuple.o db/agg_configuration.o db/tuple_aggregate.o db/neighbor_tuple_aggregate.o db/database.o db/trie.o db/neighbor_agg_configuration.o process/machine.o mem/thread.o mem/center.o mem/stat.o sched/base.o sched/common.o sched/serial.o sched/thread/threaded.o sched/thread/assert.o external/math.o external/lists.o external/utils.o external/strings.o external/others.o external/core.o stat/stat.o stat/slice.o stat/slice_set.o interface.o bbsimapi/bbsimapi.o predicates.o -o predicates   -pthread -lm -lreadline -lboost_thread-mt -lboost_system-mt -lboost_date_time-mt -lboost_regex-mt 
+g++ -march=x86-64  -O0 -Wall -Wextra  -g -I. -I/usr/lib/openmpi/include    -c -o server.o server.cpp
+g++ -march=x86-64  -O0 -Wall -Wextra  -g -I. -I/usr/lib/openmpi/include  utils/utils.o utils/types.o utils/fs.o vm/program.o vm/predicate.o vm/types.o vm/instr.o vm/state.o vm/tuple.o vm/exec.o vm/external.o vm/rule.o vm/rule_matcher.o db/node.o db/tuple.o db/agg_configuration.o db/tuple_aggregate.o db/neighbor_tuple_aggregate.o db/database.o db/trie.o db/neighbor_agg_configuration.o process/machine.o mem/thread.o mem/center.o mem/stat.o sched/base.o sched/common.o sched/serial.o sched/thread/threaded.o sched/thread/assert.o external/math.o external/lists.o external/utils.o external/strings.o external/others.o external/core.o stat/stat.o stat/slice.o stat/slice_set.o interface.o bbsimapi/bbsimapi.o server.o -o server   -pthread -lm -lreadline -lboost_thread-mt -lboost_system-mt -lboost_date_time-mt -lboost_regex-mt 
+echo utils/utils.o utils/types.o utils/fs.o vm/program.o vm/predicate.o vm/types.o vm/instr.o vm/state.o vm/tuple.o vm/exec.o vm/external.o vm/rule.o vm/rule_matcher.o db/node.o db/tuple.o db/agg_configuration.o db/tuple_aggregate.o db/neighbor_tuple_aggregate.o db/database.o db/trie.o db/neighbor_agg_configuration.o process/machine.o mem/thread.o mem/center.o mem/stat.o sched/base.o sched/common.o sched/serial.o sched/thread/threaded.o sched/thread/assert.o external/math.o external/lists.o external/utils.o external/strings.o external/others.o external/core.o stat/stat.o stat/slice.o stat/slice_set.o interface.o bbsimapi/bbsimapi.o
+utils/utils.o utils/types.o utils/fs.o vm/program.o vm/predicate.o vm/types.o vm/instr.o vm/state.o vm/tuple.o vm/exec.o vm/external.o vm/rule.o vm/rule_matcher.o db/node.o db/tuple.o db/agg_configuration.o db/tuple_aggregate.o db/neighbor_tuple_aggregate.o db/database.o db/trie.o db/neighbor_agg_configuration.o process/machine.o mem/thread.o mem/center.o mem/stat.o sched/base.o sched/common.o sched/serial.o sched/thread/threaded.o sched/thread/assert.o external/math.o external/lists.o external/utils.o external/strings.o external/others.o external/core.o stat/stat.o stat/slice.o stat/slice_set.o interface.o bbsimapi/bbsimapi.o
