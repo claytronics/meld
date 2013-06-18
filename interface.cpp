@@ -61,7 +61,6 @@ parse_sched(char *sched)
    
    // attempt to parse the scheduler string
       match_serial("sl", sched, SCHED_SERIAL) ||
-		match_serial("ui", sched, SCHED_SERIAL_UI) ||
       fail_sched(sched);
 
 	if (num_threads == 0) {
@@ -105,7 +104,14 @@ run_program(int argc, char **argv, const char *program, const vm::machine_argume
       /* instantiate machine
        * serial: 1 thread, sched_serial
        * margs: meld argv, argc*/
-      machine mac(program, num_threads, sched_type, margs);
+	  
+	/*Init the API here*/
+//call	api::init();
+
+machine mac(program, num_threads, sched_type, margs);
+
+//Call the predicate check with the scheduler object
+	//api::pre_check(scheduler object);
 
       /* initiates threads */
       mac.start();

@@ -74,22 +74,27 @@ vm::predicate* accel_pred(NULL);
 vm::predicate* shake_pred(NULL);
 vm::predicate* vacant_pred(NULL);
 bool stop_all(false);
-utils::unix_timestamp start_time(0);
+//utils::unix_timestamp start_time(0);
 /*Queues to be used.*/
 //queue::push_safe_linear_queue<sim_sched::message_type*> bbsimapi::socket_messages;
 
 using namespace std;
 
 	
-void init(sched::base *schedular)
+void init()
 {	
-	try {
+	try{
    	/* Calling the connect*/
  	init_tcp();
-	sched_state=schedular;
 	} catch(std::exception &e) {
 		throw machine_error("can't connect to simulator");
 	}
+}
+/*
+void check_pre(sched::base *schedular){
+
+	sched_state=schedular;
+
 	
 	// find neighbor predicate
 	neighbor_pred = (schedular->state).all->PROGRAM->get_predicate_by_name("neighbor");
@@ -136,7 +141,7 @@ void init(sched::base *schedular)
 
 	start_time = utils::get_timestamp();
 }
-
+*/
 /*earlier master_get_work()*/
 bool poll(void)
 {

@@ -94,28 +94,58 @@ void
 machine::route(const node* from, sched::base *sched_caller, const node::node_id id, simple_tuple* stpl, const uint_val delay)
 {  
    assert(sched_caller != NULL);
-   assert(id <= this->all->DATABASE->max_id());
+//   assert(id <= this->all->DATABASE->max_id());
 
-  node *node(this->all->DATABASE->find_node(id));
+//  node *node(this->all->DATABASE->find_node(id));
 
-  sched::base *sched_other(sched_caller->find_scheduler(node));
+//  sched::base *sched_other(sched_caller->find_scheduler(node));
     const predicate *pred(stpl->get_predicate());
+	if((from->get_id())!=id){
+		send_send_message(from,id,stpl);
+		return;
+	}
 
-  if(delay > 0) {
+/*  if(delay > 0) {
         work new_work(node, stpl);
      sched_caller->new_work_delay(sched_caller, from, new_work, delay);
   } else if(pred->is_action_pred()) {
         run_action(sched_other, node, stpl->get_tuple(), sched_caller != sched_other);
         delete stpl;
-    } else if(sched_other == sched_caller) {
-        work new_work(node, stpl);
-
+    } else if(sched_other == sched_caller) {*/
+      work new_work(from, stpl);
      sched_caller->new_work(from, new_work);
-  } else {
+ /* } else {
      work new_work(node, stpl);
-
      sched_caller->new_work_other(sched_other, new_work);
-  }
+  }*/
+}
+
+
+static void send_send_message(node* from,const node::node_id id, simple_tuple* stpl)
+{
+	message_type reply[MAXLENGTH];
+
+	const size_t stpl_size(stpl->storage_size());
+	const size_t msg_size = 4 * sizeof(message_type) + stpl_size;
+	//sim_node *no(dynamic_cast<sim_node*>(info.work.get_node()));
+	//Something to represent destination node.
+	size_t i = 0;
+	reply[i++] = (message_type)msg_size;
+	reply[i++] = SEND_MESSAGE;
+	reply[i++] = 0;//(message_type)ts;
+	reply[i++] = from->get_id();
+	reply[i++] = id;//(message_type)info.src->get_face(no->get_id());
+
+	cout << info.src->get_id() << " Send " << *stpl << endl;
+
+	int pos = i * sizeof(message_type);
+	stpl->pack((utils::byte*)reply, msg_size + sizeof(message_type), &pos);
+
+	assert((size_t)pos == msg_size + sizeof(message_type));
+
+	simple_tuple::wipeout(stpl);
+
+	send_message(reply);
 }
 
 void
