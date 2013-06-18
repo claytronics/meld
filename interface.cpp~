@@ -17,7 +17,6 @@ using namespace sched;
 using namespace std;
 using namespace utils;
 using namespace vm;
-using namespace api;
 
 scheduler_type sched_type = SCHED_UNKNOWN;
 size_t num_threads = 0;

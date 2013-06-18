@@ -8,7 +8,6 @@ using namespace db;
 using namespace vm;
 using namespace process;
 using namespace std;
-using namespace api;
 
 namespace sched
 {

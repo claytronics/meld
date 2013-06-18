@@ -12,6 +12,7 @@
 #include "utils/fs.hpp"
 #include "interface.hpp"
 #include "sched/serial.hpp"
+#include "api/api.hpp"
 
 using namespace process;
 using namespace db;
@@ -22,6 +23,7 @@ using namespace sched;
 using namespace mem;
 using namespace utils;
 using namespace statistics;
+using namespace api;
 
 namespace process
 {
@@ -31,6 +33,7 @@ machine::same_place(const node::node_id id1, const node::node_id id2) const
 {
    return true;
 }
+
 
 void
 machine::run_action(sched::base *sched, node* node, vm::tuple *tpl, const bool from_other)
@@ -101,7 +104,7 @@ machine::route(const node* from, sched::base *sched_caller, const node::node_id 
 //  sched::base *sched_other(sched_caller->find_scheduler(node));
     const predicate *pred(stpl->get_predicate());
 	if((from->get_id())!=id){
-		send_send_message(from,id,stpl);
+		api::send_message(from,id,stpl);
 		return;
 	}
 
@@ -121,32 +124,7 @@ machine::route(const node* from, sched::base *sched_caller, const node::node_id 
 }
 
 
-static void send_send_message(node* from,const node::node_id id, simple_tuple* stpl)
-{
-	message_type reply[MAXLENGTH];
 
-	const size_t stpl_size(stpl->storage_size());
-	const size_t msg_size = 4 * sizeof(message_type) + stpl_size;
-	//sim_node *no(dynamic_cast<sim_node*>(info.work.get_node()));
-	//Something to represent destination node.
-	size_t i = 0;
-	reply[i++] = (message_type)msg_size;
-	reply[i++] = SEND_MESSAGE;
-	reply[i++] = 0;//(message_type)ts;
-	reply[i++] = from->get_id();
-	reply[i++] = id;//(message_type)info.src->get_face(no->get_id());
-
-	cout << info.src->get_id() << " Send " << *stpl << endl;
-
-	int pos = i * sizeof(message_type);
-	stpl->pack((utils::byte*)reply, msg_size + sizeof(message_type), &pos);
-
-	assert((size_t)pos == msg_size + sizeof(message_type));
-
-	simple_tuple::wipeout(stpl);
-
-	send_message(reply);
-}
 
 void
 machine::deactivate_signals(void)
