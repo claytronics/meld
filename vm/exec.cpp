@@ -1527,6 +1527,7 @@ execute_remove(pcounter pc, state& state)
 #endif
 
    vm::tuple *tpl(state.get_tuple(reg));
+  
 
    assert(tpl != NULL);
 
@@ -1536,7 +1537,7 @@ execute_remove(pcounter pc, state& state)
 			state.leaves_for_deletion.push_back(make_pair((predicate*)tpl->get_predicate(), state.get_leaf(reg)));
 	} else {
 		if(is_a_leaf) {
-			//cout << "Remove " << *state.get_tuple(reg) << endl;
+		  //cout << "Remove " << *state.get_tuple(reg) << endl;
    		state.node->delete_by_leaf(tpl->get_predicate(), state.get_leaf(reg));
 		} else {
 			// tuple was marked before, it will be deleted after this round

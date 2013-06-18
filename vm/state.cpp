@@ -469,6 +469,22 @@ state::process_consumed_local_tuples(void)
 	}
 }
 
+
+void 
+state::print_local_tuples(void){
+  if (generated_tuples.empty())
+    cout << "(empty)" << endl;
+  
+  for(db::simple_tuple_list::iterator it(generated_tuples.begin());
+      it != generated_tuples.end();
+      ++it)
+    {
+      simple_tuple *stpl(*it);
+      cout << *stpl << endl;
+    }
+}
+
+
 void
 state::add_to_aggregate(db::simple_tuple *stpl)
 {
@@ -484,6 +500,7 @@ state::add_to_aggregate(db::simple_tuple *stpl)
    }
 
    simple_tuple_list list;
+
 
    agg->generate(pred->get_aggregate_type(), pred->get_aggregate_field(), list);
 
@@ -578,7 +595,7 @@ state::run_node(db::node *no)
 
    assert(local_tuples.empty());
    // Gather_next_tuples is implementation specific
-	sched->gather_next_tuples(node, local_tuples);
+   sched->gather_next_tuples(node, local_tuples);
    start_matching();
 	current_level = mark_rules_using_local_tuples(local_tuples);
    if(do_persistent_tuples()) {

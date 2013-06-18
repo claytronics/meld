@@ -172,10 +172,10 @@ void runBreakPoint(char* type, string msg, char* name, int nodeID){
   
   //if the specifications are a hit, then pause the system
   if (isInBreakPointList(factBreakList,type,name,nodeID)){
-    pauseIt();
     cout << "Breakpoint-->";
     cout << type << ":" << name << "@" << nodeID << endl;
     cout << "\t-" <<  msg << endl;
+    pauseIt();
   }
   
    
@@ -202,6 +202,9 @@ void dumpSystemState(state& st, int nodeNumber ){
   else 
     st.all->DATABASE->print_db_debug(cout,(unsigned int)nodeNumber);
     
+  //cout << "local_tuples: " << endl;
+  //st.print_local_tuples();
+
   cout << endl;
   cout << "*******************************************************************" << endl;
   cout << endl;
