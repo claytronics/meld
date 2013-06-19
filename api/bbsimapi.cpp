@@ -38,7 +38,7 @@ using namespace sched;
 
 namespace api
 {
-
+static boost::asio::ip::tcp::socket *my_tcp_socket;
 static void process_message(message_type* reply);
 static void add_received_tuple(sim_node *no, size_t ts, db::simple_tuple *stpl);
 static void add_neighbor(const size_t ts, sim_node *no, const node_val out, const face_t face, const int count);
@@ -181,7 +181,7 @@ void set_color(db::node *n, const int r, const int g, const int b)
 
 
 /*Sends the "SEND_MESSAGE" command*/
-void send_message(const db::node* from,const db::node::node_id to, db::simple_tuple* stpl)
+void send_message(db::node* from,const db::node::node_id to, db::simple_tuple* stpl)
 {
 	message_type reply[MAXLENGTH];
 
@@ -194,9 +194,9 @@ void send_message(const db::node* from,const db::node::node_id to, db::simple_tu
 	reply[i++] = SEND_MESSAGE;
 	reply[i++] = 0;//(message_type)ts;
 	reply[i++] = from->get_id();
-	reply[i++] = from->get_face(to);
+	reply[i++] = (dynamic_cast<sim_node*>(from))->get_face(to);
 	reply[i++] = to;
-	cout << info.src->get_id() << " Send " << *stpl << endl;
+	//cout << info.src->get_id() << " Send " << *stpl << endl;
 
 	int pos = i * sizeof(message_type);
 	stpl->pack((utils::byte*)reply, msg_size + sizeof(message_type), &pos);
@@ -220,8 +220,8 @@ static void init_tcp()
             tcp::resolver::query query(tcp::v4(), "127.0.0.1", "5000");
             tcp::resolver::iterator iterator = resolver.resolve(query);
 
-            tcp_socket = new tcp::socket(io_service);
-            tcp_socket->connect(*iterator);
+            my_tcp_socket = new tcp::socket(io_service);
+            my_tcp_socket->connect(*iterator);
         } catch(std::exception &e) {
             cout<<"Could not connect!"<<endl;
         }
@@ -231,10 +231,10 @@ static message_type *tcp_poll()
     {
         message_type msg[1024];
         try {
-            if(tcp_socket->available())
+            if(my_tcp_socket->available())
             {
-                size_t length = tcp_socket->read_some(boost::asio::buffer(msg, sizeof(message_type)));
-                length = tcp_socket->read_some(boost::asio::buffer(msg + 1,  msg[0]));
+                size_t length = my_tcp_socket->read_some(boost::asio::buffer(msg, sizeof(message_type)));
+                length = my_tcp_socket->read_some(boost::asio::buffer(msg + 1,  msg[0]));
                 return msg;		
             }
         } catch(std::exception &e) {
@@ -246,7 +246,7 @@ static message_type *tcp_poll()
 
 static void send_message_tcp(message_type *msg)
 {
-   boost::asio::write(*tcp_socket, boost::asio::buffer(msg, msg[0] + sizeof(message_type)));
+   boost::asio::write(*my_tcp_socket, boost::asio::buffer(msg, msg[0] + sizeof(message_type)));
 }
 
 /*TCP helper functions end*/
@@ -384,7 +384,7 @@ static void handle_receive_message(const deterministic_timestamp ts, db::node::n
 {
    sim_node *origin(dynamic_cast<sim_node*>((sched_state->state).all->DATABASE->find_node(node)));
    sim_node *target(NULL);
-	target=dynamic_cast<sim_node*>((sched_state->state).all->DATABASE->find_node(dest_id);
+	target=dynamic_cast<sim_node*>((sched_state->state).all->DATABASE->find_node(dest_id));
 
 /*
    if(face == INVALID_FACE)

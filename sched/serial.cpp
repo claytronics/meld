@@ -2,7 +2,7 @@
 #include "db/node.hpp"
 #include "sched/serial.hpp"
 #include "sched/common.hpp"
-#include "api.hpp"
+#include "api/api.hpp"
 
 using namespace db;
 using namespace vm;

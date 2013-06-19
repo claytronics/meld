@@ -17,11 +17,11 @@ namespace api
 
 typedef uint64_t message_type;
 
-boost::asio::ip::tcp::socket *tcp_socket;
+
 static const size_t MAXLENGTH = 512 / sizeof(api::message_type);
 
 void init();
-void send_message(const db::node* from, const db::node::node_id to, db::simple_tuple* stpl);
+void send_message(db::node* from, const db::node::node_id to, db::simple_tuple* stpl);
 bool poll();
 void set_color(db::node *n, const int r, const int g, const int b);
 }

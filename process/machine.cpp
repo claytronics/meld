@@ -94,7 +94,7 @@ machine::route_self(sched::base *sched, node *node, simple_tuple *stpl, const ui
 }
 
 void
-machine::route(const node* from, sched::base *sched_caller, const node::node_id id, simple_tuple* stpl, const uint_val delay)
+machine::route(node* from, sched::base *sched_caller, const node::node_id id, simple_tuple* stpl, const uint_val delay)
 {  
    assert(sched_caller != NULL);
 //   assert(id <= this->all->DATABASE->max_id());
