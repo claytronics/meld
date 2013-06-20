@@ -45,8 +45,6 @@ public:
 
    vm::all *get_all(void) const { return this->all; }
 
-   bool same_place(const db::node::node_id, const db::node::node_id) const;
-
    void run_action(sched::base *, db::node *, vm::tuple *, const bool from_other = false);
    void route_self(sched::base *, db::node *, db::simple_tuple *, const vm::uint_val delay = 0);
 
@@ -55,7 +53,7 @@ public:
 	void init_thread(sched::base *);
    void start(void);
 
-   explicit machine(const std::string&, const size_t, const sched::scheduler_type, const boost::mpi::communicator, const vm::machine_arguments& args = vm::machine_arguments());
+   explicit machine(const std::string&, const size_t, const sched::scheduler_type, const vm::machine_arguments& args = vm::machine_arguments());
 
    ~machine(void);
 };

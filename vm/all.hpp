@@ -36,7 +36,6 @@ class all
    public:
 
    vm::program *PROGRAM;
-   boost::mpi::communicator WORLD;
    
    db::database *DATABASE;
    process::machine *MACHINE;

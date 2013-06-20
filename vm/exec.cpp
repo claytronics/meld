@@ -302,7 +302,9 @@ execute_alloc(const pcounter& pc, state& state)
 static inline void
 execute_send_self(tuple *tuple, state& state)
 {
-    /* TODO ask flavio about send self */
+    /* Flavio:
+     * execute_send_self sends a tuple to the current node
+     */
 #ifdef DEBUG_MODE
    cout << "\t" << *tuple << " -> self " << state.node->get_id() << endl;
 #endif
@@ -346,8 +348,9 @@ execute_send_self(tuple *tuple, state& state)
 static inline void
 execute_send(const pcounter& pc, state& state)
 {
-    /* TODO ask flavio about send */
-    /* TODO ask flavio about MACHINE class / object */
+    /* execute_send sends the tuple to other nodes, regardless of whether
+     * those nodes reside on current process
+     */
    const reg_num msg(send_msg(pc));
    const reg_num dest(send_dest(pc));
    const node_val dest_val(state.get_node(dest));
@@ -1397,16 +1400,19 @@ execute_select(pcounter pc, state& state)
 static inline void
 execute_colocated(pcounter pc, state& state)
 {
-   pcounter m = pc + COLOCATED_BASE;
+   //pcounter m = pc + COLOCATED_BASE;
    
-   const instr_val first(colocated_first(pc));
-   const instr_val second(colocated_second(pc));
+   //const instr_val first(colocated_first(pc));
+   //const instr_val second(colocated_second(pc));
    const reg_num dest(colocated_dest(pc));
  
-   const node_val n1(get_op_function<node_val>(first, m, state));
-   const node_val n2(get_op_function<node_val>(second, m, state));
+   //const node_val n1(get_op_function<node_val>(first, m, state));
+   //const node_val n2(get_op_function<node_val>(second, m, state));
    
-   state.set_bool(dest, state.all->MACHINE->same_place(n1, n2));
+   //state.set_bool(dest, state.all->MACHINE->same_place(n1, n2));
+   // TODO machine::same_place should probably be replaced by the API
+   // interface
+   state.set_bool(dest, true);
 }
 
 static inline void

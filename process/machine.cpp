@@ -12,6 +12,7 @@
 #include "utils/fs.hpp"
 #include "interface.hpp"
 #include "sched/serial.hpp"
+#include "api/api.hpp"
 
 using namespace process;
 using namespace db;
@@ -25,12 +26,6 @@ using namespace statistics;
 
 namespace process
 {
-   
-bool
-machine::same_place(const node::node_id id1, const node::node_id id2) const
-{
-   return true;
-}
 
 void
 machine::run_action(sched::base *sched, node* node, vm::tuple *tpl, const bool from_other)
@@ -96,13 +91,7 @@ machine::route(const node* from, sched::base *sched_caller, const node::node_id 
    assert(sched_caller != NULL);
    assert(id <= this->all->DATABASE->max_id());
 
-   /* TODO MPI route should take node_id, find the process id, and then
-    * determine how to send the message
-    */
-   cout << "Process " << this->all->WORLD.rank() << ":: id " << id << endl;
-
-   if (this->all->DATABASE->on_current_process(id)){
-       cout << "Process " << this->all->WORLD.rank() << ": route to self " << endl;
+   if (api::on_current_process(id)){
        /* Belongs to the same process, does not require MPI */
       node *node(this->all->DATABASE->find_node(id));
 
@@ -128,9 +117,27 @@ machine::route(const node* from, sched::base *sched_caller, const node::node_id 
         /* Send to the correct process */
        /* isend (destination process id, tag) */
        /* TODO handle serializing the data to send over MPI */
-       cout << "Process " << this->all->WORLD.rank() << ": sends node id " << id
-           << " to process " << (id % this->all->WORLD.size()) << endl;
-        this->all->WORLD.isend(id % this->all->WORLD.size(), id);
+       /* TODO Abstract MPI to API layer */
+       //uint64_t reply[1000];
+       //int i = 0;
+        //stpl->pack((utils::byte *)reply, 1000, &i);
+        //int random = rand();
+       //cout << "Process " << this->all->WORLD.rank() << " :: tag " << id
+           //<< " :: " << random << " ==> " << (id % this->all->WORLD.size()) << endl;
+        //this->all->WORLD.isend(id % this->all->WORLD.size(), id, random);
+    int dest = id % api::world->size();
+    int r = rand();
+    cout << "Process " << api::world->rank() << " ==> Process " << dest
+	 << " :: " << *stpl << " :: " << r << endl;
+
+     api::message_type *msg = new api::message_type[512];
+     size_t msg_length = 512 * sizeof(api::message_type);
+
+     int p = 0;
+
+     stpl->pack((utils::byte *) msg, msg_length, &p);
+     
+     api::send_message(id, api::create_message(stpl), msg_length, this->all, r);
    }
 }
 
@@ -240,12 +247,12 @@ machine::start(void)
    //for(size_t i(1); i < all->NUM_THREADS; ++i)
       //this->all->ALL_THREADS[i]->join();
       
-#ifndef NDEBUG
-   for(size_t i(1); i < all->NUM_THREADS; ++i)
-      assert(this->all->ALL_THREADS[i-1]->num_iterations() == this->all->ALL_THREADS[i]->num_iterations());
-   if(this->all->PROGRAM->is_safe())
-      assert(this->all->ALL_THREADS[0]->num_iterations() == 1);
-#endif
+//#ifndef NDEBUG
+   //for(size_t i(1); i < all->NUM_THREADS; ++i)
+      //assert(this->all->ALL_THREADS[i-1]->num_iterations() == this->all->ALL_THREADS[i]->num_iterations());
+   //if(this->all->PROGRAM->is_safe())
+      //assert(this->all->ALL_THREADS[0]->num_iterations() == 1);
+//#endif
    
    if(alarm_thread) {
       kill(getpid(), SIGUSR1);
@@ -291,7 +298,7 @@ get_creation_function(const scheduler_type sched_type)
 }
 
 machine::machine(const string& file, const size_t th,
-		const scheduler_type _sched_type, const boost::mpi::communicator world, const machine_arguments& margs):
+		const scheduler_type _sched_type,  const machine_arguments& margs):
    all(new vm::all()),
    filename(file),
    sched_type(_sched_type),
@@ -299,16 +306,15 @@ machine::machine(const string& file, const size_t th,
    slices(th) /* th = number of threads, slices is for statistics */
 {
     this->all->PROGRAM = new vm::program(file); /* predicates information, byte code for all the rules */
-    
+
     if(margs.size() < this->all->PROGRAM->num_args_needed())
         throw machine_error(string("this program requires ") + utils::to_string(all->PROGRAM->num_args_needed()) + " arguments");
-   
+
    this->all->MACHINE = this;
    this->all->ARGUMENTS = margs;
    this->all->DATABASE =  new database(filename, get_creation_function(_sched_type), this->all);
    this->all->NUM_THREADS = th;
-   this->all->WORLD = world;
-   
+
    // Instantiate the scheduler object
    switch(sched_type) {
       case SCHED_SERIAL:
@@ -317,7 +323,7 @@ machine::machine(const string& file, const size_t th,
       case SCHED_UNKNOWN: assert(false); break;
       default: break;
    }
-   
+
    assert(this->all->ALL_THREADS.size() == all->NUM_THREADS);
 }
 

@@ -94,6 +94,7 @@ SRCS = utils/utils.cpp \
 			 stat/slice.cpp \
 			 stat/slice_set.cpp \
 			 interface.cpp \
+			 api/mpi.cpp
 
 OBJS = $(patsubst %.cpp,%.o,$(SRCS))
 

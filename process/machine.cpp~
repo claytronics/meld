@@ -12,8 +12,7 @@
 #include "utils/fs.hpp"
 #include "interface.hpp"
 #include "sched/serial.hpp"
-#include "thread/prio.hpp"
-#include "thread/static.hpp"
+#include "api/api.hpp"
 
 using namespace process;
 using namespace db;
@@ -27,12 +26,6 @@ using namespace statistics;
 
 namespace process
 {
-   
-bool
-machine::same_place(const node::node_id id1, const node::node_id id2) const
-{
-   return true;
-}
 
 void
 machine::run_action(sched::base *sched, node* node, vm::tuple *tpl, const bool from_other)
@@ -94,30 +87,46 @@ machine::route_self(sched::base *sched, node *node, simple_tuple *stpl, const ui
 
 void
 machine::route(const node* from, sched::base *sched_caller, const node::node_id id, simple_tuple* stpl, const uint_val delay)
-{  
+{
    assert(sched_caller != NULL);
    assert(id <= this->all->DATABASE->max_id());
 
-  node *node(this->all->DATABASE->find_node(id));
+   if (api::on_current_process(id)){
+       /* Belongs to the same process, does not require MPI */
+      node *node(this->all->DATABASE->find_node(id));
 
-  sched::base *sched_other(sched_caller->find_scheduler(node));
-    const predicate *pred(stpl->get_predicate());
+      sched::base *sched_other(sched_caller->find_scheduler(node));
+        const predicate *pred(stpl->get_predicate());
 
-  if(delay > 0) {
-        work new_work(node, stpl);
-     sched_caller->new_work_delay(sched_caller, from, new_work, delay);
-  } else if(pred->is_action_pred()) {
-        run_action(sched_other, node, stpl->get_tuple(), sched_caller != sched_other);
-        delete stpl;
-    } else if(sched_other == sched_caller) {
-        work new_work(node, stpl);
+      if(delay > 0) {
+            work new_work(node, stpl);
+         sched_caller->new_work_delay(sched_caller, from, new_work, delay);
+      } else if(pred->is_action_pred()) {
+            run_action(sched_other, node, stpl->get_tuple(), sched_caller != sched_other);
+            delete stpl;
+      } else if(sched_other == sched_caller) {
+            work new_work(node, stpl);
 
-     sched_caller->new_work(from, new_work);
-  } else {
-     work new_work(node, stpl);
+         sched_caller->new_work(from, new_work);
+      } else {
+         work new_work(node, stpl);
 
-     sched_caller->new_work_other(sched_other, new_work);
-  }
+         sched_caller->new_work_other(sched_other, new_work);
+      }
+   } else {
+        /* Send to the correct process */
+       /* isend (destination process id, tag) */
+       /* TODO handle serializing the data to send over MPI */
+       /* TODO Abstract MPI to API layer */
+       //uint64_t reply[1000];
+       //int i = 0;
+        //stpl->pack((utils::byte *)reply, 1000, &i);
+        //int random = rand();
+       //cout << "Process " << this->all->WORLD.rank() << " :: tag " << id
+           //<< " :: " << random << " ==> " << (id % this->all->WORLD.size()) << endl;
+        //this->all->WORLD.isend(id % this->all->WORLD.size(), id, random);
+       api::send_message(id, api::create_message(stpl));
+   }
 }
 
 void
@@ -218,20 +227,20 @@ machine::start(void)
       alarm_thread = new boost::thread(bind(&machine::slice_function, this));
    }
    
-   for(size_t i(1); i < all->NUM_THREADS; ++i)
-      this->all->ALL_THREADS[i]->start();
+   //for(size_t i(1); i < all->NUM_THREADS; ++i)
+      //this->all->ALL_THREADS[i]->start();
    this->all->ALL_THREADS[0]->start();
    
    // Wait for threads to finish, if thread > 1
-   for(size_t i(1); i < all->NUM_THREADS; ++i)
-      this->all->ALL_THREADS[i]->join();
+   //for(size_t i(1); i < all->NUM_THREADS; ++i)
+      //this->all->ALL_THREADS[i]->join();
       
-#ifndef NDEBUG
-   for(size_t i(1); i < all->NUM_THREADS; ++i)
-      assert(this->all->ALL_THREADS[i-1]->num_iterations() == this->all->ALL_THREADS[i]->num_iterations());
-   if(this->all->PROGRAM->is_safe())
-      assert(this->all->ALL_THREADS[0]->num_iterations() == 1);
-#endif
+//#ifndef NDEBUG
+   //for(size_t i(1); i < all->NUM_THREADS; ++i)
+      //assert(this->all->ALL_THREADS[i-1]->num_iterations() == this->all->ALL_THREADS[i]->num_iterations());
+   //if(this->all->PROGRAM->is_safe())
+      //assert(this->all->ALL_THREADS[0]->num_iterations() == 1);
+//#endif
    
    if(alarm_thread) {
       kill(getpid(), SIGUSR1);
@@ -277,7 +286,7 @@ get_creation_function(const scheduler_type sched_type)
 }
 
 machine::machine(const string& file, const size_t th,
-		const scheduler_type _sched_type, const machine_arguments& margs):
+		const scheduler_type _sched_type,  const machine_arguments& margs):
    all(new vm::all()),
    filename(file),
    sched_type(_sched_type),
@@ -285,15 +294,15 @@ machine::machine(const string& file, const size_t th,
    slices(th) /* th = number of threads, slices is for statistics */
 {
     this->all->PROGRAM = new vm::program(file); /* predicates information, byte code for all the rules */
-    
+
     if(margs.size() < this->all->PROGRAM->num_args_needed())
         throw machine_error(string("this program requires ") + utils::to_string(all->PROGRAM->num_args_needed()) + " arguments");
-   
+
+   this->all->MACHINE = this;
    this->all->ARGUMENTS = margs;
    this->all->DATABASE =  new database(filename, get_creation_function(_sched_type), this->all);
    this->all->NUM_THREADS = th;
-   this->all->MACHINE = this;
-   
+
    // Instantiate the scheduler object
    switch(sched_type) {
       case SCHED_SERIAL:
@@ -302,7 +311,7 @@ machine::machine(const string& file, const size_t th,
       case SCHED_UNKNOWN: assert(false); break;
       default: break;
    }
-   
+
    assert(this->all->ALL_THREADS.size() == all->NUM_THREADS);
 }
 

@@ -7,6 +7,7 @@
 #include "db/neighbor_agg_configuration.hpp"
 #include "vm/exec.hpp"
 #include "process/machine.hpp"
+#include "api/api.hpp"
 
 using namespace std;
 using namespace boost;
@@ -180,22 +181,12 @@ base::do_work(db::node *node)
 void
 base::do_loop(void)
 {
-   db::node *node(NULL);
+    db::node *node(NULL);
 
-   while(true) {
-      while((node = get_work())) {
-         do_work(node);
-         finish_work(node);
-      }
-
-      assert_end_iteration();
-
-      // cout << id << " -------- END ITERATION ---------" << endl;
-
-      // false from end_iteration ends program
-      if(!end_iteration())
-         return;
-   }
+    while((node = get_work())) {
+        do_work(node);
+        finish_work(node);
+    }
 }
 	
 void
