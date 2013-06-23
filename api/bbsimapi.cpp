@@ -32,12 +32,12 @@ using namespace sched;
 #define ACCEL 14
 #define SHAKE 15
 
-
 // debug messages for simulation
 // #define DEBUG
 
 namespace api
 {
+  static char* msgcmd2str[16];
 static boost::asio::ip::tcp::socket *my_tcp_socket;
 static void process_message(message_type* reply);
 static void add_received_tuple(sim_node *no, size_t ts, db::simple_tuple *stpl);
@@ -81,6 +81,18 @@ using namespace std;
 	
 void init(sched::base *schedular)
 {	
+  for (int i=0; i<16; i++) msgcmd2str[i] = NULL;
+  msgcmd2str[SETID] = "SETID";
+  msgcmd2str[STOP] = "STOP";
+  msgcmd2str[ADD_NEIGHBOR] = "ADD_NEIGHBOR";
+  msgcmd2str[REMOVE_NEIGHBOR] = "REMOVE_NEIGHBOR";
+  msgcmd2str[TAP] = "TAP";
+  msgcmd2str[SET_COLOR] = "SET_COLOR";
+  msgcmd2str[SEND_MESSAGE] = "SEND_MESSAGE";
+  msgcmd2str[RECEIVE_MESSAGE] = "RECEIVE_MESSAGE";
+  msgcmd2str[ACCEL] = "ACCEL";
+  msgcmd2str[SHAKE] = "SHAKE";
+  
 	try{
    	/* Calling the connect*/
  	init_tcp();
@@ -144,19 +156,19 @@ void check_pre(sched::base *schedular){
 }
 
 /*earlier master_get_work()*/
-bool poll(void)
+bool 
+poll(void)
 {
-	message_type *reply;
+  message_type *reply;
   // size_t length;	
 
 	
-	/*Change the name of the poll function here*/
-		if((reply =(message_type*)tcp_poll()) == NULL) {
-      			return false;
-		}
-		process_message(reply);
-		return true;
-		
+  /*Change the name of the poll function here*/
+  if((reply =(message_type*)tcp_poll()) == NULL) {
+    return false;
+  }
+  process_message(reply);
+  return true;
 }
 
 
@@ -261,55 +273,57 @@ static void send_message_tcp(message_type *msg)
 
 /*Helper functions*/
 
-static void process_message(message_type* reply){
+static void 
+process_message(message_type* reply)
+{
+  printf("Processing %s %d bytes for %d\n", msgcmd2str[reply[1]], reply[0], reply[3]);
+  assert(reply!=NULL);
 		
-		assert(reply!=NULL);
-		
-		switch(reply[1]) {
-			case SETID: /*Adding the setid command to the interface _ankit*/
-				handle_setid((deterministic_timestamp) reply[2], (db::node::node_id) reply[3]);
-				ready=true;
-				break;
-			case RECEIVE_MESSAGE:
-            	handle_receive_message((deterministic_timestamp)reply[2],
-                   (db::node::node_id)reply[3],
-                   (face_t)reply[4],
-					(db::node::node_id)reply[5],
-                   (utils::byte*)reply,
-                   6 * sizeof(message_type),
-                   (int)(reply[0] + sizeof(message_type)));
-            	break;
-			case ADD_NEIGHBOR:
-            	handle_add_neighbor((deterministic_timestamp)reply[2],
-                  (db::node::node_id)reply[3],
-                  (db::node::node_id)reply[4],
-                  (face_t)reply[5]);
-            	break;
-         	case REMOVE_NEIGHBOR:
-            	handle_remove_neighbor((deterministic_timestamp)reply[2],
-                  (db::node::node_id)reply[3],
-                  (face_t)reply[4]);
-            	break;
-			case TAP:
-            	handle_tap((deterministic_timestamp)reply[2], (db::node::node_id)reply[3]);
-            	break;
-         	case ACCEL:
-            	handle_accel((deterministic_timestamp)reply[2],
-                  (db::node::node_id)reply[3],
-                  (int)reply[4]);
-            	break;
-         	case SHAKE:
-            	handle_shake((deterministic_timestamp)reply[2], (db::node::node_id)reply[3],
-                  (int)reply[4], (int)reply[5], (int)reply[6]);
-            	break;
-			case STOP:
-				stop_all = true;
-		        sleep(1);
-		        //send_pending_messages();
-		        usleep(200);
+  switch(reply[1]) {
+  case SETID: /*Adding the setid command to the interface _ankit*/
+    handle_setid((deterministic_timestamp) reply[2], (db::node::node_id) reply[3]);
+    ready=true;
+    break;
+  case RECEIVE_MESSAGE:
+    handle_receive_message((deterministic_timestamp)reply[2],
+			   (db::node::node_id)reply[3],
+			   (face_t)reply[4],
+			   (db::node::node_id)reply[5],
+			   (utils::byte*)reply,
+			   6 * sizeof(message_type),
+			   (int)(reply[0] + sizeof(message_type)));
+    break;
+  case ADD_NEIGHBOR:
+    handle_add_neighbor((deterministic_timestamp)reply[2],
+			(db::node::node_id)reply[3],
+			(db::node::node_id)reply[4],
+			(face_t)reply[5]);
+    break;
+  case REMOVE_NEIGHBOR:
+    handle_remove_neighbor((deterministic_timestamp)reply[2],
+			   (db::node::node_id)reply[3],
+			   (face_t)reply[4]);
+    break;
+  case TAP:
+    handle_tap((deterministic_timestamp)reply[2], (db::node::node_id)reply[3]);
+    break;
+  case ACCEL:
+    handle_accel((deterministic_timestamp)reply[2],
+		 (db::node::node_id)reply[3],
+		 (int)reply[4]);
+    break;
+  case SHAKE:
+    handle_shake((deterministic_timestamp)reply[2], (db::node::node_id)reply[3],
+		 (int)reply[4], (int)reply[5], (int)reply[6]);
+    break;
+  case STOP:
+    stop_all = true;
+    sleep(1);
+    //send_pending_messages();
+    usleep(200);
 				
-         	default: cerr << "Unrecognized message " << reply[1] << endl;
-			}
+  default: cerr << "Unrecognized message " << reply[1] << endl;
+  }
 }
 
 
@@ -536,3 +550,9 @@ static void handle_shake(const deterministic_timestamp ts, const db::node::node_
 
 
 }
+
+// Local Variables:
+// tab-width: 4
+// indent-tabs-mode: nil
+// End:
+
