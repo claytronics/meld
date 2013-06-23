@@ -81,6 +81,8 @@ using namespace std;
 	
 void init(sched::base *schedular)
 {	
+  if (schedular == NULL) return;
+
   for (int i=0; i<16; i++) msgcmd2str[i] = NULL;
   msgcmd2str[SETID] = "SETID";
   msgcmd2str[STOP] = "STOP";
@@ -355,17 +357,20 @@ static void add_neighbor(const size_t ts, sim_node *no, const node_val out, cons
    add_received_tuple(no, ts, stpl);
 }
 
-static void add_neighbor_count(const size_t ts, sim_node *no, const size_t total, const int count)
+static void 
+add_neighbor_count(const size_t ts, sim_node *no, const size_t total, const int count)
 {
-   if(!neighbor_count_pred)
-      return;
+  if(!neighbor_count_pred)
+    return;
 
-   vm::tuple *tpl(new vm::tuple(neighbor_count_pred));
-   tpl->set_int(0, (int_val)total);
+  vm::tuple *tpl(new vm::tuple(neighbor_count_pred));
+  tpl->set_int(0, (int_val)total);
+  cout << "Created tuple:" << tpl << endl;
 
-   db::simple_tuple *stpl(new db::simple_tuple(tpl, count));
+  db::simple_tuple *stpl(new db::simple_tuple(tpl, count));
+  cout << "Created simple tuple:" << stpl << endl;
 
-   add_received_tuple(no, ts, stpl);
+  add_received_tuple(no, ts, stpl);
 }
 
 static void add_vacant(const size_t ts,  sim_node *no, const face_t face, const int count)
@@ -383,22 +388,22 @@ static void add_vacant(const size_t ts,  sim_node *no, const face_t face, const 
 
 
 /*function to set the id of the block _ankit*/
-static void handle_setid(deterministic_timestamp ts, db::node::node_id node_id){
-	#ifdef DEBUG
-   cout << "Create node with " << start_id << endl;
+static void 
+handle_setid(deterministic_timestamp ts, db::node::node_id node_id)
+{
+#ifdef DEBUG
+  cout << "Create node with " << start_id << endl;
 #endif
-	/*similar to create_n_nodes but without the loop _ankit*/
-      db::node *no((sched_state)->state.all->DATABASE->create_node_id(node_id));
-      sched_state->init_node(no);
-      cout<<"Node id is "<<no->get_id()<<endl;
-         sim_node *no_in((sim_node *)no);
-         no_in->set_instantiated(true);
-         for(face_t face = sim_node::INITIAL_FACE; face <= sim_node::FINAL_FACE; ++face) {
-            add_vacant(ts, no_in, face, 1);
-         }
-         add_neighbor_count(ts, no_in, 0, 1);
-      
-   	
+  /*similar to create_n_nodes but without the loop _ankit*/
+  db::node *no((sched_state)->state.all->DATABASE->create_node_id(node_id));
+  sched_state->init_node(no);
+  cout<<"Node id is "<<no->get_id()<<endl;
+  sim_node *no_in((sim_node *)no);
+  no_in->set_instantiated(true);
+  for(face_t face = sim_node::INITIAL_FACE; face <= sim_node::FINAL_FACE; ++face) {
+    add_vacant(ts, no_in, face, 1);
+  }
+  add_neighbor_count(ts, no_in, 0, 1);
 }
 
 static void handle_receive_message(const deterministic_timestamp ts,
