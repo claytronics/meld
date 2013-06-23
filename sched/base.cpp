@@ -184,8 +184,7 @@ base::do_loop(void)
   while(true) {
     node = get_work();
     if(node==NULL) {
-      //printf("node is null\n");
-      //return;
+      if (api::ensembleFinished()) return ;
       continue;
     }
     do_work(node);
