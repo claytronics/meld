@@ -52,31 +52,31 @@ serial_local::assert_end_iteration(void) const
 node*
 serial_local::get_work(void)
 {
-	//poll here.
-	api::poll();
+  //poll here.
+  api::poll();
 
-   if(current_node != NULL) {
-      if(!current_node->has_work()) {
-         current_node->set_in_queue(false);
-         current_node = NULL;
-         if(!has_work())
-            return NULL;
-			if(!queue_nodes.pop(current_node))
-				return NULL;
-      }
-   } else {
+  if(current_node != NULL) {
+    if(!current_node->has_work()) {
+      current_node->set_in_queue(false);
+      current_node = NULL;
       if(!has_work())
-         return NULL;
-		if(!queue_nodes.pop(current_node))
-			return NULL;
-      assert(current_node->has_work());
-   }
+	return NULL;
+      if(!queue_nodes.pop(current_node))
+	return NULL;
+    }
+  } else {
+    if(!has_work())
+      return NULL;
+    if(!queue_nodes.pop(current_node))
+      return NULL;
+    assert(current_node->has_work());
+  }
    
-   assert(current_node != NULL);
-   assert(current_node->has_work());
-   assert(current_node->in_queue());
+  assert(current_node != NULL);
+  assert(current_node->has_work());
+  assert(current_node->in_queue());
    
-   return current_node;
+  return current_node;
 }
 
 bool
