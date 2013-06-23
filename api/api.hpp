@@ -29,7 +29,7 @@ bool isReady();
 
 
   // only called if there is no local work
-  bool ensembleFinish();	// for BBSIM, never finished unless STOP recieved
+  bool ensembleFinished();	// for BBSIM, never finished unless STOP recieved
   				// for MPI, will do token ring passing
 				// for serial sched always returns true
 }
