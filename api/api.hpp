@@ -26,4 +26,10 @@ bool poll();
 void set_color(db::node *n, const int r, const int g, const int b);
 void check_pre(sched::base *scheduler);  
 bool isReady();
+
+
+  // only called if there is no local work
+  bool ensembleFinish();	// for BBSIM, never finished unless STOP recieved
+  				// for MPI, will do token ring passing
+				// for serial sched always returns true
 }
