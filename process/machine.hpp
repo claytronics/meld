@@ -24,8 +24,7 @@ class machine
 {
 private:
 
-   vm::all *all;
-   const std::string filename;
+  const std::string filename;
    const sched::scheduler_type sched_type;
 
    boost::thread *alarm_thread;
@@ -37,7 +36,8 @@ private:
    void set_timer(void);
 
 public:
-
+	   vm::all *all;
+ 
    sched::scheduler_type get_sched_type(void) const { return sched_type; }
 
    sched::base *get_scheduler(const vm::process_id id) { return this->all->ALL_THREADS[id]; }
@@ -51,7 +51,7 @@ public:
 
    void route(db::node *, sched::base *, const db::node::node_id, db::simple_tuple*, const vm::uint_val delay = 0);
 
-	void init_thread(sched::base *);
+   void init_thread(sched::base *);
    void start(void);
 
    explicit machine(const std::string&, const size_t, const sched::scheduler_type, const vm::machine_arguments& args = vm::machine_arguments());

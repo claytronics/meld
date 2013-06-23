@@ -61,7 +61,7 @@ static message_type *tcp_poll();
 static void init_tcp();
 static void send_message_tcp(message_type *msg);
 
-
+static bool ready(false);
 
 
 static sched::base *sched_state(NULL);
@@ -72,28 +72,31 @@ vm::predicate* accel_pred(NULL);
 vm::predicate* shake_pred(NULL);
 vm::predicate* vacant_pred(NULL);
 bool stop_all(false);
-//utils::unix_timestamp start_time(0);
+utils::unix_timestamp start_time(0);
 /*Queues to be used.*/
 //queue::push_safe_linear_queue<sim_sched::message_type*> bbsimapi::socket_messages;
 
 using namespace std;
 
 	
-void init()
+void init(sched::base *schedular)
 {	
 	try{
    	/* Calling the connect*/
  	init_tcp();
+	check_pre(schedular);
+	while(!isReady())
+		poll();
 	} catch(std::exception &e) {
 		throw machine_error("can't connect to simulator");
 	}
 }
-/*
+
 void check_pre(sched::base *schedular){
 
 	sched_state=schedular;
 
-	
+	cout<<"Setting the predicates"<<endl;	
 	// find neighbor predicate
 	neighbor_pred = (schedular->state).all->PROGRAM->get_predicate_by_name("neighbor");
 	if(neighbor_pred) {
@@ -139,7 +142,7 @@ void check_pre(sched::base *schedular){
 
 	start_time = utils::get_timestamp();
 }
-*/
+
 /*earlier master_get_work()*/
 bool poll(void)
 {
@@ -149,10 +152,7 @@ bool poll(void)
 	
 	/*Change the name of the poll function here*/
 		if((reply =(message_type*)tcp_poll()) == NULL) {
-      		//Send pending message is delelted.
-			//send_pending_messages();
-			//usleep(100);
-			return false;
+      			return false;
 		}
 		process_message(reply);
 		return true;
@@ -162,21 +162,21 @@ bool poll(void)
 
 void set_color(db::node *n, const int r, const int g, const int b)
 {
-	message_type *data=new message_type[8];
+message_type *data=new message_type[8];
     size_t i(0);
-	
-	data[i++] = 7 * sizeof(message_type);
-	data[i++] = SET_COLOR;
+cout<<"In setcolor"<<endl;
+data[i++] = 7 * sizeof(message_type);
+data[i++] = SET_COLOR;
     data[i++] = 0;
-	data[i++] = (message_type)n->get_id();
-	data[i++] = (message_type)r; // R
-	data[i++] = (message_type)g; // G
-	data[i++] = (message_type)b; // B
+data[i++] = (message_type)n->get_id();
+data[i++] = (message_type)r; // R
+data[i++] = (message_type)g; // G
+data[i++] = (message_type)b; // B
     data[i++] = 0; // intensity
 
     send_message_tcp(data);
-	delete []data;
-	
+delete []data;
+
 }
 
 
@@ -194,7 +194,7 @@ void send_message(db::node* from,const db::node::node_id to, db::simple_tuple* s
 	reply[i++] = SEND_MESSAGE;
 	reply[i++] = 0;//(message_type)ts;
 	reply[i++] = from->get_id();
-	reply[i++] = (dynamic_cast<sim_node*>(from))->get_face(to);
+	reply[i++] = 0; //(dynamic_cast<sim_node*>(from))->get_face(to);
 	reply[i++] = to;
 	//cout << info.src->get_id() << " Send " << *stpl << endl;
 
@@ -206,6 +206,11 @@ void send_message(db::node* from,const db::node::node_id to, db::simple_tuple* s
 	simple_tuple::wipeout(stpl);
 
 	send_message_tcp(reply);
+}
+
+/*Flags if VM can run now*/
+bool isReady(){
+	return ready;
 }
 
 
@@ -229,12 +234,14 @@ static void init_tcp()
 	
 static message_type *tcp_poll()
     {
+		/*cout<<"in tcp poll, ready="<<ready<<endl;*/
         message_type msg[1024];
         try {
             if(my_tcp_socket->available())
             {
                 size_t length = my_tcp_socket->read_some(boost::asio::buffer(msg, sizeof(message_type)));
                 length = my_tcp_socket->read_some(boost::asio::buffer(msg + 1,  msg[0]));
+				cout<<"Returning message of length "<< msg[0]<<endl;
                 return msg;		
             }
         } catch(std::exception &e) {
@@ -261,6 +268,7 @@ static void process_message(message_type* reply){
 		switch(reply[1]) {
 			case SETID: /*Adding the setid command to the interface _ankit*/
 				handle_setid((deterministic_timestamp) reply[2], (db::node::node_id) reply[3]);
+				ready=true;
 				break;
 			case RECEIVE_MESSAGE:
             	handle_receive_message((deterministic_timestamp)reply[2],
@@ -361,7 +369,7 @@ static void add_vacant(const size_t ts,  sim_node *no, const face_t face, const 
 
 
 /*function to set the id of the block _ankit*/
-static void handle_setid(deterministic_timestamp ts, node::node_id node_id){
+static void handle_setid(deterministic_timestamp ts, db::node::node_id node_id){
 	#ifdef DEBUG
    cout << "Create node with " << start_id << endl;
 #endif
@@ -379,8 +387,9 @@ static void handle_setid(deterministic_timestamp ts, node::node_id node_id){
    	
 }
 
-static void handle_receive_message(const deterministic_timestamp ts, db::node::node_id node,
-      const face_t face, db::node::node_id dest_id, utils::byte *data, int offset, const int limit)
+static void handle_receive_message(const deterministic_timestamp ts,
+db::node::node_id dest_id,
+      const face_t face, db::node::node_id node, utils::byte *data, int offset, const int limit)
 {
    sim_node *origin(dynamic_cast<sim_node*>((sched_state->state).all->DATABASE->find_node(node)));
    sim_node *target(NULL);

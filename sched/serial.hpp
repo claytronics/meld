@@ -56,7 +56,7 @@ public:
       current_node(NULL)
    {
    }
-   
+   void set_color(db::node *n, const int r, const int g, const int b);
    virtual ~serial_local(void) {}
 };
 

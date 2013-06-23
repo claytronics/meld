@@ -108,15 +108,20 @@ run_program(int argc, char **argv, const char *program, const vm::machine_argume
        * margs: meld argv, argc*/
 	  
 	/*Init the API here*/
-	api::init();
+//	api::init();
 
 machine mac(program, num_threads, sched_type, margs);
+	
+api::init(mac.all->ALL_THREADS[0]);
 
+/*api::set_color(255,0,0);*/
+
+//api::check_pre(mac.all->ALL_THREADS[0]);
 //Call the predicate check with the scheduler object
 	//api::pre_check(scheduler object);
 
       /* initiates threads */
-      mac.start();
+     mac.start();
 
       if(time_execution) {
          {

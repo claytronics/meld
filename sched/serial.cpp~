@@ -2,12 +2,13 @@
 #include "db/node.hpp"
 #include "sched/serial.hpp"
 #include "sched/common.hpp"
-#include "api.hpp"
+#include "api/api.hpp"
 
 using namespace db;
 using namespace vm;
 using namespace process;
 using namespace std;
+using namespace api;
 
 namespace sched
 {

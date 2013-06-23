@@ -137,4 +137,9 @@ serial_local::gather_next_tuples(db::node *node, simple_tuple_list& ls)
    no->queue.top_list(ls);
 }
 
+void
+serial_local::set_color(db::node *n, const int r, const int g, const int b){
+api::set_color(n,r,g,b);
+}
+
 }

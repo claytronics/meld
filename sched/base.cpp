@@ -182,7 +182,10 @@ base::do_loop(void)
    db::node *node(NULL);
 
    while(true) {
-      while((node = get_work())) {
+      while(true){
+		 node = get_work();
+		 if(node==NULL)
+			 continue;
          do_work(node);
          finish_work(node);
       }

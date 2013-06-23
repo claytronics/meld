@@ -39,13 +39,49 @@ void
 machine::run_action(sched::base *sched, node* node, vm::tuple *tpl, const bool from_other)
 {
 	const predicate_id pid(tpl->get_predicate_id());
-	
+	int r(0), g(0), b(0);
 	assert(tpl->is_action());
 	
    switch(pid) {
       case SETCOLOR_PREDICATE_ID:
+#ifdef USE_UI
+      if(state::UI) {
+         LOG_SET_COLOR(node, tpl->get_int(0), tpl->get_int(1), tpl->get_int(2));
+      }
+#endif
+//#ifdef USE_SIM
+    //  if(state::SIM) {
+			api::set_color(node, tpl->get_int(0), tpl->get_int(1), tpl->get_int(2));
+     // }
+//#endif
+      break;
       case SETCOLOR2_PREDICATE_ID:
+//#ifdef USE_SIM
+      //if(state::SIM) {
+        //: int r(0), g(0), b(0);
+         switch(tpl->get_int(0)) {
+            case 0: r = 255; break; // RED
+            case 1: r = 255; g = 160; break; // ORANGE
+            case 2: r = 255; g = 247; break; // YELLOW
+            case 3: g = 255; break; // GREEN
+            case 4: g = 191; b = 255; break; // AQUA
+            case 5: b = 255; break; // BLUE
+            case 6: r = 255; g = 255; b = 255; break; // WHITE
+            case 7: r = 139; b = 204; break; // PURPLE
+            case 8: r = 255; g = 192; b = 203; break; // PINK
+            case -1: return; break;
+            default: break;
+         }
+			api::set_color(node, r, g, b);
+     // }
+//#endif
+      break;
       case SETEDGELABEL_PREDICATE_ID:
+#ifdef USE_UI
+      if(state::UI) {
+         LOG_SET_EDGE_LABEL(node->get_id(), tpl->get_node(0), tpl->get_string(1)->get_content());
+      }
+#endif
       break;
       case SET_PRIORITY_PREDICATE_ID:
       if(from_other)
@@ -96,31 +132,34 @@ machine::route_self(sched::base *sched, node *node, simple_tuple *stpl, const ui
 void
 machine::route(node* from, sched::base *sched_caller, const node::node_id id, simple_tuple* stpl, const uint_val delay)
 {  
-   assert(sched_caller != NULL);
-//   assert(id <= this->all->DATABASE->max_id());
 
-//  node *node(this->all->DATABASE->find_node(id));
-
-//  sched::base *sched_other(sched_caller->find_scheduler(node));
     const predicate *pred(stpl->get_predicate());
 	if((from->get_id())!=id){
 		api::send_message(from,id,stpl);
 		return;
 	}
 
-/*  if(delay > 0) {
+
+	assert(sched_caller != NULL);
+   	assert(id <= this->all->DATABASE->max_id());
+
+  node *node(this->all->DATABASE->find_node(id));
+
+  sched::base *sched_other(sched_caller->find_scheduler(node));
+  
+  if(delay > 0) {
         work new_work(node, stpl);
      sched_caller->new_work_delay(sched_caller, from, new_work, delay);
   } else if(pred->is_action_pred()) {
         run_action(sched_other, node, stpl->get_tuple(), sched_caller != sched_other);
         delete stpl;
-    } else if(sched_other == sched_caller) {*/
+    } else if(sched_other == sched_caller) {
       work new_work(from, stpl);
      sched_caller->new_work(from, new_work);
- /* } else {
+  } else {
      work new_work(node, stpl);
      sched_caller->new_work_other(sched_other, new_work);
-  }*/
+  }
 }
 
 
@@ -200,21 +239,22 @@ machine::execute_const_code(void)
 	
 	execute_bytecode(all->PROGRAM->get_const_bytecode(), st);
 }
-
+/*
 void
 machine::init_thread(sched::base *sched)
 {
 	all->ALL_THREADS.push_back(sched);
 	all->NUM_THREADS++;
 	sched->start();
-}
+}*/
 
 // Start all schedulers in the VM
 void
 machine::start(void)
 {
 	// execute constants code
-	execute_const_code();
+//api::set_color(this->all->DATABASE->max_id(),255,0,0);	
+execute_const_code();
 	
    deactivate_signals();
    
