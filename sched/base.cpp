@@ -7,6 +7,7 @@
 #include "db/neighbor_agg_configuration.hpp"
 #include "vm/exec.hpp"
 #include "process/machine.hpp"
+#include "api/api.hpp"
 
 using namespace std;
 using namespace boost;
