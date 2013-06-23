@@ -179,25 +179,18 @@ base::do_work(db::node *node)
 void
 base::do_loop(void)
 {
-   db::node *node(NULL);
+  db::node *node(NULL);
 
-   while(true) {
-      while(true){
-		 node = get_work();
-		 if(node==NULL)
-			 continue;
-         do_work(node);
-         finish_work(node);
-      }
-
-      assert_end_iteration();
-
-      // cout << id << " -------- END ITERATION ---------" << endl;
-
-      // false from end_iteration ends program
-      if(!end_iteration())
-         return;
-   }
+  while(true) {
+    node = get_work();
+    if(node==NULL) {
+      //printf("node is null\n");
+      //return;
+      continue;
+    }
+    do_work(node);
+    finish_work(node);
+  }
 }
 	
 void
