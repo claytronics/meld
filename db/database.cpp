@@ -86,8 +86,8 @@ database::create_node_id(const db::node::node_id id)
 
    node *ret(create_fn(max_node_id, max_translated_id, all));
    /*Implementation specific for bbsimapi(singleton)*/
-   translation[0] = max_translated_id;
-   nodes[0] = ret;
+   translation[max_node_id] = max_translated_id;
+   nodes[max_node_id] = ret;
 
    return ret;
 }

@@ -376,7 +376,7 @@ static void handle_setid(deterministic_timestamp ts, db::node::node_id node_id){
 	/*similar to create_n_nodes but without the loop _ankit*/
       db::node *no((sched_state)->state.all->DATABASE->create_node_id(node_id));
       sched_state->init_node(no);
-      
+      cout<<"Node id is "<<no->get_id()<<endl;
          sim_node *no_in((sim_node *)no);
          no_in->set_instantiated(true);
          for(face_t face = sim_node::INITIAL_FACE; face <= sim_node::FINAL_FACE; ++face) {
