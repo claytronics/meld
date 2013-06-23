@@ -90,59 +90,59 @@ finish(void)
 bool
 run_program(int argc, char **argv, const char *program, const vm::machine_arguments& margs)
 {
-	assert(utils::file_exists(string(program)));
-	assert(num_threads > 0);
+  assert(utils::file_exists(string(program)));
+  assert(num_threads > 0);
 
-	try {
-        /* save time to compute execution time */
-        /* calculate execution time */
-      double start_time(0.0);
-      execution_time tm;
+  try {
+    /* save time to compute execution time */
+    /* calculate execution time */
+    double start_time(0.0);
+    execution_time tm;
       
-      if(time_execution) {
-            tm.start();
-      }
+    if(time_execution) {
+      tm.start();
+    }
 
-      /* instantiate machine
-       * serial: 1 thread, sched_serial
-       * margs: meld argv, argc*/
+    /* instantiate machine
+     * serial: 1 thread, sched_serial
+     * margs: meld argv, argc*/
 	  
-	/*Init the API here*/
-//	api::init();
+    /*Init the API here*/
+    api::init(NULL);
 
-machine mac(program, num_threads, sched_type, margs);
+    machine mac(program, num_threads, sched_type, margs);
 	
-api::init(mac.all->ALL_THREADS[0]);
+    api::init(mac.all->ALL_THREADS[0]);
 
-/*api::set_color(255,0,0);*/
+    /*api::set_color(255,0,0);*/
 
-//api::check_pre(mac.all->ALL_THREADS[0]);
-//Call the predicate check with the scheduler object
-	//api::pre_check(scheduler object);
+    //api::check_pre(mac.all->ALL_THREADS[0]);
+    //Call the predicate check with the scheduler object
+    //api::pre_check(scheduler object);
 
-      /* initiates threads */
-     mac.start();
+    /* initiates threads */
+    mac.start();
 
-      if(time_execution) {
-         {
-            tm.stop();
-            size_t ms = tm.milliseconds();
-            cout << "Time: " << ms << " ms" << endl;
-         }
+    if(time_execution) {
+      {
+	tm.stop();
+	size_t ms = tm.milliseconds();
+	cout << "Time: " << ms << " ms" << endl;
       }
+    }
 
-	} catch(machine_error& err) {
-      finish();
-      throw err;
-   } catch(load_file_error& err) {
-      finish();
-      throw err;
-   } catch(db::database_error& err) {
-      finish();
-      throw err;
-   }
+  } catch(machine_error& err) {
+    finish();
+    throw err;
+  } catch(load_file_error& err) {
+    finish();
+    throw err;
+  } catch(db::database_error& err) {
+    finish();
+    throw err;
+  }
 
-   finish();
+  finish();
 
-	return true;
+  return true;
 }
