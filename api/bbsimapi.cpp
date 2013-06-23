@@ -37,7 +37,7 @@ using namespace sched;
 
 namespace api
 {
-  static char* msgcmd2str[16];
+  static const char* msgcmd2str[16];
 static boost::asio::ip::tcp::socket *my_tcp_socket;
 static void process_message(message_type* reply);
 static void add_received_tuple(sim_node *no, size_t ts, db::simple_tuple *stpl);
@@ -246,24 +246,26 @@ static void init_tcp()
         }
     }
 	
-static message_type *tcp_poll()
-    {
-		/*cout<<"in tcp poll, ready="<<ready<<endl;*/
-        message_type msg[1024];
-        try {
-            if(my_tcp_socket->available())
-            {
-                size_t length = my_tcp_socket->read_some(boost::asio::buffer(msg, sizeof(message_type)));
-                length = my_tcp_socket->read_some(boost::asio::buffer(msg + 1,  msg[0]));
-				cout<<"Returning message of length "<< msg[0]<<endl;
-                return msg;		
-            }
-        } catch(std::exception &e) {
-            cout<<"Could not recieve!"<<endl;
-            return NULL;
-        }
-        return NULL;
-    }
+static message_type *
+tcp_poll()
+{
+  /*cout<<"in tcp poll, ready="<<ready<<endl;*/
+  static message_type msg[1024];
+  try {
+    if(my_tcp_socket->available())
+      {
+        size_t length = my_tcp_socket->read_some(boost::asio::buffer(msg, sizeof(message_type)));
+        cout<<"getting message of length "<< length<<endl;
+        length = my_tcp_socket->read_some(boost::asio::buffer(msg + 1,  msg[0]));
+        cout<<"Returning message of length "<< msg[0]<<endl;
+        return msg;		
+      }
+  } catch(std::exception &e) {
+    cout<<"Could not recieve!"<<endl;
+    return NULL;
+  }
+  return NULL;
+}
 
 static void send_message_tcp(message_type *msg)
 {
@@ -278,7 +280,7 @@ static void send_message_tcp(message_type *msg)
 static void 
 process_message(message_type* reply)
 {
-  printf("Processing %s %d bytes for %d\n", msgcmd2str[reply[1]], reply[0], reply[3]);
+  printf("Processing %s %lud bytes for %lud\n", msgcmd2str[reply[1]], reply[0], reply[3]);
   assert(reply!=NULL);
 		
   switch(reply[1]) {
@@ -552,6 +554,12 @@ static void handle_shake(const deterministic_timestamp ts, const db::node::node_
    }
 }
 /*Helper functions end*/
+
+
+bool ensembleFinished() 
+{
+  return false;
+}
 
 
 }
