@@ -12,6 +12,8 @@
 #include "utils/fs.hpp"
 #include "interface.hpp"
 #include "sched/serial.hpp"
+#include "debug/debug_handler.hpp"
+#include "debug/debug_prompt.hpp"
 
 using namespace process;
 using namespace db;
@@ -76,6 +78,7 @@ machine::run_action(sched::base *sched, node* node, vm::tuple *tpl, const bool f
    }
 
 	delete tpl;
+	//runBreakPoint("action","");
 }
 
 void
@@ -189,6 +192,11 @@ machine::execute_const_code(void)
 	
 	// no node or tuple whatsoever
 	st.setup(NULL, NULL, 0);
+	
+	if (isInDebuggingMode()){
+	  debug(st);
+	  pauseIt();
+	}
 	
 	execute_bytecode(all->PROGRAM->get_const_bytecode(), st);
 }

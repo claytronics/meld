@@ -9,6 +9,7 @@
 #include "vm/match.hpp"
 #include "db/tuple.hpp"
 #include "process/machine.hpp"
+#include "debug/debug_handler.hpp"
 
 using namespace vm;
 using namespace vm::instr;
@@ -368,6 +369,9 @@ execute_send(const pcounter& pc, state& state)
       simple_tuple *stuple(new simple_tuple(tuple, state.count));
       state.all->MACHINE->route(state.node, state.sched, (node::node_id)dest_val, stuple);
    }
+   runBreakPoint("fact","Fact has been derived",
+		 (char*)tuple->pred_name().c_str(),
+		 (int)state.node->get_translated_id());
 }
 
 static inline void
@@ -984,7 +988,7 @@ execute_iter(pcounter pc, const utils::byte options, const utils::byte options_a
    state.tuple_leaf = old_tuple_leaf;		\
 	state.tuple_queue = old_tuple_queue;	\
    state.is_linear = old_is_linear
-
+\
    if(state.persistent_only) {
       // do nothing
    } else if(iter_options_random(options)) {
@@ -1523,6 +1527,7 @@ execute_remove(pcounter pc, state& state)
 #endif
 
    vm::tuple *tpl(state.get_tuple(reg));
+  
 
    assert(tpl != NULL);
 
@@ -1532,12 +1537,15 @@ execute_remove(pcounter pc, state& state)
 			state.leaves_for_deletion.push_back(make_pair((predicate*)tpl->get_predicate(), state.get_leaf(reg)));
 	} else {
 		if(is_a_leaf) {
-			//cout << "Remove " << *state.get_tuple(reg) << endl;
+		  //cout << "Remove " << *state.get_tuple(reg) << endl;
    		state.node->delete_by_leaf(tpl->get_predicate(), state.get_leaf(reg));
 		} else {
 			// tuple was marked before, it will be deleted after this round
 		}
 	}
+   runBreakPoint("fact","Fact has been consumed",
+		 (char*)tpl->pred_name().c_str(),
+		 (int)state.node->get_translated_id());
 }
 
 static inline void

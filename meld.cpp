@@ -5,7 +5,8 @@
 #include "utils/utils.hpp"
 #include "utils/fs.hpp"
 #include "vm/state.hpp"
-
+#include "debug_handler.hpp"
+#include "debug_prompt.hpp"
 #include "interface.hpp"
 
 using namespace utils;
@@ -29,6 +30,7 @@ help(void)
 	cerr << "\t-s \t\tshows database" << endl;
    cerr << "\t-d \t\tdump database (debug option)" << endl;
    cerr << "\t-h \t\tshow this screen" << endl;
+   cerr << "\t-D \t\tgo into debugging mode" << endl;
 
    exit(EXIT_SUCCESS);
 }
@@ -85,6 +87,11 @@ read_arguments(int argc, char **argv)
          case 'h':
             help();
             break;
+         case 'D':
+	   cout << "DEBUGGING MODE- type help for options" << endl;
+	   setDebuggingMode(true);
+	   break;
+	   
 			case '-':
 				
 				for(--argc, ++argv ; argc > 0; --argc, ++argv)

@@ -6,6 +6,7 @@
 #include "vm/state.hpp"
 #include "db/neighbor_tuple_aggregate.hpp"
 #include "utils/utils.hpp"
+#include "debug_handler.hpp"
 
 using namespace db;
 using namespace std;
@@ -245,10 +246,13 @@ node::print(ostream& cout) const
 	}
 
 	ordered_tries.sort(trie_comparer);
-
-   cout << "--> node " << get_translated_id() << "/(id " << get_id()
+	if( !isInDebuggingMode()){
+	  cout << "--> node " << get_translated_id() << "/(id " << get_id()
         << ") (" << this << ") <--" << endl;
-   
+	} else {
+	  cout << "CONTENTS AT NODE " << get_translated_id() << ":" << endl;
+	}
+
 	for(list_str_trie::const_iterator it(ordered_tries.begin());
 			it != ordered_tries.end();
 			++it)
@@ -259,6 +263,7 @@ node::print(ostream& cout) const
 			tr->print(cout);
 	}
 }
+
 
 
 void
