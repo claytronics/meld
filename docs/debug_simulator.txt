@@ -35,7 +35,8 @@ void handleMessage(MessageBuffer* m);
 simulator exports - debugger:
 
 void sendMessage(int id, MessageBuffer* m)
-     	This sends a pre-formatted message to the vm id from the debugger.
+     	This sends a pre-formatted message to the vm id from the debugger, or
+	to all the vm if id = - 1.
 
 void pauseSimulation(Timestamp t)
      	asks simulator to pause all VMs at time t.
@@ -88,7 +89,14 @@ Questions:
 	will make easier the adaptation of the simulator code in case of 
 	possible changes of the debugger code. Ok ?
 
-	If yes to the previous question:
+	pauseSimulation() and unPauseSimulation() only put the simulator in a
+	pause state, but they do not send any pause message to the vm. The 
+	debugger thread has to do it before, with a call to
+	sendMessage(-1, pauseMessage);. Of course the vm must be paused before
+	the call to pauseSimulation().
+	Am I right ?
+	
+	If not:
 	PAUSE and UNPAUSE are debugging messages, and so the simulator will not
 	know how to make up such messages. But the simulator will have to do
 	it if we want to pause/unpause all the VM. Can we add the 
