@@ -369,7 +369,8 @@ execute_send(const pcounter& pc, state& state)
       simple_tuple *stuple(new simple_tuple(tuple, state.count));
       state.all->MACHINE->route(state.node, state.sched, (node::node_id)dest_val, stuple);
    }
-   runBreakPoint("fact","Fact has been derived",
+   string debugMsg = "Fact has been derived";
+   runBreakPoint("factDer",(char*)debugMsg.c_str(),
 		 (char*)tuple->pred_name().c_str(),
 		 (int)state.node->get_translated_id());
 }
@@ -1543,7 +1544,7 @@ execute_remove(pcounter pc, state& state)
 			// tuple was marked before, it will be deleted after this round
 		}
 	}
-   runBreakPoint("fact","Fact has been consumed",
+   runBreakPoint("factCon","Fact has been consumed",
 		 (char*)tpl->pred_name().c_str(),
 		 (int)state.node->get_translated_id());
 }

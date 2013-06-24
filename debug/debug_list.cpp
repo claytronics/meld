@@ -11,9 +11,9 @@ using namespace std;
 struct debugnode{
   struct debugnode* next;
   struct debugnode* prev;
-  char* type;
-  char* name;
-  int nodeID;
+  char* type;//must be dynamically allocated upon insertion
+  char* name;//same
+  int nodeID;//not dynamically allocated
 };
 
 
@@ -33,7 +33,8 @@ void listFree(debugList L);
 debugList newBreakpointList();
 
 
-//inserts a new list
+/*returns an empty breakpoint list - an empty breakpoint list has 
+  one node but NULL data*/
 debugList newBreakpointList(){
   debugList newList = (debugList)malloc(sizeof(debugList));
   newList->back = (struct debugnode *)malloc(sizeof(struct debugnode));
@@ -46,8 +47,8 @@ debugList newBreakpointList(){
   return newList;
 }
 
-//frees entire list including the object that 
-//a node points to
+/*frees entire list including the incduding the 
+  type and name objects*/
 void listFree(debugList L){
   
   if (L == NULL) return;
@@ -70,9 +71,13 @@ void listFree(debugList L){
 //insert object at end of list
 //object must be dynamically allocated
 void insertBreak(debugList L, char* type, char* name, int  nodeID){
+  
+  /*insert the data*/
     L->back->type = type;
     L->back->name = name;
     L->back->nodeID = nodeID;
+    
+    /*instantiate a tailing blank node*/
     L->back->next = (struct debugnode*)malloc(sizeof(struct debugnode));
     L->back->next->prev = L->back;
     L->back->next->next = NULL;
@@ -83,15 +88,22 @@ void insertBreak(debugList L, char* type, char* name, int  nodeID){
   
 }
 
+/*returns whether the debugList is empty*/
 bool isListEmpty(debugList L){
   return L->front == L->back;
 }
 
+
+/*checks to see whether the the parameters inputed for a breakpoint
+  are a hit in the list*/
 bool isInBreakPointList(debugList L, char* type, char* name, int nodeID){
+
   if(isListEmpty(L))
     return false;
+
   for (struct debugnode* ptr = L->front; ptr->next!=NULL; ptr=ptr->next){
     if (!strcmp(ptr->type,type)&&
+	//if "" the name or nodeId doesn't matter
 	(!strcmp(ptr->name,name)||!strcmp(ptr->name,""))&&
 	(ptr->nodeID == nodeID ||ptr->nodeID == -1))
       return true;

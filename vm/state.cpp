@@ -2,6 +2,7 @@
 #include "vm/state.hpp"
 #include "process/machine.hpp"
 #include "vm/exec.hpp"
+#include "debug/debug_handler.hpp"
 
 using namespace vm;
 using namespace db;
@@ -472,9 +473,24 @@ state::process_consumed_local_tuples(void)
 
 void 
 state::print_local_tuples(void){
-  if (generated_tuples.empty())
+  if (local_tuples.empty())
     cout << "(empty)" << endl;
   
+  for(db::simple_tuple_list::iterator it(local_tuples.begin());
+      it != local_tuples.end();
+      ++it)
+    {
+      simple_tuple *stpl(*it);
+      cout << *stpl << endl;
+    }
+}
+
+
+void
+state::print_generated_tuples(void){
+  if (generated_tuples.empty())
+    cout << "(empty)" << endl;
+
   for(db::simple_tuple_list::iterator it(generated_tuples.begin());
       it != generated_tuples.end();
       ++it)
@@ -552,9 +568,18 @@ state::process_persistent_tuple(db::simple_tuple *stpl, vm::tuple *tpl)
          	use_local_tuples = false;
          	execute_bytecode(all->PROGRAM->get_predicate_bytecode(tuple->get_predicate_id()), *this);
          	deleter();
-      	} else
+		runBreakPoint("factRet", 
+			      "Fact has been removed from database",
+			      (char*)tpl->pred_name().c_str(),
+			      (int)node->get_translated_id());
+      	} else{
+	  runBreakPoint("factRet","Fact has been retracted",
+			(char*)tpl->pred_name().c_str(),
+			(int)node->get_translated_id());
          	delete tpl;
-		}
+	}
+		}		
+			
    }
 }
 

@@ -1,6 +1,5 @@
 
-/* Interface for debugging- spawns a  prompt that will controll the main thread
- if it hits a specifies break point*/
+/* Interface for debugging- spawns a  prompt that will controll the main thread if it hits a specifies break point*/
 
 #include <pthread.h>
 #include <iostream>
@@ -23,13 +22,11 @@ void help();
 int lastInstruction = 0;
 string lastBuild = "";
 
-
-
-
 /*spawn the debbugging prompt as a separate thread to
   controll the main one*/
 void debug(state& st){
   
+  //start the list of break points to be used
   setupFactList();
 
   pthread_t tid;
@@ -39,7 +36,8 @@ void debug(state& st){
 
 
 
-//continuously attend command line prompt
+//continuously attend command line prompt for debugger
+//when the system is not paused
 void *run_debugger(void * curState){
  
   string inpt;
@@ -50,6 +48,7 @@ void *run_debugger(void * curState){
     if (isTheSystemPaused()){
       cout << ">";
       getline(cin,inpt);
+      //react to the input
       parseline(inpt,st,factBreaks);
     }
   }
@@ -59,7 +58,7 @@ void *run_debugger(void * curState){
 
 
 
-/*parses the command line*/
+/*parses the command line and run the debugger*/
 void parseline(string line, state& st, debugList& factBreaks){
 
   string build = "";
@@ -74,6 +73,7 @@ void parseline(string line, state& st, debugList& factBreaks){
     return;
   }
 
+
   /*loop through input line*/
   for (unsigned int i = 0; i < line.length(); i++){
     
@@ -81,7 +81,9 @@ void parseline(string line, state& st, debugList& factBreaks){
     /*parse line for words*/
     if (line[i]!=' '){
       build += line[i];
+
     } else {
+      //exract the command
       if (wordCount == 1)
 	command = handle_command(build,factBreaks);
     wordCount++;
@@ -90,9 +92,10 @@ void parseline(string line, state& st, debugList& factBreaks){
   }
     
 
-  /*no whitespace at all*/
+  /*no whitespace at all-single word commands*/
   if (wordCount == 1){
     command = handle_command(build,factBreaks);
+    
     if (command != BREAKPOINT && command!=DUMP){
       debugController(st,command, build);
       lastInstruction = command;
@@ -101,7 +104,7 @@ void parseline(string line, state& st, debugList& factBreaks){
     }
   }
   
-  /*if not enough info*/
+  /*if not enough info - these  types must have a specification*/
   if ((command == BREAKPOINT||command == DUMP)&& wordCount == 1){
       cout << "Please specify- type help for options" << endl;
       return;
@@ -127,7 +130,7 @@ int handle_command(string command, debugList& factList){
 
   if (command == "break"){
     retVal = BREAKPOINT;
-  } else if (command == "help"){
+  } else if (command == "help"||command == "h"){
     cout << endl;
     cout << "*******************************************************************" << endl;
     cout << endl;
@@ -161,7 +164,7 @@ void help(){
   cout << "\t\t  <type>:<name>@<node> OR" << endl;
   cout << "\t\t  <type>:<name>        OR" << endl;
   cout << "\t\t  <type>@<node>" << endl;
-  cout << "\t\t    -type - fact|action|sense|block - a type MUST be specified" << endl;
+  cout << "\t\t    -type - factRet|factDer|factCon|action|sense|block - a type MUST be specified" << endl;
   cout << "\t\t    -name - the name of certain type ex. the name of a fact" << endl;
   cout << "\t\t    -node - the number of the node" << endl;
   cout << "\t-dump or d <nodeID> <all> - dump the state of the system" << endl;

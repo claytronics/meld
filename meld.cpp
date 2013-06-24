@@ -31,6 +31,7 @@ help(void)
    cerr << "\t-d \t\tdump database (debug option)" << endl;
    cerr << "\t-h \t\tshow this screen" << endl;
    cerr << "\t-D \t\tgo into debugging mode" << endl;
+   cerr << "\t-S \t\tused to go into debugging mode called from simulator" << endl;
 
    exit(EXIT_SUCCESS);
 }
@@ -91,6 +92,10 @@ read_arguments(int argc, char **argv)
 	   cout << "DEBUGGING MODE- type help for options" << endl;
 	   setDebuggingMode(true);
 	   break;
+         case 'S':
+	   setSimDebuggingMode(true);
+	   break;
+	
 	   
 			case '-':
 				

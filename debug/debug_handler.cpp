@@ -40,9 +40,16 @@ void setupFactList();
 /*global variables to controll main thread*/
 static bool isSystemPaused = true;
 static bool isDebug = false;
+static bool isSimDebug = false;
+
+/*the pointer to the list of break points*/
 static debugList factBreakList = NULL;
 
 
+void initSimDebug(){
+  setupFactList();
+  pauseIt();
+}
 
 //starts the new fact list
 void setupFactList(){
@@ -70,7 +77,7 @@ int characterInStringIndex(string str, char character){
   return -1;
 }
 
-//extracts the type from the specification
+//returns the type of breakpoint from the specification
 string getType(string specification){
   string build = "";
     for (unsigned int i = 0; i < specification.length(); i++){
@@ -82,7 +89,7 @@ string getType(string specification){
     return build;
 }
 
-//extracts the name from the specification
+//returns the name from the specification
 //returns "" if name is not present
 string getName(string specification){
   string build = "";
@@ -101,7 +108,8 @@ string getName(string specification){
   return build;
 }
 
-//extracts the node from the specification
+
+//returns the node from the specification
 //returns "" if node is not given
 string getNode(string specification){
   string build = "";
@@ -115,7 +123,8 @@ string getNode(string specification){
 }
 
 
-/*given the type, turn the breakPoint on*/
+/*given the type, turn the breakPoint on by inserting
+ it into the breakpoint list*/
 void activateBreakPoint(string specification){
 
   //to follow a format that a type must be presented first
@@ -130,7 +139,8 @@ void activateBreakPoint(string specification){
   string nodeID = getNode(specification);
 
   //if this type of break point is not valid
-  if (type!="block"&&type!="action"&&type!="fact"&&type!="sense"){
+  if (type!="block"&&type!="action"&&type!="factDer"&&type!="sense"&&
+      type!="factCon"&&type!="factRet"){
     cout << "Please Enter a Valid Type-- type help for options" << endl;
     return;
   }
@@ -148,33 +158,41 @@ void activateBreakPoint(string specification){
   if (nodeID != "") 
     node_copy = atoi(nodeID.c_str());
   else 
+    //if the nodeId is not specified upon input
     node_copy = -1;
 
   //insert the information in the breakpoint list
   insertBreak(factBreakList,type_copy,name_copy, node_copy);
 
-  cout << "-->Breakpoint set with following conditions:" << endl;
-  cout << "\tType: " << type << endl;
-  if (name!="")
-    cout << "\tName: " << name << endl;
-  if (nodeID!="")
-    cout <<  "\tNode: " << nodeID << endl;
-    
+  if(!isInSimDebuggingMode()){
+    cout << "-->Breakpoint set with following conditions:" << endl;
+    cout << "\tType: " << type << endl;
+    if (name!="")
+      cout << "\tName: " << name << endl;
+    if (nodeID!="")
+      cout <<  "\tNode: " << nodeID << endl;
+  }
   
 }
 
 
-/*initiate the system to wait until further notice*/
+/*initiate the system to wait until further notice
+ *--> to be inserted in the code of the actual VM
+ *    at specific breakpoints*/
 void runBreakPoint(char* type, string msg, char* name, int nodeID){
   
-  if (!isInDebuggingMode())
+  if (!isInDebuggingMode()&&!isInSimDebuggingMode())
     return;
   
   //if the specifications are a hit, then pause the system
   if (isInBreakPointList(factBreakList,type,name,nodeID)){
-    cout << "Breakpoint-->";
-    cout << type << ":" << name << "@" << nodeID << endl;
-    cout << "\t-" <<  msg << endl;
+    if (isInDebuggingMode()){
+      cout << "Breakpoint-->";
+      cout << type << ":" << name << "@" << nodeID << endl;
+      cout << "\t-" <<  msg << endl;
+    } else {
+      //send PRINT MSG
+    }
     pauseIt();
   }
   
@@ -190,22 +208,32 @@ void pauseIt(){
 }
 
 
+
+
 /*display the contents of VM*/
 void dumpSystemState(state& st, int nodeNumber ){
+
   cout << "*******************************************************************" << endl; 
   cout << "Memory Dump:" << endl;
   cout << endl;
   cout << endl;
 
+  //if a node is not specified by the dump command
   if (nodeNumber == -1)
     st.all->DATABASE->print_db(cout);
   else 
+    //print out only the given node
     st.all->DATABASE->print_db_debug(cout,(unsigned int)nodeNumber);
-    
-  //cout << "local_tuples: " << endl;
-  //st.print_local_tuples();
+   cout  << endl;
+  
+   cout << "Facts to be consumed:" << endl;
+   st.print_local_tuples();
+   cout << endl << endl;
 
-  cout << endl;
+   cout << "Derived Facts:" << endl;
+   st.print_generated_tuples();
+   cout << endl << endl;
+
   cout << "*******************************************************************" << endl;
   cout << endl;
 }
@@ -213,25 +241,69 @@ void dumpSystemState(state& st, int nodeNumber ){
 
 /*resume a paused system*/
 void continueExecution(){
+  //setting this will break it out of a while loop
+  //from pauseIt function
   isSystemPaused = false;
 }
+
 
 /*turn debugging Mode on*/
 void setDebuggingMode(bool setting){
   isDebug = setting;
 }
 
+void setSimDebuggingMode(bool setting){
+  isDebugSim = setting;
+}
+
+
+bool isInSimDebuggingMode(){
+  return isDebugSim
+}
 
 /*check id debugging mode is on*/
 bool isInDebuggingMode(){
   return isDebug;
 }
 
+string getSpec(char* msg){}
+int getInstruction(char* msg){}
 
-/*execute instruction based on encoding and specification*/
-void debugController(state& currentState,int instruction, string specification){
+
+//to be called when a debug message is recieved
+void handleDebugMessage(char* msg, state& st){
+  string specification = getSpec(msg);
+  int instruction = getInstruction(msg);
+  debugSimController(st,intruction,specification);
+}
+  
+  
+
+
+void debugSimController(state& currentState, 
+			int instruction, string specification){
+ 
+  switch(instruction){
+    
+  case DUMP:
+  case CONTINUE:
+    continueExecution();
+    break;
+  case BREAK:
+    activateBreakPoint(specification);
+    break;
+  }
+}
+    
+
+
+/*execute instruction based on encoding and specification
+  call from the debug_prompt*/
+void debugController(state& currentState,
+		     int instruction, string specification){
     
     switch(instruction){
+
     case DUMP:
       if (specification == "all")
 	dumpSystemState(currentState,-1);
@@ -239,14 +311,17 @@ void debugController(state& currentState,int instruction, string specification){
 	dumpSystemState(currentState, atoi(specification.c_str()));
       instruction = NOTHING;
       break;
+
     case CONTINUE:
       continueExecution();
       instruction = NOTHING;
       break;
+
     case BREAKPOINT:
       activateBreakPoint(specification);
       instruction = NOTHING;
       break;
+
     }
 }
   

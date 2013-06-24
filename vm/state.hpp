@@ -172,6 +172,7 @@ public:
    void process_persistent_tuple(db::simple_tuple *, vm::tuple *);
 	void process_consumed_local_tuples(void);
   void print_local_tuples(void);
+  void print_generated_tuples(void);
 	void process_others(void);
    vm::strat_level mark_rules_using_local_tuples(db::simple_tuple_list&);
 	void run_node(db::node *);
