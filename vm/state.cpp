@@ -473,14 +473,10 @@ state::process_consumed_local_tuples(void)
 
 void 
 state::print_local_tuples(void){
-<<<<<<< HEAD
+
   if (generated_tuples.empty())
     cout << "(empty)" << endl;
-  
-=======
-  if (local_tuples.empty())
-    cout << "(empty)" << endl;
-  
+
   for(db::simple_tuple_list::iterator it(local_tuples.begin());
       it != local_tuples.end();
       ++it)
@@ -493,10 +489,10 @@ state::print_local_tuples(void){
 
 void
 state::print_generated_tuples(void){
+
   if (generated_tuples.empty())
     cout << "(empty)" << endl;
 
->>>>>>> 229bc1810639f14945e96208fb3d165dc41a0a84
   for(db::simple_tuple_list::iterator it(generated_tuples.begin());
       it != generated_tuples.end();
       ++it)

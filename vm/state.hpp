@@ -172,11 +172,9 @@ public:
    void process_persistent_tuple(db::simple_tuple *, vm::tuple *);
 	void process_consumed_local_tuples(void);
   void print_local_tuples(void);
-<<<<<<< HEAD
-=======
   void print_generated_tuples(void);
->>>>>>> 229bc1810639f14945e96208fb3d165dc41a0a84
-	void process_others(void);
+
+   void process_others(void);
    vm::strat_level mark_rules_using_local_tuples(db::simple_tuple_list&);
 	void run_node(db::node *);
    void setup(vm::tuple*, db::node*, const ref_count);

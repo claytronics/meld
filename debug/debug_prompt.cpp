@@ -1,10 +1,6 @@
 
-<<<<<<< HEAD
-/* Interface for debugging- spawns a  prompt that will controll the main thread
- if it hits a specifies break point*/
-=======
 /* Interface for debugging- spawns a  prompt that will controll the main thread if it hits a specifies break point*/
->>>>>>> 229bc1810639f14945e96208fb3d165dc41a0a84
+
 
 #include <pthread.h>
 #include <iostream>
@@ -27,20 +23,12 @@ void help();
 int lastInstruction = 0;
 string lastBuild = "";
 
-<<<<<<< HEAD
 
-
-
-=======
->>>>>>> 229bc1810639f14945e96208fb3d165dc41a0a84
 /*spawn the debbugging prompt as a separate thread to
   controll the main one*/
 void debug(state& st){
   
-<<<<<<< HEAD
-=======
   //start the list of break points to be used
->>>>>>> 229bc1810639f14945e96208fb3d165dc41a0a84
   setupFactList();
 
   pthread_t tid;
@@ -49,13 +37,8 @@ void debug(state& st){
 }
 
 
-
-<<<<<<< HEAD
-//continuously attend command line prompt
-=======
 //continuously attend command line prompt for debugger
 //when the system is not paused
->>>>>>> 229bc1810639f14945e96208fb3d165dc41a0a84
 void *run_debugger(void * curState){
  
   string inpt;
@@ -66,10 +49,7 @@ void *run_debugger(void * curState){
     if (isTheSystemPaused()){
       cout << ">";
       getline(cin,inpt);
-<<<<<<< HEAD
-=======
       //react to the input
->>>>>>> 229bc1810639f14945e96208fb3d165dc41a0a84
       parseline(inpt,st,factBreaks);
     }
   }
@@ -78,12 +58,7 @@ void *run_debugger(void * curState){
 
 
 
-
-<<<<<<< HEAD
-/*parses the command line*/
-=======
 /*parses the command line and run the debugger*/
->>>>>>> 229bc1810639f14945e96208fb3d165dc41a0a84
 void parseline(string line, state& st, debugList& factBreaks){
 
   string build = "";
@@ -98,10 +73,6 @@ void parseline(string line, state& st, debugList& factBreaks){
     return;
   }
 
-<<<<<<< HEAD
-=======
-
->>>>>>> 229bc1810639f14945e96208fb3d165dc41a0a84
   /*loop through input line*/
   for (unsigned int i = 0; i < line.length(); i++){
     
@@ -109,13 +80,9 @@ void parseline(string line, state& st, debugList& factBreaks){
     /*parse line for words*/
     if (line[i]!=' '){
       build += line[i];
-<<<<<<< HEAD
-    } else {
-=======
 
     } else {
       //exract the command
->>>>>>> 229bc1810639f14945e96208fb3d165dc41a0a84
       if (wordCount == 1)
 	command = handle_command(build,factBreaks);
     wordCount++;
@@ -124,16 +91,10 @@ void parseline(string line, state& st, debugList& factBreaks){
   }
     
 
-<<<<<<< HEAD
-  /*no whitespace at all*/
-  if (wordCount == 1){
-    command = handle_command(build,factBreaks);
-=======
   /*no whitespace at all-single word commands*/
   if (wordCount == 1){
     command = handle_command(build,factBreaks);
     
->>>>>>> 229bc1810639f14945e96208fb3d165dc41a0a84
     if (command != BREAKPOINT && command!=DUMP){
       debugController(st,command, build);
       lastInstruction = command;
@@ -142,11 +103,7 @@ void parseline(string line, state& st, debugList& factBreaks){
     }
   }
   
-<<<<<<< HEAD
-  /*if not enough info*/
-=======
   /*if not enough info - these  types must have a specification*/
->>>>>>> 229bc1810639f14945e96208fb3d165dc41a0a84
   if ((command == BREAKPOINT||command == DUMP)&& wordCount == 1){
       cout << "Please specify- type help for options" << endl;
       return;
@@ -172,11 +129,7 @@ int handle_command(string command, debugList& factList){
 
   if (command == "break"){
     retVal = BREAKPOINT;
-<<<<<<< HEAD
-  } else if (command == "help"){
-=======
   } else if (command == "help"||command == "h"){
->>>>>>> 229bc1810639f14945e96208fb3d165dc41a0a84
     cout << endl;
     cout << "*******************************************************************" << endl;
     cout << endl;
@@ -210,11 +163,7 @@ void help(){
   cout << "\t\t  <type>:<name>@<node> OR" << endl;
   cout << "\t\t  <type>:<name>        OR" << endl;
   cout << "\t\t  <type>@<node>" << endl;
-<<<<<<< HEAD
-  cout << "\t\t    -type - fact|action|sense|block - a type MUST be specified" << endl;
-=======
   cout << "\t\t    -type - factRet|factDer|factCon|action|sense|block - a type MUST be specified" << endl;
->>>>>>> 229bc1810639f14945e96208fb3d165dc41a0a84
   cout << "\t\t    -name - the name of certain type ex. the name of a fact" << endl;
   cout << "\t\t    -node - the number of the node" << endl;
   cout << "\t-dump or d <nodeID> <all> - dump the state of the system" << endl;

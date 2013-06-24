@@ -23,8 +23,12 @@ void debugController(vm::state& currentState, int instruction, string specificat
 bool isTheSystemPaused();
 void setDebuggingMode(bool setting);
 bool isInDebuggingMode();
+bool isInSimDebuggingMode();
+bool setSimDebuggingMode();
 void setupFactList();
 debugList getFactList();
+void initSimDebug();
+bool setSimDebuggingMode(bool setting);
 
 
 #endif

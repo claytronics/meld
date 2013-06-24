@@ -7,7 +7,7 @@
 #include "db/neighbor_agg_configuration.hpp"
 #include "vm/exec.hpp"
 #include "process/machine.hpp"
-#include "debug_handler.hpp"
+#include "debug/debug_handler.hpp"
 
 using namespace std;
 using namespace boost;

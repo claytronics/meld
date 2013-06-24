@@ -1,6 +1,5 @@
 #include <iostream>
 #include <signal.h>
-
 #include "process/machine.hpp"
 #include "vm/program.hpp"
 #include "vm/state.hpp"
@@ -78,7 +77,7 @@ machine::run_action(sched::base *sched, node* node, vm::tuple *tpl, const bool f
    }
 
 	delete tpl;
-	//runBreakPoint("action","");
+	runBreakPoint("action","","",-1);
 }
 
 void
@@ -196,6 +195,8 @@ machine::execute_const_code(void)
 	if (isInDebuggingMode()){
 	  debug(st);
 	  pauseIt();
+	} else if (isInSimDebuggingMode()){
+	  initSimDebug();
 	}
 	
 	execute_bytecode(all->PROGRAM->get_const_bytecode(), st);
@@ -204,7 +205,7 @@ machine::execute_const_code(void)
 void
 machine::init_thread(sched::base *sched)
 {
-	all->ALL_THREADS.push_back(sched);
+        all->ALL_THREADS.push_back(sched);
 	all->NUM_THREADS++;
 	sched->start();
 }
