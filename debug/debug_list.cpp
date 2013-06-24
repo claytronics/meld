@@ -11,9 +11,15 @@ using namespace std;
 struct debugnode{
   struct debugnode* next;
   struct debugnode* prev;
+<<<<<<< HEAD
   char* type;
   char* name;
   int nodeID;
+=======
+  char* type;//must be dynamically allocated upon insertion
+  char* name;//same
+  int nodeID;//not dynamically allocated
+>>>>>>> 229bc1810639f14945e96208fb3d165dc41a0a84
 };
 
 
@@ -33,7 +39,12 @@ void listFree(debugList L);
 debugList newBreakpointList();
 
 
+<<<<<<< HEAD
 //inserts a new list
+=======
+/*returns an empty breakpoint list - an empty breakpoint list has 
+  one node but NULL data*/
+>>>>>>> 229bc1810639f14945e96208fb3d165dc41a0a84
 debugList newBreakpointList(){
   debugList newList = (debugList)malloc(sizeof(debugList));
   newList->back = (struct debugnode *)malloc(sizeof(struct debugnode));
@@ -46,8 +57,13 @@ debugList newBreakpointList(){
   return newList;
 }
 
+<<<<<<< HEAD
 //frees entire list including the object that 
 //a node points to
+=======
+/*frees entire list including the incduding the 
+  type and name objects*/
+>>>>>>> 229bc1810639f14945e96208fb3d165dc41a0a84
 void listFree(debugList L){
   
   if (L == NULL) return;
@@ -70,9 +86,19 @@ void listFree(debugList L){
 //insert object at end of list
 //object must be dynamically allocated
 void insertBreak(debugList L, char* type, char* name, int  nodeID){
+<<<<<<< HEAD
     L->back->type = type;
     L->back->name = name;
     L->back->nodeID = nodeID;
+=======
+  
+  /*insert the data*/
+    L->back->type = type;
+    L->back->name = name;
+    L->back->nodeID = nodeID;
+    
+    /*instantiate a tailing blank node*/
+>>>>>>> 229bc1810639f14945e96208fb3d165dc41a0a84
     L->back->next = (struct debugnode*)malloc(sizeof(struct debugnode));
     L->back->next->prev = L->back;
     L->back->next->next = NULL;
@@ -83,15 +109,33 @@ void insertBreak(debugList L, char* type, char* name, int  nodeID){
   
 }
 
+<<<<<<< HEAD
+=======
+/*returns whether the debugList is empty*/
+>>>>>>> 229bc1810639f14945e96208fb3d165dc41a0a84
 bool isListEmpty(debugList L){
   return L->front == L->back;
 }
 
+<<<<<<< HEAD
 bool isInBreakPointList(debugList L, char* type, char* name, int nodeID){
   if(isListEmpty(L))
     return false;
   for (struct debugnode* ptr = L->front; ptr->next!=NULL; ptr=ptr->next){
     if (!strcmp(ptr->type,type)&&
+=======
+
+/*checks to see whether the the parameters inputed for a breakpoint
+  are a hit in the list*/
+bool isInBreakPointList(debugList L, char* type, char* name, int nodeID){
+
+  if(isListEmpty(L))
+    return false;
+
+  for (struct debugnode* ptr = L->front; ptr->next!=NULL; ptr=ptr->next){
+    if (!strcmp(ptr->type,type)&&
+	//if "" the name or nodeId doesn't matter
+>>>>>>> 229bc1810639f14945e96208fb3d165dc41a0a84
 	(!strcmp(ptr->name,name)||!strcmp(ptr->name,""))&&
 	(ptr->nodeID == nodeID ||ptr->nodeID == -1))
       return true;
