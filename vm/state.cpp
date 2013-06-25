@@ -1,4 +1,5 @@
 
+#include <iostream>
 #include "vm/state.hpp"
 #include "process/machine.hpp"
 #include "vm/exec.hpp"
@@ -472,7 +473,7 @@ state::process_consumed_local_tuples(void)
 
 
 void 
-state::print_local_tuples(void){
+state::print_local_tuples(ostream& cout){
 
   if (generated_tuples.empty())
     cout << "(empty)" << endl;
@@ -488,7 +489,7 @@ state::print_local_tuples(void){
 
 
 void
-state::print_generated_tuples(void){
+state::print_generated_tuples(ostream& cout){
 
   if (generated_tuples.empty())
     cout << "(empty)" << endl;

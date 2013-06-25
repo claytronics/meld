@@ -1,4 +1,5 @@
-
+ 
+#include <sstream>
 #include <iostream>
 #include <algorithm>
 #include <functional>
@@ -346,6 +347,8 @@ execute_send_self(tuple *tuple, state& state)
 static inline void
 execute_send(const pcounter& pc, state& state)
 {
+  ostringstream debugMsg; 
+
    const reg_num msg(send_msg(pc));
    const reg_num dest(send_dest(pc));
    const node_val dest_val(state.get_node(dest));
@@ -361,16 +364,22 @@ execute_send(const pcounter& pc, state& state)
 #endif
 
    if(msg == dest) {
-      execute_send_self(tuple, state);
+     debugMsg << "\t-" << *tuple << " -> Node: " 
+	      << state.node->get_translated_id() << endl;
+     execute_send_self(tuple, state);
    } else {
 #ifdef DEBUG_MODE
       cout << "\t" << *tuple << " -> " << dest_val << endl;
 #endif
+      debugMsg << "\t-" << *tuple << " -> Node: " 
+	       << state.get_node(dest) << endl;
       simple_tuple *stuple(new simple_tuple(tuple, state.count));
-      state.all->MACHINE->route(state.node, state.sched, (node::node_id)dest_val, stuple);
+      state.all->MACHINE->route(state.node, state.sched, 
+				(node::node_id)dest_val, stuple);
    }
-   string debugMsg = "Fact has been derived";
-   runBreakPoint("factDer",(char*)debugMsg.c_str(),
+  
+   debugMsg << "\t-Fact has been derived" << endl;
+   runBreakPoint("factDer",(char*)debugMsg.str().c_str(),
 		 (char*)tuple->pred_name().c_str(),
 		 (int)state.node->get_translated_id());
 }
@@ -1503,7 +1512,8 @@ read_call_arg(argument& arg, const field_type type, pcounter& m, state& state)
 static inline void
 execute_remove(pcounter pc, state& state)
 {
-   const reg_num reg(remove_source(pc));
+  ostringstream debugMsg;
+  const reg_num reg(remove_source(pc));
 
 #ifdef CORE_STATISTICS
    state.stat_predicate_success[state.get_tuple(reg)->get_predicate_id()]++;
@@ -1518,6 +1528,7 @@ execute_remove(pcounter pc, state& state)
 #ifdef DEBUG_MODE
       cout << "\tdelete " << *tpl << endl;
 #endif
+      debugMsg << "\t-delete " << *tpl << endl;
 		assert(tpl != NULL);
 		
 		if(is_a_leaf) {
@@ -1538,13 +1549,15 @@ execute_remove(pcounter pc, state& state)
 			state.leaves_for_deletion.push_back(make_pair((predicate*)tpl->get_predicate(), state.get_leaf(reg)));
 	} else {
 		if(is_a_leaf) {
-		  //cout << "Remove " << *state.get_tuple(reg) << endl;
    		state.node->delete_by_leaf(tpl->get_predicate(), state.get_leaf(reg));
 		} else {
 			// tuple was marked before, it will be deleted after this round
 		}
 	}
-   runBreakPoint("factCon","Fact has been consumed",
+
+   debugMsg << "\t-Fact has been consumed" << endl;
+   
+   runBreakPoint("factCon",debugMsg.str().c_str(),
 		 (char*)tpl->pred_name().c_str(),
 		 (int)state.node->get_translated_id());
 }
