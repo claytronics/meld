@@ -23,6 +23,7 @@ serial_local::new_agg(work& w)
 void
 serial_local::new_work(const node *, work& new_work)
 {
+
    serial_node *to(dynamic_cast<serial_node*>(new_work.get_node()));
    
    to->add_work(new_work.get_tuple());

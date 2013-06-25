@@ -43,7 +43,7 @@ read_arguments(int argc, char **argv)
 
    while (argc > 0 && (argv[0][0] == '-')) {
       switch(argv[0][1]) {
-         case 'f': {
+		 case 'f': {
             if (program != NULL || argc < 2)
                help();
 

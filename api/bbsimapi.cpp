@@ -10,12 +10,13 @@
 #include "api/api.hpp"
 #include "sched/nodes/sim.hpp"
 #include "sched/sim.hpp"
+#include "sched/serial.hpp"
 
 using namespace db;
 using namespace vm;
 using namespace process;
 using boost::asio::ip::tcp;
-using sched::sim_node;
+using sched::serial_node;
 using sched::sim_sched;
 using sched::base;
 using namespace sched;
@@ -40,10 +41,10 @@ namespace api
   static const char* msgcmd2str[16];
 static boost::asio::ip::tcp::socket *my_tcp_socket;
 static void process_message(message_type* reply);
-static void add_received_tuple(sim_node *no, size_t ts, db::simple_tuple *stpl);
-static void add_neighbor(const size_t ts, sim_node *no, const node_val out, const face_t face, const int count);
-static void add_neighbor_count(const size_t ts, sim_node *no, const size_t total, const int count);
-static void add_vacant(const size_t ts,  sim_node *no, const face_t face, const int count);
+static void add_received_tuple(serial_node *no, size_t ts, db::simple_tuple *stpl);
+static void add_neighbor(const size_t ts, serial_node *no, const node_val out, const face_t face, const int count);
+static void add_neighbor_count(const size_t ts, serial_node *no, const size_t total, const int count);
+static void add_vacant(const size_t ts,  serial_node *no, const face_t face, const int count);
 static void handle_setid(deterministic_timestamp ts, node::node_id node_id);
 static void handle_receive_message(const deterministic_timestamp ts, db::node::node_id node,
       const face_t face, db::node::node_id dest_id, utils::byte *data, int offset, const int limit);
@@ -201,14 +202,14 @@ void send_message(db::node* from,const db::node::node_id to, db::simple_tuple* s
 
 	const size_t stpl_size(stpl->storage_size());
 	const size_t msg_size = 5 * sizeof(message_type) + stpl_size;
-	//sim_node *no(dynamic_cast<sim_node*>(info.work.get_node()));
+	//serial_node *no(dynamic_cast<serial_node*>(info.work.get_node()));
 	//Something to represent destination node.
 	size_t i = 0;
 	reply[i++] = (message_type)msg_size;
 	reply[i++] = SEND_MESSAGE;
 	reply[i++] = 0;//(message_type)ts;
 	reply[i++] = from->get_id();
-	reply[i++] = 0; //(dynamic_cast<sim_node*>(from))->get_face(to);
+	reply[i++] = 0; //(dynamic_cast<serial_node*>(from))->get_face(to);
 	reply[i++] = to;
 	//cout << info.src->get_id() << " Send " << *stpl << endl;
 
@@ -330,22 +331,28 @@ process_message(message_type* reply)
   }
 }
 
-
-
-
-
-static void add_received_tuple(sim_node *no, size_t ts, db::simple_tuple *stpl)
+bool
+ensembleFinished()
 {
-	heap_priority pr;
+	return stop_all;
+}
+
+
+
+static void add_received_tuple(serial_node *no, size_t ts, db::simple_tuple *stpl)
+{
+	/*heap_priority pr;
 	pr.int_priority = ts;
 	if(stpl->get_count() > 0)
 		no->tuple_pqueue.insert(stpl, pr);
 	else
-		no->rtuple_pqueue.insert(stpl, pr);
+		no->rtuple_pqueue.insert(stpl, pr);*/
+
+	no->add_work(stpl);
 }
 
 /* ? to be kept in the api or the sim_sched*/
-static void add_neighbor(const size_t ts, sim_node *no, const node_val out, const face_t face, const int count)
+static void add_neighbor(const size_t ts, serial_node *no, const node_val out, const face_t face, const int count)
 {
    if(!neighbor_pred)
       return;
@@ -360,7 +367,7 @@ static void add_neighbor(const size_t ts, sim_node *no, const node_val out, cons
 }
 
 static void 
-add_neighbor_count(const size_t ts, sim_node *no, const size_t total, const int count)
+add_neighbor_count(const size_t ts, serial_node *no, const size_t total, const int count)
 {
   if(!neighbor_count_pred)
     return;
@@ -375,7 +382,7 @@ add_neighbor_count(const size_t ts, sim_node *no, const size_t total, const int 
   add_received_tuple(no, ts, stpl);
 }
 
-static void add_vacant(const size_t ts,  sim_node *no, const face_t face, const int count)
+static void add_vacant(const size_t ts,  serial_node *no, const face_t face, const int count)
 {
    if(!vacant_pred)
       return;
@@ -400,9 +407,9 @@ handle_setid(deterministic_timestamp ts, db::node::node_id node_id)
   db::node *no((sched_state)->state.all->DATABASE->create_node_id(node_id));
   sched_state->init_node(no);
   cout<<"Node id is "<<no->get_id()<<endl;
-  sim_node *no_in((sim_node *)no);
+  serial_node *no_in((serial_node *)no);
   no_in->set_instantiated(true);
-  for(face_t face = sim_node::INITIAL_FACE; face <= sim_node::FINAL_FACE; ++face) {
+  for(face_t face = serial_node::INITIAL_FACE; face <= serial_node::FINAL_FACE; ++face) {
     add_vacant(ts, no_in, face, 1);
   }
   add_neighbor_count(ts, no_in, 0, 1);
@@ -412,15 +419,15 @@ static void handle_receive_message(const deterministic_timestamp ts,
 db::node::node_id dest_id,
       const face_t face, db::node::node_id node, utils::byte *data, int offset, const int limit)
 {
-   sim_node *origin(dynamic_cast<sim_node*>((sched_state->state).all->DATABASE->find_node(node)));
-   sim_node *target(NULL);
-	target=dynamic_cast<sim_node*>((sched_state->state).all->DATABASE->find_node(dest_id));
+   serial_node *origin(dynamic_cast<serial_node*>((sched_state->state).all->DATABASE->find_node(node)));
+   serial_node *target(NULL);
+	target=dynamic_cast<serial_node*>((sched_state->state).all->DATABASE->find_node(dest_id));
 
 /*
    if(face == INVALID_FACE)
       target = origin;
    else
-      target = dynamic_cast<sim_node*>((sched_state->state).all->DATABASE->find_node((db::node::node_id)*(origin->get_node_at_face(face))));
+      target = dynamic_cast<serial_node*>((sched_state->state).all->DATABASE->find_node((db::node::node_id)*(origin->get_node_at_face(face))));
 */
 
    simple_tuple *stpl(simple_tuple::unpack(data, limit,
@@ -445,10 +452,10 @@ static void handle_add_neighbor(const deterministic_timestamp ts, const db::node
    cout << ts << " neighbor(" << in << ", " << out << ", " << face << ")" << endl;
 #endif
    
-   sim_node *no_in(dynamic_cast<sim_node*>((sched_state->state).all->DATABASE->find_node(in)));
+   serial_node *no_in(dynamic_cast<serial_node*>((sched_state->state).all->DATABASE->find_node(in)));
    node_val *neighbor(no_in->get_node_at_face(face));
 
-   if(*neighbor == sim_node::NO_NEIGHBOR) {
+   if(*neighbor == serial_node::NO_NEIGHBOR) {
       // remove vacant first, add 1 to neighbor count
       if(no_in->has_been_instantiated()) {
          add_vacant(ts, no_in, face, -1);
@@ -482,10 +489,10 @@ static void handle_remove_neighbor(const deterministic_timestamp ts,
    cout << ts << " remove neighbor(" << in << ", " << face << ")" << endl;
 #endif
    
-   sim_node *no_in(dynamic_cast<sim_node*>((sched_state->state).all->DATABASE->find_node(in)));
+   serial_node *no_in(dynamic_cast<serial_node*>((sched_state->state).all->DATABASE->find_node(in)));
    node_val *neighbor(no_in->get_node_at_face(face));
 
-   if(*neighbor == sim_node::NO_NEIGHBOR) {
+   if(*neighbor == serial_node::NO_NEIGHBOR) {
       // remove vacant first, add 1 to neighbor count
       cerr << "Current face is vacant, cannot remove node!" << endl;
       assert(false);
@@ -500,14 +507,14 @@ static void handle_remove_neighbor(const deterministic_timestamp ts,
 
    add_neighbor(ts, no_in, *neighbor, face, -1);
 
-   *neighbor = sim_node::NO_NEIGHBOR;
+   *neighbor = serial_node::NO_NEIGHBOR;
 }
 
 static void handle_tap(const deterministic_timestamp ts, const db::node::node_id node)
 {
    cout << ts << " tap(" << node << ")" << endl;
    
-   sim_node *no(dynamic_cast<sim_node*>((sched_state->state).all->DATABASE->find_node(node)));
+   serial_node *no(dynamic_cast<serial_node*>((sched_state->state).all->DATABASE->find_node(node)));
 
    if(tap_pred) {
       vm::tuple *tpl(new vm::tuple(tap_pred));
@@ -522,7 +529,7 @@ static void handle_accel(const deterministic_timestamp ts, const db::node::node_
 {
    cout << ts << " accel(" << node << ", " << f << ")" << endl;
 
-   sim_node *no(dynamic_cast<sim_node*>((sched_state->state).all->DATABASE->find_node(node)));
+   serial_node *no(dynamic_cast<serial_node*>((sched_state->state).all->DATABASE->find_node(node)));
 
    if(accel_pred) {
       vm::tuple *tpl(new vm::tuple(accel_pred));
@@ -540,7 +547,7 @@ static void handle_shake(const deterministic_timestamp ts, const db::node::node_
 {
    cout << ts << " shake(" << node << ", " << x << ", " << y << ", " << z << ")" << endl;
 
-   sim_node *no(dynamic_cast<sim_node*>((sched_state->state).all->DATABASE->find_node(node)));
+   serial_node *no(dynamic_cast<serial_node*>((sched_state->state).all->DATABASE->find_node(node)));
 
    if(shake_pred) {
       vm::tuple *tpl(new vm::tuple(shake_pred));
@@ -554,13 +561,6 @@ static void handle_shake(const deterministic_timestamp ts, const db::node::node_
    }
 }
 /*Helper functions end*/
-
-
-bool ensembleFinished() 
-{
-  return false;
-}
-
 
 }
 

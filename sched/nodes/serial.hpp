@@ -3,12 +3,13 @@
 #define SCHED_NODES_SERIAL_HPP
 
 #include "mem/base.hpp"
-#include "sched/nodes/in_queue.hpp"
-#include "queue/bounded_pqueue.hpp"
 #include "db/tuple.hpp"
 #include "utils/spinlock.hpp"
 #include "sched/base.hpp"
 #include "queue/intrusive.hpp"
+#include "sched/nodes/in_queue.hpp"
+#include "queue/bounded_pqueue.hpp"
+
 
 // Node type for sequential scheduler
 namespace sched
@@ -21,7 +22,7 @@ public:
 	DECLARE_DOUBLE_QUEUE_NODE(serial_node);
 	
 	typedef queue::unsafe_bounded_pqueue<db::simple_tuple*>::type queue_type;	
-   queue_type queue;
+   	queue_type queue;
 
 	typedef queue_type::const_iterator queue_iterator;
 	

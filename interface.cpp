@@ -111,7 +111,7 @@ run_program(int argc, char **argv, const char *program, const vm::machine_argume
     api::init(NULL);
 
     machine mac(program, num_threads, sched_type, margs);
-	
+	/*Call the bbsim if simulation is true*/
     api::init(mac.all->ALL_THREADS[0]);
 
     /*api::set_color(255,0,0);*/
