@@ -114,30 +114,8 @@ machine::route(const node* from, sched::base *sched_caller, const node::node_id 
          sched_caller->new_work_other(sched_other, new_work);
       }
    } else {
-        /* Send to the correct process */
-       /* isend (destination process id, tag) */
-       /* TODO handle serializing the data to send over MPI */
-       /* TODO Abstract MPI to API layer */
-       //uint64_t reply[1000];
-       //int i = 0;
-        //stpl->pack((utils::byte *)reply, 1000, &i);
-        //int random = rand();
-       //cout << "Process " << this->all->WORLD.rank() << " :: tag " << id
-           //<< " :: " << random << " ==> " << (id % this->all->WORLD.size()) << endl;
-        //this->all->WORLD.isend(id % this->all->WORLD.size(), id, random);
-    int dest = id % api::world->size();
-    int r = rand();
-    cout << "Process " << api::world->rank() << " ==> Process " << dest
-	 << " :: " << *stpl << " :: " << r << endl;
-
-     api::message_type *msg = new api::message_type[512];
-     size_t msg_length = 512 * sizeof(api::message_type);
-
-     int p = 0;
-
-     stpl->pack((utils::byte *) msg, msg_length, &p);
-     
-     api::send_message(id, api::create_message(stpl), msg_length, this->all, r);
+     /* Send to the correct process */
+     api::send_message(id, stpl);
    }
 }
 

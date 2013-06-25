@@ -35,13 +35,13 @@ static inline bool
 match_serial(const char *name, char *arg, const scheduler_type type)
 {
    const size_t len(strlen(name));
-   
+
    if(strlen(arg) == len && strncmp(name, arg, len) == 0) {
       sched_type = type;
       num_threads = 1;
       return true;
    }
-   
+
    return false;
 }
 
@@ -57,10 +57,10 @@ void
 parse_sched(char *sched)
 {
    assert(sched != NULL);
-   
+
    if(strlen(sched) < 2)
       fail_sched(sched);
-   
+
    // attempt to parse the scheduler string
       match_serial("sl", sched, SCHED_SERIAL) ||
 		match_serial("ui", sched, SCHED_SERIAL_UI) ||
@@ -107,6 +107,7 @@ run_program(int argc, char **argv, const char *program, const vm::machine_argume
         boost::mpi::environment env(argc, argv);
         boost::mpi::communicator world;
         api::world = &world;
+	api::init(argc, argv);
 
       /* instantiate machine
        * serial: 1 thread, sched_serial
