@@ -308,7 +308,8 @@ process_message(message_type* reply)
 			(face_t)reply[5]);
     break;
   case REMOVE_NEIGHBOR:
-    handle_remove_neighbor((deterministic_timestamp)reply[2],
+  if(id==(db::node::node_id) reply[3])
+	handle_remove_neighbor((deterministic_timestamp)reply[2],
 			   (db::node::node_id)reply[3],
 			   (face_t)reply[4]);
     break;
