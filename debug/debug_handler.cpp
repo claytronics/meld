@@ -37,11 +37,22 @@ void debugSimController(state& currentState,
 
 void display(string msg);
 /*command encodings*/
-#define DUMP 0
-#define CONTINUE 1
+#define DUMP 1
+#define CONTINUE 7
 #define BREAKPOINT 2
-#define NOTHING 3
+#define NOTHING 8
 #define PAUSE 4
+#define UNPAUSE 3 
+#define BREAKFOUND 6
+#define PRINT 5
+
+
+#define FACTDER 1
+#define FACTCON 2
+#define FACTRET 3
+#define ACTION 4
+#define SENSE 5
+#define BLOCK 6
 
 
 /*global variables to controll main thread*/
@@ -146,8 +157,7 @@ void activateBreakPoint(string specification){
 
   //to follow a format that a type must be presented first
   if (specification[0] == ':'|| specification[0] == '@'){
-    msg << "Please Enter a Type" << endl;
-    display(msg.str());
+    cout << "Please Enter a Type" << endl;
     return;
   }
   
@@ -159,8 +169,7 @@ void activateBreakPoint(string specification){
   //if this type of break point is not valid
   if (type!="block"&&type!="action"&&type!="factDer"&&type!="sense"&&
       type!="factCon"&&type!="factRet"){
-    msg << "Please Enter a Valid Type-- type help for options" << endl;
-    display(msg.str());
+    cout << "Please Enter a Valid Type-- type help for options" << endl;
     return;
   }
 
@@ -237,7 +246,7 @@ void pauseIt(){
 
 
 /*display the contents of VM*/
-void dumpSystemState(state& st, int nodeNumber ){
+void dumpSystemState(state& st, int nodeNumber){
 
   ostringstream msg;
   
@@ -299,15 +308,51 @@ bool isInDebuggingMode(){
 }
 
 
+string typeInt2String(int type){
+  switch(type){
+  case FACTDER:
+    return "factDer";
+  case FACTCON:
+    return "factCon";
+  case FACTRET:
+    return "factRet";
+  case ACTION:
+    return "action";
+  case SENSE:
+    return "sense";
+  case BLOCK:
+    return "block";
+  }
+  return "";
+}
 
- string getSpec(char* msg){return "hello";}
- int getInstruction(char* msg){ return 0;}
+
+
+/*returns the specification out of a message 
+ *sent from the simulator*/
+string getSpec(uint64_t* msg, int instruction){
+  if (instruction == BREAKPOINT){
+    int type = (int)msg[3];
+    char* spec = (char*)msg[4];
+    string str(spec);
+    return typeInt2String(type) + ":" +  str;
+  } else if (instruction == DUMP){
+    return "all";
+  } else { 
+    return "";
+  }
+} 
+
+
+int getInstruction(uint64_t* msg){ 
+  return (int)msg[2];
+}
 
 
 //to be called when a debug message is recieved
-void handleDebugMessage(char* msg, state& st){
-  string specification = getSpec(msg);
+void handleDebugMessage(uint64_t *msg, state& st){
   int instruction = getInstruction(msg);
+  string specification = getSpec(msg,instruction);
   debugController(st,instruction,specification);
 }
     
@@ -329,6 +374,7 @@ void debugController(state& currentState,
     case PAUSE:
       isSystemPaused = true;
       break;
+    case UNPAUSE:
     case CONTINUE:
       continueExecution();
       break;

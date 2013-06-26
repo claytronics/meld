@@ -128,7 +128,7 @@ int handle_command(string command, debugList& factList){
 
   if (command == "break"){
     retVal = BREAKPOINT;
-  } else if (command == "help"||command == "h"){
+  } else if (command == "help"||command == "h") {
     help();
     retVal = NOTHING;
   } else if (command == "run"|| command == "r") {
