@@ -90,7 +90,7 @@ Questions:
 	possible changes of the debugger code. Ok ?
 
 	pauseSimulation() and unPauseSimulation() only put the simulator in a
-	pause state, but they do not send any pause message to the vm. The 
+	paused state, but they do not send any pause message to the vm. The 
 	debugger thread has to do it before, with a call to
 	sendMessage(-1, pauseMessage);. Of course the vm must be paused before
 	the call to pauseSimulation().
