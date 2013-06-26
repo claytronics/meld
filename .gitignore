@@ -9,4 +9,4 @@ predicates
 server
 simulator
 tests/test.out
-*~
+*.*~

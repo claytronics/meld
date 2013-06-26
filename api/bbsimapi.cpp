@@ -8,8 +8,8 @@
 #include "process/machine.hpp"
 #include "utils/utils.hpp"
 #include "api/api.hpp"
-#include "sched/nodes/sim.hpp"
-#include "sched/sim.hpp"
+/*#include "sched/nodes/sim.hpp"*/
+/*#include "sched/sim.hpp"*/
 #include "sched/serial.hpp"
 
 using namespace db;
@@ -17,7 +17,7 @@ using namespace vm;
 using namespace process;
 using boost::asio::ip::tcp;
 using sched::serial_node;
-using sched::sim_sched;
+//using sched::sim_sched;
 using sched::base;
 using namespace sched;
 
@@ -73,7 +73,8 @@ vm::predicate* accel_pred(NULL);
 vm::predicate* shake_pred(NULL);
 vm::predicate* vacant_pred(NULL);
 bool stop_all(false);
-utils::unix_timestamp start_time(0);
+static db::node::node_id id(0); 
+//utils::unix_timestamp start_time(0);
 /*Queues to be used.*/
 //queue::push_safe_linear_queue<sim_sched::message_type*> bbsimapi::socket_messages;
 
@@ -155,7 +156,7 @@ void check_pre(sched::base *schedular){
 	  cerr << "No vacant predicate found" << endl;
 	}
 
-	start_time = utils::get_timestamp();
+	//start_time = utils::get_timestamp();
 }
 
 /*earlier master_get_work()*/
@@ -287,6 +288,7 @@ process_message(message_type* reply)
   switch(reply[1]) {
   case SETID: /*Adding the setid command to the interface _ankit*/
     handle_setid((deterministic_timestamp) reply[2], (db::node::node_id) reply[3]);
+	id=(db::node::node_id) reply[3];
     ready=true;
     break;
   case RECEIVE_MESSAGE:
@@ -299,6 +301,7 @@ process_message(message_type* reply)
 			   (int)(reply[0] + sizeof(message_type)));
     break;
   case ADD_NEIGHBOR:
+  if(id==(db::node::node_id) reply[3])
     handle_add_neighbor((deterministic_timestamp)reply[2],
 			(db::node::node_id)reply[3],
 			(db::node::node_id)reply[4],
@@ -436,13 +439,15 @@ db::node::node_id dest_id,
 #ifdef DEBUG
    cout << "Receive message " << origin->get_id() << " to " << target->get_id() << " " << *stpl << " with priority " << ts << endl;
 #endif
-
-   heap_priority pr;
+	target->add_work(stpl);
+ /*  heap_priority pr;
    pr.int_priority = ts;
    if(stpl->get_count() > 0)
       target->tuple_pqueue.insert(stpl, pr);
    else
-      target->rtuple_pqueue.insert(stpl, pr);
+      target->rtuple_pqueue.insert(stpl, pr);*/
+
+
 }
 
 static void handle_add_neighbor(const deterministic_timestamp ts, const db::node::node_id in,
