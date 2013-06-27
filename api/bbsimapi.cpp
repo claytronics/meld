@@ -212,7 +212,7 @@ void send_message(db::node* from,const db::node::node_id to, db::simple_tuple* s
 	reply[i++] = from->get_id();
 	reply[i++] = 0; //(dynamic_cast<serial_node*>(from))->get_face(to);
 	reply[i++] = to;
-	//cout << info.src->get_id() << " Send " << *stpl << endl;
+	cout << from->get_id() << " Send " << *stpl << "to "<< to<< endl;
 
 	int pos = i * sizeof(message_type);
 	stpl->pack((utils::byte*)reply, msg_size + sizeof(message_type), &pos);
@@ -423,7 +423,7 @@ static void handle_receive_message(const deterministic_timestamp ts,
 db::node::node_id dest_id,
       const face_t face, db::node::node_id node, utils::byte *data, int offset, const int limit)
 {
-   serial_node *origin(dynamic_cast<serial_node*>((sched_state->state).all->DATABASE->find_node(node)));
+ //  serial_node *origin(dynamic_cast<serial_node*>((sched_state->state).all->DATABASE->find_node(node)));
    serial_node *target(NULL);
 	target=dynamic_cast<serial_node*>((sched_state->state).all->DATABASE->find_node(dest_id));
 
@@ -438,7 +438,7 @@ db::node::node_id dest_id,
             &offset, (sched_state->state).all->PROGRAM));
 
 #ifdef DEBUG
-   cout << "Receive message " << origin->get_id() << " to " << target->get_id() << " " << *stpl << " with priority " << ts << endl;
+   cout << "Receive message " << node << " to " << target->get_id() << " " << *stpl << " with priority " << ts << endl;
 #endif
 	target->add_work(stpl);
  /*  heap_priority pr;
