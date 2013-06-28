@@ -31,19 +31,24 @@ void (*initDebugger(void (sendMessage)(int id, MessageBuffer* m),
 void handleMessage(MessageBuffer* m);
 	Giving a message, it parses it, and controls the debugging
 
-	
 simulator exports - debugger:
 
 void sendMessage(int id, MessageBuffer* m)
-     	This sends a pre-formatted message to the vm id from the debugger, or
-	to all the vm if id = - 1.
+     	This sends a pre-formatted message to the VM id from the debugger, or
+	to all the VMs if id = - 1.
 
 void pauseSimulation(Timestamp t)
-     	asks simulator to pause all VMs at time t.
+		Asks simulator to pause the simulation at time t. It only pauses the
+    simulator, and it does not send any pause message to the VMs. The 
+	debugger thread has to do it before, with a call to
+	sendMessage(-1, pauseMessage);. Of course the vm must be paused before
+	the call to pauseSimulation().
 
 void unPauseSimulation()
-     	asks simulator to let all VMs know they can continue where they
-	left off
+     	Asks simulator to continue the simulation. It only resumes the
+    simulation, and it does not send any unpause message to the VMs. The 
+	debugger thread has to do it before, with a call to
+	sendMessage(-1, unPauseMessage);
 
 Message format:
 A message is composed of an array of unsigned integers of 64 bits:
@@ -61,11 +66,11 @@ Available messages:
      sim -> vm
        Simulator tells the vm to set a break point
        <type :        1. factDer
-                       2. factCon
-                       3. factRet
-                       4. Action
-                       5. Sense
-                       6. Block ?
+                      2. factCon
+                      3. factRet
+                      4. Action
+                      5. Sense
+                      6. Block ?
        <name of the fact : char* ?
  3: UNPAUSE
      sim -> vm
@@ -73,37 +78,9 @@ Available messages:
  4: PAUSE <timestamp>
      sim -> vm
        Simulator tells the debugger to stop the execution (make a pause)
- 5: PRINT <content>
+ 5: PRINTCONTENT <content>
      vm -> sim (- debugger)
        The debugger tells the simulator to display some information
  6: BREAKFOUND <content>
      vm -> sim (- debugger)
       The debugger tells the simulator that a breakpoint has been reached.
-
-Questions:
-	We suggest to use a debug flag in the message such that neither the
-	VM nor the simulator have to know the format of the debugging 
-	messages and the semantics of those messages. If a packet with
-	the debugging flag is received, handleMessage(msg) is then called.
-	If the simulator loop is independent from the debugger source code, it 
-	will make easier the adaptation of the simulator code in case of 
-	possible changes of the debugger code. Ok ?
-
-	pauseSimulation() and unPauseSimulation() only put the simulator in a
-	pause state, but they do not send any pause message to the vm. The 
-	debugger thread has to do it before, with a call to
-	sendMessage(-1, pauseMessage);. Of course the vm must be paused before
-	the call to pauseSimulation().
-	Am I right ?
-	
-	If not:
-	PAUSE and UNPAUSE are debugging messages, and so the simulator will not
-	know how to make up such messages. But the simulator will have to do
-	it if we want to pause/unpause all the VM. Can we add the 
-	message as a parameter of pauseSimulation and unPauseSimulation, like 
-	this: pauseSimulation(int timestamp, MessageBuffer* m) ?
-	Other solutions are to add a function that formats a pause/unpause 
-	message for a given timestamp (need to know the maximum size, 
-	or dynamically allocated), or to add a function that sends such
-	messages to a VM (it just calls sendMessage exported from the simulator
-	with the appropriate message) ?	
