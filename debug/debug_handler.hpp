@@ -42,6 +42,7 @@ void setupFactList();
 debugList getFactList();
 void initSimDebug();
 bool setSimDebuggingMode(bool setting);
+void handleDebugMessage(uint64_t *msg, state& st);
 
 
 #endif

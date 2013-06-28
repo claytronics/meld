@@ -34,7 +34,6 @@ debugList getFactList();
 void setupFactList();
 void debugSimController(state& currentState, 
 			int instruction, string specification);
-
 void display(string msg);
 /*command encodings*/
 #define DUMP 1
@@ -199,11 +198,12 @@ void activateBreakPoint(string specification){
   if (nodeID!="")
     msg <<  "\tNode: " << nodeID << endl;
 
-  display(msg.str());
+  display(msg.str(),PRINTCONTENT);
   
 }
 
-void display(string msg){
+
+void display(string msg, int type){
   if (isInDebuggingMode())
     cout << msg;
   else if (isInSimDebuggingMode())
@@ -230,7 +230,7 @@ void runBreakPoint(char* type, string msg, char* name, int nodeID){
       MSG << "Breakpoint-->";
       MSG << type << ":" << name << "@" << nodeID << endl;
       MSG <<  msg;
-      display(MSG.str());
+      display(MSG.str(),BREAKPOINT);
       pauseIt();
   }  
 }
@@ -275,7 +275,7 @@ void dumpSystemState(state& st, int nodeNumber){
   msg << "*******************************************************************" << endl;
   msg << endl;
 
-  display(msg.str());
+  display(msg.str(),PRINTCONTENT);
 }
 
 
