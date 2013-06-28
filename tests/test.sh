@@ -37,18 +37,12 @@ run_diff ()
 	rm test.out
 }
 
+echo $TEST
 do_serial ()
 {
 	SCHED=${1}
-	TO_RUN="mpirun -n 1 ${EXEC} -f ${TEST} -c ${SCHED}"
-
-	run_diff "${TO_RUN}"
-}
-
-do_mpi () {
-	SCHED=${1}
-	TO_RUN="mpiexec -n 1 ${EXEC} -f ${TEST} -c ${SCHED}"
-
+    echo $SCHED
+	TO_RUN="${EXEC} -f ${TEST} -c ${SCHED}"
 	run_diff "${TO_RUN}"
 }
 

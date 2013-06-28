@@ -18,18 +18,21 @@ namespace sched
     new_work(w.get_node(), w);
   }
 
-  void
-  serial_local::new_work(const node *, work& new_work)
-  {
-    serial_node *to(dynamic_cast<serial_node*>(new_work.get_node()));
 
-    to->add_work(new_work.get_tuple());
+/*sending work to another node "to"*/
+void
+serial_local::new_work(const node *, work& new_work)
+{
+   serial_node *to(dynamic_cast<serial_node*>(new_work.get_node()));
 
-    if(!to->in_queue()) {
+   to->add_work(new_work.get_tuple());
+
+   if(!to->in_queue()) {
       to->set_in_queue(true);
       queue_nodes.push(to);
-    }
-  }
+   }
+}
+
 
   void
   serial_local::assert_end(void) const

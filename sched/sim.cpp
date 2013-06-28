@@ -19,7 +19,7 @@ using boost::asio::ip::tcp;
 // when running in thread mode, the VM waits this milliseconds to instantiate all neighbor facts
 static const int TIME_TO_INSTANTIATE = 500;
 
-#define CREATE_N_NODES 1
+#define SETID 1
 #define RUN_NODE 2
 #define NODE_RUN 3
 #define STOP 4
@@ -32,6 +32,7 @@ static const int TIME_TO_INSTANTIATE = 500;
 #define RECEIVE_MESSAGE 13
 #define ACCEL 14
 #define SHAKE 15
+#define CREATE_N_NODES 18
 
 // debug messages for simulation
 // #define DEBUG
@@ -571,23 +572,23 @@ sim_sched::master_get_work(void)
 	
 	while(true) {
 		if(!socket->available()) {
-         send_pending_messages();
+      		send_pending_messages();
 			usleep(100);
-         if(thread_mode && !all_instantiated) {
-            utils::unix_timestamp now(utils::get_timestamp());
+         	if(thread_mode && !all_instantiated) {
+            	utils::unix_timestamp now(utils::get_timestamp());
 
-            if(now > start_time + TIME_TO_INSTANTIATE) {
-               instantiate_all_nodes();
-               all_instantiated = true;
-            }
-         }
-         if(!thread_mode) {
-            check_delayed_queue();
-         }
+            	if(now > start_time + TIME_TO_INSTANTIATE) {
+            	    instantiate_all_nodes();
+               		all_instantiated = true;
+            	}
+         	}
+         	if(!thread_mode) {
+         	   check_delayed_queue();
+         	}
 			continue;
 		} else {
 //         cout << "Not available" << endl;
-      }
+      	}
 		
 		size_t length =
 			socket->read_some(boost::asio::buffer(reply, sizeof(message_type)));

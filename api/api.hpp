@@ -10,12 +10,15 @@
 #include <boost/mpi.hpp>
 #include <boost/serialization/binary_object.hpp>
 #include "vm/all.hpp"
+#include <boost/asio.hpp>
+
 
 namespace api {
     /* Type representing the message between interprocess communications */
     typedef uint64_t message_type;
     static const size_t MAXLENGTH = 512 / sizeof(message_type);
     extern boost::mpi::communicator *world;
+	extern boost::asio::ip::tcp::socket *tcp_socket;
     extern bool reset_token;
 
 
@@ -40,6 +43,7 @@ namespace api {
      * Initialize the API layer
      */
     extern void init(int argc, char **argv);
-} // namespace api
 
+	void set_color(db::node *n, const int r, const int g, const int b);
+} // namespace api
 #endif

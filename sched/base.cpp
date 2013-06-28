@@ -29,8 +29,7 @@ cleanup_sched_key(void)
    pthread_key_delete(sched_key);
 }
 
-static bool
-init(void)
+static bool init(void)
 {
    int ret(pthread_key_create(&sched_key, NULL));
    assert(ret == 0);

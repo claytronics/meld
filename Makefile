@@ -95,6 +95,7 @@ SRCS = utils/utils.cpp \
 			 stat/slice_set.cpp \
 			 interface.cpp \
 			 api/mpi.cpp
+#			 api/bbsimapi.cpp \
 
 OBJS = $(patsubst %.cpp,%.o,$(SRCS))
 
@@ -127,4 +128,3 @@ clean:
 	find . -name '*.o' | xargs rm -f
 	rm -f meld predicates print server Makefile.externs
 # DO NOT DELETE
-

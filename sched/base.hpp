@@ -34,7 +34,7 @@ protected:
    
    const vm::process_id id;
    boost::thread *thread;
-   vm::state state;
+ 
    
    size_t iteration;
    
@@ -78,7 +78,7 @@ protected:
    }
    
 public:
-   
+   vm::state state;
    inline bool leader_thread(void) const { return get_id() == 0; }
 
    virtual void init_node(db::node *node)
