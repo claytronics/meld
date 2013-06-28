@@ -190,10 +190,10 @@ base::do_loop(void)
 	    finish_work(node);
 	}
 
-    	if (!api::poll(this, state.all))
+    	if (api::world->size() == 1 || !api::poll(this, state.all))
 	    break;
     }
-    cout << "Process " << api::world->rank() << " terminated!!!" << endl;
+    // cout << "Process " << api::world->rank() << " terminated!!!" << endl;
 }
 
 void

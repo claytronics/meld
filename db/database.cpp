@@ -1,6 +1,7 @@
 #include "vm/defs.hpp"
 #include "db/database.hpp"
 #include "vm/state.hpp"
+#include "api/api.hpp"
 
 using namespace db;
 using namespace std;
@@ -94,7 +95,7 @@ database::create_node_id(const db::node::node_id id)
    max_translated_id = id;
 
    node *ret(create_fn(max_node_id, max_translated_id, all));
-   
+
    translation[max_node_id] = max_translated_id;
    nodes[max_node_id] = ret;
 
@@ -113,9 +114,9 @@ database::create_node(void)
    	++max_node_id;
    	++max_translated_id;
 	}
-	
+
    node *ret(create_fn(max_node_id, max_translated_id, all));
-   
+
    translation[max_node_id] = max_translated_id;
    nodes[max_node_id] = ret;
 
@@ -125,17 +126,47 @@ database::create_node(void)
 void
 database::print_db(ostream& cout) const
 {
-   for(map_nodes::const_iterator it(nodes.begin());
-      it != nodes.end();
-      ++it)
-   {
-      cout << *(it->second) << endl;
-   }
+#define SYNC_MPI
+#ifdef SYNC_MPI
+    api::world->barrier();
+
+    int dest = (api::world->rank() + 1) % api::world->size();
+    int source = (api::world->rank() - 1) % api::world->size();
+
+    if (api::world->rank() == 0) {
+        for(map_nodes::const_iterator it(nodes.begin());
+            it != nodes.end();
+            ++it)
+        {
+            cout << "[" << api::world->rank() << "] " << *(it->second) << endl;
+        }
+
+        api::world->send(dest, 0);
+    } else {
+        api::world->recv(source, 0);
+        for(map_nodes::const_iterator it(nodes.begin());
+            it != nodes.end();
+            ++it)
+        {
+            cout << "[" << api::world->rank() << "] " << *(it->second) << endl;
+        }
+        if (dest != 0)
+            api::world->send(dest, 0);
+    }
+
+#endif
+    // for(map_nodes::const_iterator it(nodes.begin());
+    //    it != nodes.end();
+    //    ++it)
+    // {
+    //    cout << *(it->second) << endl;
+    // }
 }
 
 void
 database::dump_db(ostream& cout) const
 {
+    api::world->barrier();
    for(map_nodes::const_iterator it(nodes.begin());
       it != nodes.end();
       ++it)
