@@ -18,7 +18,6 @@ namespace sched
     new_work(w.get_node(), w);
   }
 
-
 /*sending work to another node "to"*/
 void
 serial_local::new_work(const node *, work& new_work)
@@ -32,7 +31,6 @@ serial_local::new_work(const node *, work& new_work)
       queue_nodes.push(to);
    }
 }
-
 
   void
   serial_local::assert_end(void) const
