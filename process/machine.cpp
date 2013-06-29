@@ -133,7 +133,7 @@ void
 machine::route(node* from, sched::base *sched_caller, const node::node_id id, simple_tuple* stpl, const uint_val delay)
 {  
 
-    const predicate *pred(stpl->get_predicate());
+ /*   const predicate *pred(stpl->get_predicate());
 	if((from->get_id())!=id){
 		api::send_message(from,id,stpl);
 		return;
@@ -159,7 +159,15 @@ machine::route(node* from, sched::base *sched_caller, const node::node_id id, si
   } else {
      work new_work(node, stpl);
      sched_caller->new_work_other(sched_other, new_work);
+  }*/
+     cout<<"in route"<<endl;
+  if((from->get_id())!=id){
+    api::send_message(from,id,stpl);
+    return;
   }
+ work new_work(from, stpl);
+sched_caller->new_work(from, new_work);
+
 }
 
 
@@ -236,7 +244,7 @@ machine::execute_const_code(void)
 	
 	// no node or tuple whatsoever
 	st.setup(NULL, NULL, 0);
-	
+	sleep(5);
 	execute_bytecode(all->PROGRAM->get_const_bytecode(), st);
 }
 /*

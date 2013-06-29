@@ -8,8 +8,6 @@
 #include "process/machine.hpp"
 #include "utils/utils.hpp"
 #include "api/api.hpp"
-/*#include "sched/nodes/sim.hpp"*/
-/*#include "sched/sim.hpp"*/
 #include "sched/serial.hpp"
 
 using namespace db;
@@ -17,7 +15,6 @@ using namespace vm;
 using namespace process;
 using boost::asio::ip::tcp;
 using sched::serial_node;
-//using sched::sim_sched;
 using sched::base;
 using namespace sched;
 
@@ -351,8 +348,9 @@ static void add_received_tuple(serial_node *no, size_t ts, db::simple_tuple *stp
 		no->tuple_pqueue.insert(stpl, pr);
 	else
 		no->rtuple_pqueue.insert(stpl, pr);*/
-
-	no->add_work(stpl);
+ work new_work(no, stpl);
+ sched_state->new_work(no, new_work);
+	//no->add_work(stpl);
 }
 
 /* ? to be kept in the api or the sim_sched*/
@@ -440,13 +438,15 @@ db::node::node_id dest_id,
 #ifdef DEBUG
    cout << "Receive message " << node << " to " << target->get_id() << " " << *stpl << " with priority " << ts << endl;
 #endif
-	target->add_work(stpl);
+	//target->add_work(stpl);
  /*  heap_priority pr;
    pr.int_priority = ts;
    if(stpl->get_count() > 0)
       target->tuple_pqueue.insert(stpl, pr);
    else
       target->rtuple_pqueue.insert(stpl, pr);*/
+  work new_work(target, stpl);
+ sched_state->new_work(target, new_work);
 
 
 }
