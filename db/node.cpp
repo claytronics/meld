@@ -6,6 +6,7 @@
 #include "vm/state.hpp"
 #include "db/neighbor_tuple_aggregate.hpp"
 #include "utils/utils.hpp"
+#include "debug/debug_handler.hpp"
 
 using namespace db;
 using namespace std;
@@ -33,7 +34,7 @@ bool
 node::add_tuple(vm::tuple *tpl, ref_count many)
 {
    const predicate* pred(tpl->get_predicate());
-   tuple_trie *tr(get_storage(pred));
+      tuple_trie *tr(get_storage(pred));
    
    if(pred->is_route_pred() && pred->is_persistent_pred()) {
       const predicate_id pred_id(pred->get_id());
@@ -246,9 +247,13 @@ node::print(ostream& cout) const
 
 	ordered_tries.sort(trie_comparer);
 
-   cout << "--> node " << get_translated_id() << "/(id " << get_id()
+	if( !isInDebuggingMode()&&!isInSimDebuggingMode()){
+	  cout << "--> node " << get_translated_id() << "/(id " << get_id()
         << ") (" << this << ") <--" << endl;
-   
+	} else {
+	  cout << "CONTENTS AT NODE " << get_translated_id() << ":" << endl;
+	}
+
 	for(list_str_trie::const_iterator it(ordered_tries.begin());
 			it != ordered_tries.end();
 			++it)
@@ -259,6 +264,7 @@ node::print(ostream& cout) const
 			tr->print(cout);
 	}
 }
+
 
 
 void

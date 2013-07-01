@@ -148,7 +148,7 @@ print_float(ostream& out, const float_val val)
 static inline void
 print_node(ostream& out, const node_val node)
 {
-   out << "@" << node;
+  out << "@" << node;
 }
 
 void

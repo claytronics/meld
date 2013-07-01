@@ -1,6 +1,5 @@
 #include <iostream>
 #include <signal.h>
-
 #include "process/machine.hpp"
 #include "vm/program.hpp"
 #include "vm/state.hpp"
@@ -13,6 +12,8 @@
 #include "interface.hpp"
 #include "sched/serial.hpp"
 #include "api/api.hpp"
+#include "debug/debug_handler.hpp"
+#include "debug/debug_prompt.hpp"
 
 using namespace process;
 using namespace db;
@@ -31,9 +32,9 @@ void
 machine::run_action(sched::base *sched, node* node, vm::tuple *tpl, const bool from_other)
 {
 	const predicate_id pid(tpl->get_predicate_id());
-	
+
 	assert(tpl->is_action());
-	
+
    switch(pid) {
       case SETCOLOR_PREDICATE_ID:
       case SETCOLOR2_PREDICATE_ID:
@@ -71,6 +72,7 @@ machine::run_action(sched::base *sched, node* node, vm::tuple *tpl, const bool f
    }
 
 	delete tpl;
+	runBreakPoint("action","","",-1);
 }
 
 void
@@ -123,11 +125,11 @@ void
 machine::deactivate_signals(void)
 {
    sigset_t set;
-   
+
    sigemptyset(&set);
    sigaddset(&set, SIGALRM);
    sigaddset(&set, SIGUSR1);
-   
+
    sigprocmask(SIG_BLOCK, &set, NULL);
 }
 
@@ -137,12 +139,12 @@ machine::set_timer(void)
    // pre-compute the number of usecs from msecs
    static long usec = SLICE_PERIOD * 1000;
    struct itimerval t;
-   
+
    t.it_interval.tv_sec = 0;
    t.it_interval.tv_usec = 0;
    t.it_value.tv_sec = 0;
    t.it_value.tv_usec = usec;
-   
+
    setitimer(ITIMER_REAL, &t, 0);
 }
 
@@ -150,7 +152,7 @@ void
 machine::slice_function(void)
 {
    bool tofinish(false);
-   
+
    // add SIGALRM and SIGUSR1 to sigset
 	// to be used by sigwait
    sigset_t set;
@@ -159,15 +161,15 @@ machine::slice_function(void)
    sigaddset(&set, SIGUSR1);
 
    int sig;
-   
+
    set_timer();
-   
+
    while (true) {
-      
+
       const int ret(sigwait(&set, &sig));
-		
+
 		assert(ret == 0);
-      
+
       switch(sig) {
          case SIGALRM:
          if(tofinish)
@@ -187,17 +189,24 @@ void
 machine::execute_const_code(void)
 {
 	state st(all);
-	
+
 	// no node or tuple whatsoever
 	st.setup(NULL, NULL, 0);
-	
+
+	if (isInDebuggingMode()){
+	  debug(st);
+	  pauseIt();
+	} else if (isInSimDebuggingMode()){
+	  initSimDebug();
+	}
+
 	execute_bytecode(all->PROGRAM->get_const_bytecode(), st);
 }
 
 void
 machine::init_thread(sched::base *sched)
 {
-	all->ALL_THREADS.push_back(sched);
+        all->ALL_THREADS.push_back(sched);
 	all->NUM_THREADS++;
 	sched->start();
 }
@@ -208,30 +217,30 @@ machine::start(void)
 {
 	// execute constants code
 	execute_const_code();
-	
+
    deactivate_signals();
-   
+
    // Statistics sampling
    if(stat_enabled()) {
       // initiate alarm thread
       alarm_thread = new boost::thread(bind(&machine::slice_function, this));
    }
-   
+
    //for(size_t i(1); i < all->NUM_THREADS; ++i)
       //this->all->ALL_THREADS[i]->start();
    this->all->ALL_THREADS[0]->start();
-   
+
    // Wait for threads to finish, if thread > 1
    //for(size_t i(1); i < all->NUM_THREADS; ++i)
       //this->all->ALL_THREADS[i]->join();
-      
+
 //#ifndef NDEBUG
    //for(size_t i(1); i < all->NUM_THREADS; ++i)
       //assert(this->all->ALL_THREADS[i-1]->num_iterations() == this->all->ALL_THREADS[i]->num_iterations());
    //if(this->all->PROGRAM->is_safe())
       //assert(this->all->ALL_THREADS[0]->num_iterations() == 1);
 //#endif
-   
+
    if(alarm_thread) {
       kill(getpid(), SIGUSR1);
       alarm_thread->join();
@@ -271,7 +280,7 @@ get_creation_function(const scheduler_type sched_type)
       default:
          return NULL;
    }
-   
+
    throw machine_error("unknown scheduler type");
 }
 
@@ -310,15 +319,15 @@ machine::~machine(void)
    // when deleting database, we need to access the program,
    // so we must delete this in correct order
    delete this->all->DATABASE;
-   
+
    for(process_id i(0); i != all->NUM_THREADS; ++i)
       delete all->ALL_THREADS[i];
 
    delete this->all->PROGRAM;
-      
+
    if(alarm_thread)
       delete alarm_thread;
-      
+
    mem::cleanup(all->NUM_THREADS);
 }
 

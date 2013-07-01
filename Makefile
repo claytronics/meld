@@ -32,7 +32,7 @@ C0X = -std=c++0x
 UILIBRARIES = #-lwebsocketpp -ljson_spirit
 
 CFLAGS = $(ARCH) $(PROFILING) $(OPTIMIZATIONS) $(WARNINGS) $(DEBUG) $(INCLUDE_DIRS) $(COX)
-LIBRARIES = -pthread -lm -lreadline -lboost_thread-mt -lboost_system-mt \
+LIBRARIES = -pthread -lpthread -lm -lreadline -lboost_thread-mt -lboost_system-mt \
 				-lboost_date_time-mt -lboost_regex-mt $(UILIBRARIES)
 
 LIBRARIES += -lmpi -lmpi_cxx -lboost_serialization-mt -lboost_mpi-mt
@@ -95,6 +95,9 @@ SRCS = utils/utils.cpp \
 			 stat/slice_set.cpp \
 			 interface.cpp \
 			 api/mpi.cpp
+			 debug/debug_prompt.cpp \
+			 debug/debug_handler.cpp \
+			 debug/debug_list.cpp \
 #			 api/bbsimapi.cpp \
 
 OBJS = $(patsubst %.cpp,%.o,$(SRCS))

@@ -1,7 +1,9 @@
 
+#include <iostream>
 #include "vm/state.hpp"
 #include "process/machine.hpp"
 #include "vm/exec.hpp"
+#include "debug/debug_handler.hpp"
 
 using namespace vm;
 using namespace db;
@@ -469,6 +471,39 @@ state::process_consumed_local_tuples(void)
 	}
 }
 
+
+void 
+state::print_local_tuples(ostream& cout){
+
+  if (generated_tuples.empty())
+    cout << "(empty)" << endl;
+
+  for(db::simple_tuple_list::iterator it(local_tuples.begin());
+      it != local_tuples.end();
+      ++it)
+    {
+      simple_tuple *stpl(*it);
+      cout << *stpl << endl;
+    }
+}
+
+
+void
+state::print_generated_tuples(ostream& cout){
+
+  if (generated_tuples.empty())
+    cout << "(empty)" << endl;
+
+  for(db::simple_tuple_list::iterator it(generated_tuples.begin());
+      it != generated_tuples.end();
+      ++it)
+    {
+      simple_tuple *stpl(*it);
+      cout << *stpl << endl;
+    }
+}
+
+
 void
 state::add_to_aggregate(db::simple_tuple *stpl)
 {
@@ -484,6 +519,7 @@ state::add_to_aggregate(db::simple_tuple *stpl)
    }
 
    simple_tuple_list list;
+
 
    agg->generate(pred->get_aggregate_type(), pred->get_aggregate_field(), list);
 
@@ -535,9 +571,18 @@ state::process_persistent_tuple(db::simple_tuple *stpl, vm::tuple *tpl)
          	use_local_tuples = false;
          	execute_bytecode(all->PROGRAM->get_predicate_bytecode(tuple->get_predicate_id()), *this);
          	deleter();
-      	} else
+		runBreakPoint("factRet", 
+			      "Fact has been removed from database",
+			      (char*)tpl->pred_name().c_str(),
+			      (int)node->get_translated_id());
+      	} else{
+	  runBreakPoint("factRet","Fact has been retracted",
+			(char*)tpl->pred_name().c_str(),
+			(int)node->get_translated_id());
          	delete tpl;
-		}
+	}
+		}		
+			
    }
 }
 
@@ -578,7 +623,7 @@ state::run_node(db::node *no)
 
    assert(local_tuples.empty());
    // Gather_next_tuples is implementation specific
-	sched->gather_next_tuples(node, local_tuples);
+   sched->gather_next_tuples(node, local_tuples);
    start_matching();
 	current_level = mark_rules_using_local_tuples(local_tuples);
    if(do_persistent_tuples()) {

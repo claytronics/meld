@@ -498,6 +498,7 @@ sim_sched::handle_tap(const deterministic_timestamp ts, const db::node::node_id 
       db::simple_tuple *stpl(new db::simple_tuple(tpl, 1));
       
       add_received_tuple(no, ts, stpl);
+      runBreakPoint("sense","A tap was recognized","",-1);
    }
 }
 
@@ -517,6 +518,7 @@ sim_sched::handle_accel(const deterministic_timestamp ts, const db::node::node_i
 
       add_received_tuple(no, ts, stpl);
    }
+      runBreakPoint("sense","An acceleration was recognized","",-1);
 }
 
 void
@@ -537,6 +539,8 @@ sim_sched::handle_shake(const deterministic_timestamp ts, const db::node::node_i
 
       add_received_tuple(no, ts, stpl);
    }
+   runBreakPoint("sense","A shake was recognized","",-1);
+
 }
 
 void
