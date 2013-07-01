@@ -8,6 +8,7 @@
 
 using namespace std;
 
+
 struct debugnode{
   struct debugnode* next;
   struct debugnode* prev;
@@ -109,9 +110,6 @@ bool isInBreakPointList(debugList L, char* type, char* name, int nodeID){
   }
   return false;
 }
-
-  
- 
 
 
 

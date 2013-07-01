@@ -8,6 +8,8 @@
 
 using namespace std;
 
+
+
 #define DUMP 1
 #define CONTINUE 7
 #define BREAKPOINT 2
@@ -15,7 +17,7 @@ using namespace std;
 #define PAUSE 4
 #define UNPAUSE 3 
 #define BREAKFOUND 6
-#define PRINT 5
+#define PRINTCONTENT 5
 
 
 #define FACTDER 1
@@ -24,7 +26,6 @@ using namespace std;
 #define ACTION 4
 #define SENSE 5
 #define BLOCK 6
-
 
 
 void activateBreakPoint(string specification);
@@ -42,7 +43,7 @@ void setupFactList();
 debugList getFactList();
 void initSimDebug();
 bool setSimDebuggingMode(bool setting);
-void handleDebugMessage(uint64_t *msg, state& st);
+void handleDebugMessage(uint64_t *msg, vm::state& st);
 
 
 #endif
