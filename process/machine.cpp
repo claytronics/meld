@@ -193,7 +193,7 @@ machine::execute_const_code(void)
 	// no node or tuple whatsoever
 	st.setup(NULL, NULL, 0);
 
-	if (isInDebuggingMode()){
+	if (isInDebuggingMode()) {
 	  debug(st);
 	  pauseIt();
 	} else if (isInSimDebuggingMode()){
