@@ -166,7 +166,7 @@ machine::route(node* from, sched::base *sched_caller, const node::node_id id, si
     return;
   }
  work new_work(from, stpl);
-sched_caller->new_work(from, new_work);
+ sched_caller->new_work(from, new_work);
 
 }
 
