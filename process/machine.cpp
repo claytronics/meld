@@ -285,7 +285,7 @@ get_creation_function(const scheduler_type sched_type)
 }
 
 
-machine::machine(const string& file, router& _rout, const size_t th,
+machine::machine(const string& file, const size_t th,
 		const scheduler_type _sched_type, const machine_arguments& margs, const string& data_file):
    all(new vm::all()),
    filename(file),
@@ -309,8 +309,6 @@ machine::machine(const string& file, router& _rout, const size_t th,
           throw machine_error(string("data file ") + data_file + string(" not found"));
        }
     }
-
-    this->all->ROUTER = &_rout;
 
     if(margs.size() < this->all->PROGRAM->num_args_needed())
         throw machine_error(string("this program requires ") + utils::to_string(all->PROGRAM->num_args_needed()) + " arguments");

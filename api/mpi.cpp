@@ -107,7 +107,7 @@ namespace api {
              << "@" << id << " " << *stpl << endl;
 #endif
 
-        mpi::request req = world->isend(dest, id + TOKEN_OFFSET, *msg);
+        mpi::request req = world->isend(dest, id + TOKEN_OFFSET, msg, msg_length);
 
         // Store the message and request in order to free later
         msgs.push_back(make_pair(req, msg));
@@ -154,7 +154,8 @@ namespace api {
 
                 message_type *msg = new message_type[MAXLENGTH];
 
-                mpi::request req = world->irecv(mpi::any_source, mpi::any_tag, *msg);
+                mpi::request req = world->irecv(mpi::any_source, mpi::any_tag,
+                                                msg, MAXLENGTH * sizeof(message_type));
 
                 recv_q.push_back(make_pair(req, make_pair(status.tag() - TOKEN_OFFSET, msg)));
                 color = BLACK; // need to mark black even if message not processed

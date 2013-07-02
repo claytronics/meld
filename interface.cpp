@@ -108,8 +108,7 @@ run_program(int argc, char **argv, const char *program, const vm::machine_argume
         api::world = &world;
         api::init(argc, argv);
 
-        router rout(num_threads, argc, argv, is_mpi_sched(sched_type));
-        machine mac(program, rout, num_threads, sched_type, margs, data_file == NULL ? string("") : string(data_file));
+        machine mac(program, num_threads, sched_type, margs, data_file == NULL ? string("") : string(data_file));
 
         /* Creat barrier here, to prevent processes from sneding messages to
          * processes that have not been started yet */
@@ -124,16 +123,6 @@ run_program(int argc, char **argv, const char *program, const vm::machine_argume
         mac.start();
 
         if(time_execution) {
-#ifdef COMPILE_MPI
-            if(is_mpi_sched(sched_type)) {
-                double total_time(MPI_Wtime() - start_time);
-                size_t ms = static_cast<size_t>(total_time * 1000);
-
-                if(remote::self->get_rank() == 0)
-                    cout << "Time: " << ms << " ms" << endl;
-            }
-            else
-#endif
             {
                 tm.stop();
                 size_t ms = tm.milliseconds();
@@ -141,9 +130,8 @@ run_program(int argc, char **argv, const char *program, const vm::machine_argume
                 cout << "Time: " << ms << " ms" << endl;
             }
         }
-        >>>>>>> 88afb61b2ac29f4c1b32c61cff583e0f3cab1154
 
-                    } catch(machine_error& err) {
+    } catch(machine_error& err) {
         finish();
         throw err;
     } catch(load_file_error& err) {

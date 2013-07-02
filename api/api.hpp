@@ -11,11 +11,11 @@
 #include <boost/serialization/binary_object.hpp>
 #include "vm/all.hpp"
 #include <boost/asio.hpp>
-
+#include "utils/types.hpp"
 
 namespace api {
     /* Type representing the message between interprocess communications */
-    typedef uint64_t message_type;
+    typedef utils::byte message_type;
     static const size_t MAXLENGTH = 512 / sizeof(message_type);
     extern boost::mpi::communicator *world;
 	extern boost::asio::ip::tcp::socket *tcp_socket;

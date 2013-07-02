@@ -340,11 +340,6 @@ state::do_persistent_tuples(void)
    // we grab the stratification level here
    while(!generated_persistent_tuples.empty()) {
 
-#ifdef USE_SIM
-      if(check_instruction_limit()) {
-         return false;
-      }
-#endif
       db::simple_tuple *stpl(generated_persistent_tuples.front());
       vm::tuple *tpl(stpl->get_tuple());
 

@@ -1881,12 +1881,6 @@ eval_loop:
       instr_print_simple(pc, 0, state.all->PROGRAM, cout);
 #endif
 
-#ifdef USE_SIM
-      if(state::SIM) {
-         ++state.sim_instr_counter;
-      }
-#endif
-
 #ifdef CORE_STATISTICS
 		state.stat_instructions_executed++;
 #endif
