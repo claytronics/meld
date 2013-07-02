@@ -138,7 +138,7 @@ database::print_db(ostream& cout) const
             it != nodes.end();
             ++it)
         {
-            cout << "[" << api::world->rank() << "] " << *(it->second) << endl;
+            cout << "[PID " << api::world->rank() << "] " << *(it->second) << endl;
         }
 
         api::world->send(dest, 0);
@@ -148,7 +148,7 @@ database::print_db(ostream& cout) const
             it != nodes.end();
             ++it)
         {
-            cout << "[" << api::world->rank() << "] " << *(it->second) << endl;
+            cout << "[PID " << api::world->rank() << "] " << *(it->second) << endl;
         }
         if (dest != 0)
             api::world->send(dest, 0);

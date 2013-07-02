@@ -96,52 +96,52 @@ run_program(int argc, char **argv, const char *program, const vm::machine_argume
 	try {
         /* save time to compute execution time */
         /* calculate execution time */
-      double start_time(0.0);
-      execution_time tm;
+        double start_time(0.0);
+        execution_time tm;
 
-      if(time_execution) {
+        if(time_execution) {
             tm.start();
-      }
+        }
 
         boost::mpi::environment env(argc, argv);
         boost::mpi::communicator world;
         api::world = &world;
-	api::init(argc, argv);
+        api::init(argc, argv);
 
-      /* instantiate machine
-       * serial: 1 thread, sched_serial
-       * margs: meld argv, argc*,
-       * each machine will have a mpi communicator in machine->WORLD
-       */
-      machine mac(program, num_threads, sched_type, margs);
+        /* instantiate machine
+         * serial: 1 thread, sched_serial
+         * margs: meld argv, argc*,
+         * each machine will have a mpi communicator in machine->WORLD
+         */
+        machine mac(program, num_threads, sched_type, margs);
 
-      /* Creat barrier here, to prevent processes from sneding messages to
-       * processes that have not been started yet */
-      api::world->barrier();
+        /* Creat barrier here, to prevent processes from sneding messages to
+         * processes that have not been started yet */
+        api::world->barrier();
 
-      /* initiates threads */
-      mac.start();
+        /* initiates threads */
+        mac.start();
 
-      if(time_execution) {
-         {
-            tm.stop();
-            size_t ms = tm.milliseconds();
-            cout << "Time: " << ms << " ms" << endl;
-         }
-      }
+        if(time_execution) {
+            {
+                tm.stop();
+                size_t ms = tm.milliseconds();
+                cout << "Time: " << ms << " ms" << endl;
+            }
+        }
 
 	} catch(machine_error& err) {
-      finish();
-      throw err;
-   } catch(load_file_error& err) {
-      finish();
-      throw err;
-   } catch(db::database_error& err) {
-      finish();
-      throw err;
-   }
+        finish();
+        throw err;
+    } catch(load_file_error& err) {
+        finish();
+        throw err;
+    } catch(db::database_error& err) {
+        finish();
+        throw err;
+    }
 
-   finish();
+    finish();
 
 	return true;
 }
