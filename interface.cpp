@@ -34,41 +34,41 @@ num_cpus_available(void)
 static inline bool
 match_serial(const char *name, char *arg, const scheduler_type type)
 {
-   const size_t len(strlen(name));
+    const size_t len(strlen(name));
 
-   if(strlen(arg) == len && strncmp(name, arg, len) == 0) {
-      sched_type = type;
-      num_threads = 1;
-      return true;
-   }
+    if(strlen(arg) == len && strncmp(name, arg, len) == 0) {
+        sched_type = type;
+        num_threads = 1;
+        return true;
+    }
 
-   return false;
+    return false;
 }
 
 static inline bool fail_sched(char* sched)
 {
 	cerr << "Error: invalid scheduler " << sched << endl;
-   exit(EXIT_FAILURE);
-   return false;
+    exit(EXIT_FAILURE);
+    return false;
 }
 
 void
 parse_sched(char *sched)
 {
-   assert(sched != NULL);
+    assert(sched != NULL);
 
-   if(strlen(sched) < 2)
-      fail_sched(sched);
+    if(strlen(sched) < 2)
+        fail_sched(sched);
 
-   // attempt to parse the scheduler string
-      match_serial("sl", sched, SCHED_SERIAL) ||
+    // attempt to parse the scheduler string
+    match_serial("sl", sched, SCHED_SERIAL) ||
 		match_serial("ui", sched, SCHED_SERIAL_UI) ||
-      fail_sched(sched);
+        fail_sched(sched);
 
 	if (num_threads == 0) {
-      cerr << "Error: invalid number of threads" << endl;
-      exit(EXIT_FAILURE);
-   }
+        cerr << "Error: invalid number of threads" << endl;
+        exit(EXIT_FAILURE);
+    }
 }
 
 void
@@ -77,8 +77,8 @@ help_schedulers(void)
 	cerr << "\t-c <scheduler>\tselect scheduling type" << endl;
 	cerr << "\t\t\tsl simple serial scheduler" << endl;
 	cerr << "\t\t\tui serial scheduler + ui" << endl;
-   cerr << "\t\t\tthX multithreaded scheduler with task stealing" << endl;
-   cerr << "\t\t\tthpX multithreaded scheduler with priorities and task stealing" << endl;
+    cerr << "\t\t\tthX multithreaded scheduler with task stealing" << endl;
+    cerr << "\t\t\tthpX multithreaded scheduler with priorities and task stealing" << endl;
 }
 
 static inline void
@@ -88,7 +88,7 @@ finish(void)
 
 /* program = meld program */
 bool
-run_program(int argc, char **argv, const char *program, const vm::machine_arguments& margs)
+run_program(int argc, char **argv, const char *program, const vm::machine_arguments& margs, const char *data_file)
 {
 	assert(utils::file_exists(string(program)));
 	assert(num_threads > 0);
@@ -108,29 +108,42 @@ run_program(int argc, char **argv, const char *program, const vm::machine_argume
         api::world = &world;
         api::init(argc, argv);
 
-        /* instantiate machine
-         * serial: 1 thread, sched_serial
-         * margs: meld argv, argc*,
-         * each machine will have a mpi communicator in machine->WORLD
-         */
-        machine mac(program, num_threads, sched_type, margs);
+        router rout(num_threads, argc, argv, is_mpi_sched(sched_type));
+        machine mac(program, rout, num_threads, sched_type, margs, data_file == NULL ? string("") : string(data_file));
 
         /* Creat barrier here, to prevent processes from sneding messages to
          * processes that have not been started yet */
         api::world->barrier();
 
-        /* initiates threads */
+#ifdef USE_UI
+        if(ui::man != NULL) {
+            ui::man->set_all(mac.get_all());
+        }
+#endif
+
         mac.start();
 
         if(time_execution) {
+#ifdef COMPILE_MPI
+            if(is_mpi_sched(sched_type)) {
+                double total_time(MPI_Wtime() - start_time);
+                size_t ms = static_cast<size_t>(total_time * 1000);
+
+                if(remote::self->get_rank() == 0)
+                    cout << "Time: " << ms << " ms" << endl;
+            }
+            else
+#endif
             {
                 tm.stop();
                 size_t ms = tm.milliseconds();
+
                 cout << "Time: " << ms << " ms" << endl;
             }
         }
+        >>>>>>> 88afb61b2ac29f4c1b32c61cff583e0f3cab1154
 
-	} catch(machine_error& err) {
+                    } catch(machine_error& err) {
         finish();
         throw err;
     } catch(load_file_error& err) {

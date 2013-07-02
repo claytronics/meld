@@ -12,7 +12,7 @@ def list_has(list, x):
 		return False
 
 if len(sys.argv) < 2:
-	print "Usage: generate_random_graph.py <num nodes> [weight]"
+	print "Usage: generate_random_undirected_graph.py <num nodes> [weight]"
 	sys.exit(1)
 
 total = int(sys.argv[1])
@@ -24,14 +24,14 @@ else:
 	print "type route edge(node, node)."
 
 for i in range(total):
-	links = random.randint(1, int(total*0.75))
+	if i == total-1:
+		continue
+	links = random.randint(1, int((total - i)*0.75))
 	list = []
 	for j in range(links):
-		link = random.randint(1, total - 1)
-		if link == i:
-			link = (link + 1) % (total - 1)
+		link = random.randint(i + 1, total - 1)
 		if not list_has(list, link):
 			list.append(link)
 	for link in list:
-		write_edge(i, link)
+		write_dedge(i, link)
 		

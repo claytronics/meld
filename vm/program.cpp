@@ -26,8 +26,6 @@ static const size_t PREDICATE_DESCRIPTOR_SIZE = sizeof(code_size_t) +
                                                 PRED_ARGS_MAX +
                                                 PRED_NAME_SIZE_MAX +
                                                 PRED_AGG_INFO_MAX;
-strat_level program::MAX_STRAT_LEVEL(0);
-
 #define READ_CODE(TO, SIZE) do { \
 	fp.read((char *)(TO), SIZE);	\
 	position += (SIZE);				\
@@ -43,7 +41,7 @@ BOOST_STATIC_ASSERT(sizeof(uint_val) == 4);
 /* interprets predicates, argus, types, interprets the code */
 program::program(const string& _filename):
    filename(_filename),
-   init(NULL), priority_pred(NULL)
+   init(NULL)
 {
 	size_t position(0);
    
@@ -65,8 +63,8 @@ program::program(const string& _filename):
    uint32_t major_version, minor_version;
    READ_CODE(&major_version, sizeof(uint32_t));
    READ_CODE(&minor_version, sizeof(uint32_t));
-   if(major_version != MAJOR_VERSION || minor_version != MINOR_VERSION)
-      throw load_file_error(filename, string("invalid byte-code file, required ") + to_string(MAJOR_VERSION) + "." + to_string(MINOR_VERSION));
+   if(major_version == 0 && minor_version < 5)
+      throw load_file_error(filename, string("unsupported byte code version"));
 
    // read number of predicates
    byte buf[PREDICATE_DESCRIPTOR_SIZE];
@@ -154,6 +152,65 @@ program::program(const string& _filename):
 	
 	READ_CODE(const_code, const_code_size);
 
+   MAX_STRAT_LEVEL = 0;
+
+   if(major_version > 0 || (major_version == 0 && minor_version >= 6)) {
+      // get function code
+      uint_val n_functions;
+
+      READ_CODE(&n_functions, sizeof(uint_val));
+
+      functions.resize(n_functions);
+
+      for(size_t i(0); i < n_functions; ++i) {
+         code_size_t fun_size;
+
+         READ_CODE(&fun_size, sizeof(code_size_t));
+         byte_code fun_code(new byte_code_el[fun_size]);
+         READ_CODE(fun_code, fun_size);
+
+         functions[i] = new vm::function(fun_code, fun_size);
+      }
+
+      if(major_version > 0 || minor_version >= 7) {
+         // get external functions definitions
+         uint_val n_externs;
+
+         READ_CODE(&n_externs, sizeof(uint_val));
+
+         for(size_t i(0); i < n_externs; ++i) {
+            uint_val extern_id;
+
+            READ_CODE(&extern_id, sizeof(uint_val));
+            char extern_name[256];
+
+            READ_CODE(extern_name, sizeof(extern_name));
+
+            char skip_filename[1024];
+
+            READ_CODE(skip_filename, sizeof(skip_filename));
+
+            ptr_val skip_ptr;
+
+            READ_CODE(&skip_ptr, sizeof(skip_ptr));
+
+            uint_val num_args;
+
+            READ_CODE(&num_args, sizeof(num_args));
+
+            //cout << "Id " << extern_id << " " << extern_name << " ";
+
+            for(uint_val j(0); j != num_args + 1; ++j) {
+               byte b;
+               READ_CODE(&b, sizeof(byte));
+               field_type type = (field_type)b;
+               //cout << field_type_string(type) << " ";
+            }
+            //cout << endl;
+         }
+      }
+   }
+
    // read predicate information
    for(size_t i(0); i < num_predicates; ++i) {
       code_size_t size;
@@ -184,26 +241,16 @@ program::program(const string& _filename):
 
    initial_priority.int_priority = 0;
    initial_priority.float_priority = 0.0;
+
+   is_data_file = false;
 	
    switch(global_info) {
-      case 0x01: {
-         predicate_id pred;
-         byte asc_desc;
-         field_num priority_argument;
-         
-         READ_CODE(&pred, sizeof(predicate_id));
-         READ_CODE(&priority_argument, sizeof(field_num));
-         READ_CODE(&asc_desc, sizeof(byte));
-         
-         priority_order = (asc_desc ? PRIORITY_ASC : PRIORITY_DESC);
-         priority_pred = predicates[pred];
-         priority_argument -= 2;
-         priority_pred->set_global_priority(priority_order, priority_argument);
-         priority_strat_level = priority_pred->get_strat_level();
-         priority_type = priority_pred->get_field_type(get_priority_argument());
+      case 0x01: { // priority by predicate
+         cerr << "Not supported anymore" << endl;
+         assert(false);
       }
       break;
-      case 0x02: {
+      case 0x02: { // normal priority
          byte type(0x0);
          byte asc_desc;
 
@@ -223,8 +270,13 @@ program::program(const string& _filename):
             READ_CODE(&initial_priority.int_priority, sizeof(int_val));
       }
       break;
+      case 0x03: { // data file
+         is_data_file = true;
+      }
+      break;
       default:
       priority_type = FIELD_FLOAT; 
+      priority_order = PRIORITY_DESC;
       break;
    }
    
@@ -276,6 +328,8 @@ program::program(const string& _filename):
          rules[i]->add_predicate(pred);
       }
    }
+
+   data_rule = NULL;
 }
 
 program::~program(void)
@@ -287,6 +341,11 @@ program::~program(void)
 	for(size_t i(0); i < num_rules(); ++i) {
 		delete rules[i];
 	}
+   if(data_rule != NULL)
+      delete data_rule;
+   for(size_t i(0); i < functions.size(); ++i) {
+      delete functions[i];
+   }
 	delete []const_code;
    MAX_STRAT_LEVEL = 0;
 }
@@ -324,6 +383,18 @@ program::print_bytecode(ostream& out) const
 	out << "CONST CODE" << endl;
 	
 	instrs_print(const_code, const_code_size, 0, this, out);
+
+   out << endl;
+
+   out << "FUNCTION CODE" << endl;
+   for(size_t i(0); i < functions.size(); ++i) {
+      out << "FUNCTION " << i << endl;
+      instrs_print(functions[i]->get_bytecode(), functions[i]->get_bytecode_size(), 0, this, out);
+      out << endl;
+   }
+
+   out << endl;
+   out << "PREDICATE CODE" << endl;
 	
    for(size_t i = 0; i < num_predicates(); ++i) {
       predicate_id id = (predicate_id)i;
@@ -362,6 +433,10 @@ program::print_predicates(ostream& cout) const
       cout << ">> Safe program" << endl;
    else
       cout << ">> Unsafe program" << endl;
+   cout << "Priorities: " << (priority_order == PRIORITY_ASC ? "ascending" : "descending") << " ";
+   cout << "initial: " << (priority_type == FIELD_FLOAT ? initial_priority.float_priority : initial_priority.int_priority) << endl;
+   if(is_data())
+      cout << ">> Data file" << endl;
    for(size_t i(0); i < num_predicates(); ++i) {
       cout << predicates[i] << " " << *predicates[i] << endl;
    }
@@ -408,6 +483,44 @@ tuple*
 program::new_tuple(const predicate_id& id) const
 {
    return new tuple(get_predicate(id));
+}
+
+bool
+program::add_data_file(program& other)
+{
+   if(num_predicates() < other.num_predicates()) {
+      return false;
+   }
+
+   for(size_t i(0); i < other.num_predicates(); ++i) {
+      predicate *mine(predicates[i]);
+      predicate *oth(other.get_predicate(i));
+      if(*mine != *oth) {
+         cerr << "Predicates " << *mine << " and " << *oth << " are different" << endl;
+         return false;
+      }
+   }
+
+   assert(rules.size() > 0);
+   assert(other.rules.size() > 0);
+
+   data_rule = other.rules[0];
+   other.rules.erase(other.rules.begin());
+   other.number_rules--;
+
+   vm::rule *init_rule(rules[0]);
+   byte_code init_code(init_rule->get_bytecode());
+   init_code += init_rule->get_codesize();
+
+   init_code -= (RETURN_BASE + NEXT_BASE + RETURN_DERIVED_BASE + MOVE_BASE + ptr_size);
+   assert(fetch(init_code) == MOVE_INSTR);
+   assert(val_is_ptr(move_from(init_code)));
+   assert(val_is_reg(move_to(init_code)));
+   *move_to_ptr(init_code) = VAL_PCOUNTER;
+   *((ptr_val *)(init_code + MOVE_BASE)) = (ptr_val)data_rule->get_bytecode();
+
+   //instrs_print(init_rule->get_bytecode(), init_rule->get_codesize(), 0, this, cout);
+   return true;
 }
 
 }

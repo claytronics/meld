@@ -12,6 +12,9 @@
 #include "process/machine.hpp"
 #include "debug/debug_handler.hpp"
 
+//#define DEBUG_SENDS
+//#define DEBUG_INSTRS
+
 using namespace vm;
 using namespace vm::instr;
 using namespace std;
@@ -89,6 +92,12 @@ move_to_reg(const pcounter& m, state& state,
 			state.set_tuple_queue(reg, state.tuple_queue);
       assert(!(state.tuple_leaf != NULL && state.tuple_queue != NULL));
 		state.set_tuple(reg, state.tuple);
+   } else if(val_is_stack(from)) {
+      const offset_num off(pcounter_offset_num(m));
+      state.set_reg(reg, *state.get_stack_at(off));
+   } else if(val_is_ptr(from)) {
+      const ptr_val val(pcounter_ptr(m));
+      state.set_ptr(val_reg(from), val);
    } else {
       throw vm_exec_error("invalid move to reg");
    }
@@ -135,6 +144,16 @@ move_to_field(pcounter m, state& state, const instr_val& from)
 		tuple *tuple(state.get_tuple(val_field_reg(m)));
 
 		tuple->set_string(val_field_num(m), state.all->get_argument(id));
+   } else if(val_is_stack(from)) {
+      const offset_num off(pcounter_offset_num(m));
+
+      pcounter_move_offset_num(&m);
+
+		tuple *tuple(state.get_tuple(val_field_reg(m)));
+
+		const field_num to_field(val_field_num(m));
+
+      tuple->set_field(to_field, *state.get_stack_at(off));
 	} else if(val_is_const(from)) {
 		const const_id cid(pcounter_const_id(m));
 
@@ -236,6 +255,42 @@ move_to_field(pcounter m, state& state, const instr_val& from)
 }
 
 static inline void
+move_to_stack(pcounter pc, pcounter m, state& state, const instr_val& from)
+{
+   if(val_is_pcounter(from)) {
+      const int off((int)pcounter_offset_num(m));
+      state.get_stack_at(off)->ptr_field = (vm::ptr_val)advance(pc);
+   } else if(val_is_int(from)) {
+		const int_val it(pcounter_int(m));
+
+		pcounter_move_int(&m);
+
+      const offset_num off(pcounter_offset_num(m));
+      state.get_stack_at(off)->int_field = it;
+   } else if(val_is_float(from)) {
+		const float_val flt(pcounter_float(m));
+
+      pcounter_move_float(&m);
+
+      const offset_num off(pcounter_offset_num(m));
+      state.get_stack_at(off)->float_field = flt;
+
+   } else if(val_is_reg(from)) {
+		const reg_num reg(val_reg(from));
+      const offset_num off(pcounter_offset_num(m));
+      *(state.get_stack_at(off)) = state.get_reg(reg);
+	} else if(val_is_const(from)) {
+		const const_id cid(pcounter_const_id(m));
+
+		pcounter_move_const_id(&m);
+
+      const offset_num off(pcounter_offset_num(m));
+      *(state.get_stack_at(off)) = state.all->get_const(cid);
+   } else
+		throw vm_exec_error("invalid move to stack (move_to_stack)");
+}
+
+static inline void
 move_to_const(pcounter m, state& state, const instr_val& from)
 {
 	if(val_is_float(from)) {
@@ -279,7 +334,20 @@ move_to_const(pcounter m, state& state, const instr_val& from)
 }
 
 static inline void
-execute_move(const pcounter& pc, state& state)
+move_to_pcounter(pcounter& pc, const pcounter pm, state& state, const instr_val from)
+{
+   if(val_is_stack(from)) {
+      const offset_num off(pcounter_offset_num(pm));
+      pc = (pcounter)(state.get_stack_at(off)->ptr_field);
+   } else if(val_is_ptr(from)) {
+      const ptr_val val(pcounter_ptr(pm));
+      pc = (pcounter)val;
+   } else
+      throw vm_exec_error("invalid move to pcounter (move_to_pcounter)");
+}
+
+static inline void
+execute_move(pcounter& pc, state& state)
 {
    const instr_val to(move_to(pc));
 
@@ -289,6 +357,10 @@ execute_move(const pcounter& pc, state& state)
       move_to_field(pc + MOVE_BASE, state, move_from(pc));
 	else if(val_is_const(to))
 		move_to_const(pc + MOVE_BASE, state, move_from(pc));
+   else if(val_is_stack(to))
+      move_to_stack(pc, pc + MOVE_BASE, state, move_from(pc));
+   else if(val_is_pcounter(to))
+      move_to_pcounter(pc, pc + MOVE_BASE, state, move_from(pc));
    else
       throw vm_exec_error("invalid move target");
 }
@@ -304,11 +376,11 @@ execute_alloc(const pcounter& pc, state& state)
 static inline void
 execute_send_self(tuple *tuple, state& state)
 {
-    /* Flavio:
+    /*
      * execute_send_self sends a tuple to the current node
      */
-#ifdef DEBUG_MODE
-   cout << "\t" << *tuple << " -> self " << state.node->get_id() << endl;
+#if defined(DEBUG_MODE) || defined(DEBUG_SENDS)
+   cout << "\t" << *tuple << " " << state.count << " -> self " << state.node->get_id() << endl;
 #endif
    if(tuple->is_action()) {
       state.all->MACHINE->run_action(state.sched,
@@ -376,8 +448,8 @@ execute_send(const pcounter& pc, state& state)
 	      << state.node->get_translated_id() << endl;
      execute_send_self(tuple, state);
    } else {
-#ifdef DEBUG_MODE
-      cout << "\t" << *tuple << " -> " << dest_val << endl;
+#if defined(DEBUG_MODE) || defined(DEBUG_SENDS)
+      cout << "\t" << *tuple << " " << state.count << " -> " << dest_val << endl;
 #endif
       debugMsg << "\t-" << *tuple << " -> Node: "
 	       << state.get_node(dest) << endl;
@@ -661,6 +733,9 @@ void set_op_function<int_val>(const pcounter& m, const instr_val& dest,
       const field_num field(val_field_num(m));
 
       tuple->set_int(field, val);
+   } else if(val_is_stack(dest)) {
+      const offset_num off(pcounter_offset_num(m));
+      state.get_stack_at(off)->int_field = val;
    } else
       throw vm_exec_error("invalid destination for int value");
 }
@@ -676,6 +751,10 @@ void set_op_function<float_val>(const pcounter& m, const instr_val& dest,
       const field_num field(val_field_num(m));
 
       tuple->set_float(field, val);
+   } else if(val_is_stack(dest)) {
+      const offset_num off(pcounter_offset_num(m));
+
+      state.get_stack_at(off)->float_field = val;
    } else
       throw vm_exec_error("invalid destination for float value");
 }
@@ -1213,7 +1292,7 @@ execute_iter(pcounter pc, const utils::byte options, const utils::byte options_a
 
 			PUSH_CURRENT_STATE(match_tuple, NULL, stpl);
 
-			if(iter_options_to_delete(options)) {
+			if(iter_options_to_delete(options) || this_is_linear) {
 				assert(this_is_linear);
 				stpl->will_delete(); // this will avoid future gathers of this tuple!
 			}
@@ -1224,10 +1303,14 @@ execute_iter(pcounter pc, const utils::byte options, const utils::byte options_a
 			POP_STATE();
 
 			if(!(ret == RETURN_LINEAR || ret == RETURN_DERIVED)) { // tuple not consumed
-				if(this_is_linear) {
+				if(iter_options_to_delete(options) || this_is_linear) {
 					stpl->will_not_delete(); // oops, revert
             }
 			}
+
+         if(!iter_options_to_delete(options) && this_is_linear) {
+            stpl->will_not_delete();
+         }
 
 			if(ret == RETURN_LINEAR)
 				return ret;
@@ -1247,8 +1330,9 @@ execute_iter(pcounter pc, const utils::byte options, const utils::byte options_a
 			simple_tuple *stpl(*it);
 			tuple *match_tuple(stpl->get_tuple());
 
-			if(!stpl->can_be_consumed())
+			if(!stpl->can_be_consumed()) {
 				continue;
+         }
 
 			if(match_tuple->get_predicate() != pred)
 				continue;
@@ -1258,9 +1342,9 @@ execute_iter(pcounter pc, const utils::byte options, const utils::byte options_a
 
 			PUSH_CURRENT_STATE(match_tuple, NULL, stpl);
 
-			if(iter_options_to_delete(options)) {
+			if(iter_options_to_delete(options) || this_is_linear) {
 				assert(this_is_linear);
-				stpl->will_delete(); // this will avoid future gathers of this tuple!
+				stpl->will_delete(); // this will avoid future uses of this tuple!
 			}
 
 			// execute...
@@ -1269,10 +1353,15 @@ execute_iter(pcounter pc, const utils::byte options, const utils::byte options_a
 			POP_STATE();
 
 			if(!(ret == RETURN_LINEAR || ret == RETURN_DERIVED)) { // tuple not consumed
-				if(this_is_linear) {
+				if(this_is_linear || iter_options_to_delete(options)) {
 					stpl->will_not_delete(); // oops, revert
             }
 			}
+
+
+         if(!iter_options_to_delete(options) && this_is_linear) {
+            stpl->will_not_delete();
+         }
 
 			if(ret == RETURN_LINEAR) {
 				return ret;
@@ -1531,11 +1620,10 @@ execute_remove(pcounter pc, state& state)
 #endif
 
 	const bool is_a_leaf(state.is_it_a_leaf(reg));
+   vm::tuple *tpl(state.get_tuple(reg));
 
 #ifdef USE_RULE_COUNTING
 	if(state.use_local_tuples) {
-
-		vm::tuple *tpl(state.get_tuple(reg));
 #ifdef DEBUG_MODE
       cout << "\tdelete " << *tpl << endl;
 #endif
@@ -1549,17 +1637,15 @@ execute_remove(pcounter pc, state& state)
 	}
 #endif
 
-   vm::tuple *tpl(state.get_tuple(reg));
-
-
-   assert(tpl != NULL);
+    assert(tpl != NULL);
 
    if(tpl->is_reused() && state.use_local_tuples) {
 		state.generated_persistent_tuples.push_back(new simple_tuple(tpl, -1));
 		if(is_a_leaf)
 			state.leaves_for_deletion.push_back(make_pair((predicate*)tpl->get_predicate(), state.get_leaf(reg)));
 	} else {
-		if(is_a_leaf) {
+		if(is_a_leaf) { // tuple was fetched from database
+			//cout << "Remove " << *state.get_tuple(reg) << endl;
    		state.node->delete_by_leaf(tpl->get_predicate(), state.get_leaf(reg));
 		} else {
 			// tuple was marked before, it will be deleted after this round
@@ -1790,6 +1876,15 @@ eval_loop:
 #ifdef DEBUG_MODE
 		if(state.print_instrs)
          instr_print_simple(pc, 0, state.all->PROGRAM, cout);
+
+#elif defined(DEBUG_INSTRS)
+      instr_print_simple(pc, 0, state.all->PROGRAM, cout);
+#endif
+
+#ifdef USE_SIM
+      if(state::SIM) {
+         ++state.sim_instr_counter;
+      }
 #endif
 
 #ifdef CORE_STATISTICS
@@ -1965,6 +2060,33 @@ eval_loop:
            execute_new_axioms(pc, state);
            break;
 
+         case PUSH_INSTR:
+           state.stack.push_back(tuple_field());
+           break;
+
+         case POP_INSTR:
+           state.stack.pop_back();
+           break;
+
+         case PUSH_REGS_INSTR:
+           state.stack.insert(state.stack.end(),
+                 state.regs, state.regs + NUM_REGS);
+           break;
+
+         case POP_REGS_INSTR:
+           copy(state.stack.end() - NUM_REGS, state.stack.end(), state.regs);
+           state.stack.resize(state.stack.size() - NUM_REGS);
+           break;
+
+         case CALLF_INSTR: {
+              const vm::callf_id id(callf_get_id(pc));
+              function *fun(state.all->PROGRAM->get_function(id));
+
+              pc = fun->get_bytecode();
+              goto eval_loop;
+           }
+           break;
+
          default: throw vm_exec_error("unsupported instruction");
       }
    }
@@ -1973,9 +2095,11 @@ eval_loop:
 static inline return_type
 do_execute(byte_code code, state& state)
 {
+   assert(state.stack.empty());
    const return_type ret(execute((pcounter)code, state));
 
    state.cleanup();
+   assert(state.stack.empty());
    return ret;
 }
 

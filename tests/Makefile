@@ -4,17 +4,8 @@ VM = ../meld -d -f
 all:
 	@echo "Type 'make test' to test. Or type 'make compiled' to recompile tests."
 
-test-linear:
-	@bash test_linear.sh sl
-
-test-tl:
-	@bash test_all.sh tl
-
 test-serial:
-	@bash test_all.sh serial
-
-test:
-	@bash test_all.sh all
+	@bash test_all.sh sl
 
 compiled:
 	@mkdir -p code
