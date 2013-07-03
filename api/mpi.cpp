@@ -251,7 +251,7 @@ namespace api {
 
     bool on_current_process(const db::node::node_id id) {
         /* Test whether or not the current process should handle the node id */
-        return (get_process_id(id) == world->rank();
+        return get_process_id(id) == world->rank();
     }
 
     int get_process_id(const db::node::node_id id) {

@@ -2,6 +2,7 @@
 #include "db/database.hpp"
 #include "vm/state.hpp"
 #include "api/api.hpp"
+#include "boost/serialization/string.hpp"
 
 using namespace db;
 using namespace std;
@@ -130,6 +131,9 @@ database::print_db(ostream& cout) const
 #ifdef SYNC_MPI
     api::world->barrier();
 
+    const int TOKEN = 0;
+    const int DONE = 1;
+
     int source = (api::world->rank() - 1) % api::world->size();
     int dest = (api::world->rank() + 1) % api::world->size();
 
@@ -141,33 +145,43 @@ database::print_db(ostream& cout) const
                 cout << "[PID " << api::world->rank() << "] " << *(it->second) << endl;
                 cout.flush();
             } else {
-                api::world->send(get_process_id(id), id);
-                api::world->recv(get_process_id(id), id);
+                api::world->send(api::get_process_id(id), TOKEN, id);
+
+                string result;
+                api::world->recv(api::get_process_id(id), TOKEN, result);
+
+                cout << result << endl;
+                cout.flush();
             }
         }
         // Finish printing, signal done
-        api::world->isend(dest, nodes.size());
+        api::world->isend(dest, DONE);
     } else {
         while(true) {
-            boost::mpi::status status = api::world->recv(boost::mpi::any_source,
+            boost::mpi::status status = api::world->probe(boost::mpi::any_source,
                                                           boost::mpi::any_tag);
 
-            if (status.tag() == nodes.size()) {
+            if (status.tag() == DONE) {
                 // Done tag received, terminated
-                api::world->isend(dest, status.tag());
+                api::world->irecv(source, DONE);
+                api::world->isend(dest, DONE);
                 break;
             }
 
-            int source = status.source();
+            node::node_id id;
 
-            node::node_id id = status.tag();
+            api::world->recv(0, TOKEN, id);
 
             assert(api::on_current_process(id));
 
-            cout << "[PID " << api::world->rank() << "] " << *(nodes.at(id)) << endl;
-            cout.flush();
+            ostringstream stream;
+            string output;
 
-            api::world->send(source, id);
+            stream << "[PID " << api::world->rank() << "] " << *(nodes.at(id));
+
+            output = stream.str();
+
+            api::world->send(0, TOKEN, output);
         }
     }
 #endif

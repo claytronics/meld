@@ -17,10 +17,10 @@ namespace api {
     /* Type representing the message between interprocess communications */
     typedef utils::byte message_type;
     static const size_t MAXLENGTH = 512 / sizeof(message_type);
+
     extern boost::mpi::communicator *world;
 	extern boost::asio::ip::tcp::socket *tcp_socket;
     extern bool reset_token;
-
 
     /* Given a node destination, compute the process id that the node
      * belongs to, serialize the data for MPI and send the data
