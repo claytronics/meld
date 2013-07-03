@@ -130,37 +130,47 @@ database::print_db(ostream& cout) const
 #ifdef SYNC_MPI
     api::world->barrier();
 
-    int dest = (api::world->rank() + 1) % api::world->size();
     int source = (api::world->rank() - 1) % api::world->size();
+    int dest = (api::world->rank() + 1) % api::world->size();
 
     if (api::world->rank() == 0) {
-        for(map_nodes::const_iterator it(nodes.begin());
-            it != nodes.end();
-            ++it)
-        {
-            cout << "[PID " << api::world->rank() << "] " << *(it->second) << endl;
-        }
+        for (map_nodes::const_iterator it(nodes.begin()); it != nodes.end(); ++it) {
+            node::node_id id = it->first;
 
-        api::world->send(dest, 0);
+            if (api::on_current_process(id)) {
+                cout << "[PID " << api::world->rank() << "] " << *(it->second) << endl;
+                cout.flush();
+            } else {
+                api::world->send(get_process_id(id), id);
+                api::world->recv(get_process_id(id), id);
+            }
+        }
+        // Finish printing, signal done
+        api::world->isend(dest, nodes.size());
     } else {
-        api::world->recv(source, 0);
-        for(map_nodes::const_iterator it(nodes.begin());
-            it != nodes.end();
-            ++it)
-        {
-            cout << "[PID " << api::world->rank() << "] " << *(it->second) << endl;
-        }
-        if (dest != 0)
-            api::world->send(dest, 0);
-    }
+        while(true) {
+            boost::mpi::status status = api::world->recv(boost::mpi::any_source,
+                                                          boost::mpi::any_tag);
 
+            if (status.tag() == nodes.size()) {
+                // Done tag received, terminated
+                api::world->isend(dest, status.tag());
+                break;
+            }
+
+            int source = status.source();
+
+            node::node_id id = status.tag();
+
+            assert(api::on_current_process(id));
+
+            cout << "[PID " << api::world->rank() << "] " << *(nodes.at(id)) << endl;
+            cout.flush();
+
+            api::world->send(source, id);
+        }
+    }
 #endif
-    // for(map_nodes::const_iterator it(nodes.begin());
-    //    it != nodes.end();
-    //    ++it)
-    // {
-    //    cout << *(it->second) << endl;
-    // }
 }
 
 void

@@ -91,7 +91,7 @@ namespace api {
            ================================================================
         */
 
-        int dest = id % world->size();
+        int dest = get_process_id(id);
 
         message_type *msg = new message_type[MAXLENGTH];
         size_t msg_length = MAXLENGTH * sizeof(message_type);
@@ -251,7 +251,11 @@ namespace api {
 
     bool on_current_process(const db::node::node_id id) {
         /* Test whether or not the current process should handle the node id */
-        return (id % world->size()) == world->rank();
+        return (get_process_id(id) == world->rank();
+    }
+
+    int get_process_id(const db::node::node_id id) {
+        return id % world->size();
     }
 
     void init(int argc, char **argv) {}

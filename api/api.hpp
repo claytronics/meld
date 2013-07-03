@@ -39,6 +39,10 @@ namespace api {
      */
     extern bool on_current_process(const db::node::node_id id);
 
+    /* Return the process id that's responsible for the node id
+     */
+    extern int get_process_id(const db::node::node_id id);
+
     /*
      * Initialize the API layer
      */
