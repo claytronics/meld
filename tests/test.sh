@@ -32,7 +32,6 @@ run_diff ()
 	if [ ! -z "${DIFF}" ]; then
 		diff -u ${FILE} test.out
 		echo "!!!!!! DIFFERENCES IN FILE ${TEST} ($TO_RUN)"
-		exit 1
 	fi
 	rm test.out
 }
@@ -65,6 +64,15 @@ run_serial_n ()
 		do_serial ${SCHED}
 	done
    echo " OK!"
+}
+
+run_mpi () {
+    SCHED="sl"
+    TO_RUN="mpiexec -n 2 ${EXEC} -f ${TEST} -c ${SCHED}"
+
+    echo -n "Running ${TEST} with MPI..."
+    run_diff "${TO_RUN}"
+    echo " DONE!"
 }
 
 run_test_n ()
@@ -125,4 +133,9 @@ fi
 if [ "${TYPE}" = "tl" ]; then
 	loop_sched tl
 	exit 0
+fi
+
+if [ "${TYPE}" = "mpi" ]; then
+    run_mpi
+    exit 0
 fi

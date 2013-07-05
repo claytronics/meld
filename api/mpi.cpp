@@ -187,6 +187,7 @@ namespace api {
                     (utils::byte *) msg, msg_length, &pos, all->PROGRAM);
 
                 assert(id >= 0);
+                assert(on_current_process(id));
 
                 // Let machine handle received tuple
                 all->MACHINE->route(NULL, sched, id, stpl, 0);
