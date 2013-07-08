@@ -68,7 +68,7 @@ run_serial_n ()
 
 run_mpi () {
     SCHED="sl"
-    TO_RUN="mpiexec -n 2 ${EXEC} -f ${TEST} -c ${SCHED}"
+    TO_RUN="mpiexec -n 3 ${EXEC} -f ${TEST} -c ${SCHED}"
 
     echo -n "Running ${TEST} with MPI..."
     run_diff "${TO_RUN}"
