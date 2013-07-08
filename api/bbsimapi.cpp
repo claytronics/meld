@@ -543,6 +543,7 @@ handle_remove_neighbor(const deterministic_timestamp ts,
   if(no_in->has_been_instantiated())
    add_neighbor_count(ts, no_in, no_in->get_neighbor_count(), -1);
  no_in->dec_neighbor_count();
+ add_vacant(ts, no_in, face, 1);
  if(no_in->has_been_instantiated())
    add_neighbor_count(ts, no_in, no_in->get_neighbor_count(), 1);
 }

@@ -576,7 +576,7 @@ state::run_node(db::node *no)
    cout << "Node " << node->get_id() << endl;
 #endif
 
-   if((node->get_id()==0)
+   if((node->get_id())==0)
       return;
 
    assert(local_tuples.empty());
