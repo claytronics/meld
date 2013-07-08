@@ -347,7 +347,7 @@ process_message(message_type* reply)
        (face_t)reply[5]);
     break;
     case REMOVE_NEIGHBOR:
-    if(id==(db::node::node_id) reply[3])
+   // if(id==(db::node::node_id) reply[3])
      handle_remove_neighbor((deterministic_timestamp)reply[2],
       (db::node::node_id)reply[3],
       (face_t)reply[4]);
@@ -368,6 +368,7 @@ process_message(message_type* reply)
    stop_all = true;
    sleep(1);
    usleep(200);
+   break;
 
    default: cerr << "Unrecognized message " << reply[1] << endl;
  }
@@ -525,6 +526,7 @@ static void
 handle_remove_neighbor(const deterministic_timestamp ts,
   const db::node::node_id in, const face_t face)
 {
+  cout<<"Removing"<<endl;
 #ifdef DEBUG
  cout << ts << " remove neighbor(" << in << ", " << face << ")" << endl;
 #endif

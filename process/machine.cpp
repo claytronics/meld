@@ -244,7 +244,7 @@ machine::execute_const_code(void)
 	
 	// no node or tuple whatsoever
 	st.setup(NULL, NULL, 0);
-	sleep(5);
+	sleep(2);
 	execute_bytecode(all->PROGRAM->get_const_bytecode(), st);
 }
 /*

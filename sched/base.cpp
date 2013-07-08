@@ -188,8 +188,10 @@ base::do_loop(void)
       if (api::ensembleFinished()) return ;
       continue;
     }
+    if(node->get_id()>0){
     do_work(node);
     finish_work(node);
+ }
   }
 }
 	
