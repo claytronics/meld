@@ -20,24 +20,27 @@
 namespace process
 {
 
-class machine
-{
-private:
+  class machine
+  {
 
-  const std::string filename;
-   const sched::scheduler_type sched_type;
+  public:
+    vm::all *all;
+  private:
 
-   boost::thread *alarm_thread;
-   statistics::slice_set slices;
+    const std::string filename;
+    const sched::scheduler_type sched_type;
 
-	void execute_const_code(void);
-   void deactivate_signals(void);
-   void slice_function(void);
-   void set_timer(void);
+    boost::thread *alarm_thread;
+    statistics::slice_set slices;
 
-public:
-	   vm::all *all;
- 
+    void execute_const_code(void);
+    void deactivate_signals(void);
+    void slice_function(void);
+    void set_timer(void);
+
+  public:
+    
+   
    sched::scheduler_type get_sched_type(void) const { return sched_type; }
 
    sched::base *get_scheduler(const vm::process_id id) { return this->all->ALL_THREADS[id]; }
@@ -57,13 +60,13 @@ public:
    explicit machine(const std::string&, const size_t, const sched::scheduler_type, const vm::machine_arguments& args = vm::machine_arguments());
 
    ~machine(void);
-};
+ };
 
-class machine_error : public std::runtime_error {
+ class machine_error : public std::runtime_error {
  public:
-    explicit machine_error(const std::string& msg) :
-         std::runtime_error(msg)
-    {}
+  explicit machine_error(const std::string& msg) :
+  std::runtime_error(msg)
+  {}
 };
 
 }

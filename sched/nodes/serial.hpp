@@ -39,6 +39,12 @@ inline face_t operator++(face_t& f, int) {
 class serial_node: public in_queue_node
 {
 /*Making it compatible with simulator*/
+public:
+   DECLARE_DOUBLE_QUEUE_NODE(serial_node);
+   typedef queue::unsafe_bounded_pqueue<db::simple_tuple*>::type queue_type;  
+   queue_type queue;
+
+
 private:
    vm::node_val top;
    vm::node_val bottom;
@@ -54,11 +60,6 @@ private:
 
 public:
 	
-	DECLARE_DOUBLE_QUEUE_NODE(serial_node);
-	
-	typedef queue::unsafe_bounded_pqueue<db::simple_tuple*>::type queue_type;	
-   	queue_type queue;
-
 	typedef queue_type::const_iterator queue_iterator;
 	
 	inline queue_iterator begin(void) const { return queue.begin(); }

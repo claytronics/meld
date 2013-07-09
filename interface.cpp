@@ -96,7 +96,7 @@ run_program(int argc, char **argv, const char *program, const vm::machine_argume
   try {
 /* save time to compute execution time */
 /* calculate execution time */
-    double start_time(0.0);
+   // double start_time(0.0);
     execution_time tm;
 
     if(time_execution) {

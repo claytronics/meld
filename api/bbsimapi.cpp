@@ -222,17 +222,17 @@ set_color(db::node *n, const int r, const int g, const int b)
 }*/
 
 /*Sends the "SEND_MESSAGE" command*/
-void send_message(db::node* from,const db::node::node_id to, db::simple_tuple* stpl)
-{
-message_type reply[MAXLENGTH];
+  void send_message(db::node* from,const db::node::node_id to, db::simple_tuple* stpl)
+  {
+    message_type reply[MAXLENGTH];
 
-const size_t stpl_size(stpl->storage_size());
-const size_t msg_size = 5 * sizeof(message_type) + stpl_size;
+    const size_t stpl_size(stpl->storage_size());
+    const size_t msg_size = 5 * sizeof(message_type) + stpl_size;
 //serial_node *no(dynamic_cast<serial_node*>(info.work.get_node()));
 //Something to represent destination node.
-size_t i = 0;
-reply[i++] = (message_type)msg_size;
-reply[i++] = SEND_MESSAGE;
+    size_t i = 0;
+    reply[i++] = (message_type)msg_size;
+    reply[i++] = SEND_MESSAGE;
 reply[i++] = 0;//(message_type)ts;
 reply[i++] = from->get_id();
 reply[i++] = 0; //(dynamic_cast<serial_node*>(from))->get_face(to);
@@ -304,11 +304,11 @@ send_message_tcp(message *m)
   boost::asio::write(*my_tcp_socket, boost::asio::buffer(msg, msg[0] + sizeof(message_type)));
 }*/
 
-static void 
-send_message_tcp(message_type *msg)
-{
-  boost::asio::write(*my_tcp_socket, boost::asio::buffer(msg, msg[0] + sizeof(message_type)));
-}
+  static void 
+  send_message_tcp(message_type *msg)
+  {
+    boost::asio::write(*my_tcp_socket, boost::asio::buffer(msg, msg[0] + sizeof(message_type)));
+  }
 
 
 
@@ -318,72 +318,73 @@ send_message_tcp(message_type *msg)
 /*Helper functions*/
 
 /*Handles the incoming commangs from the simulator*/
-static void 
-process_message(message_type* reply)
-{
-  printf("Processing %s %lud bytes for %lud\n", msgcmd2str[reply[1]], reply[0], reply[3]);
-  assert(reply!=NULL);
+  static void 
+  process_message(message_type* reply)
+  {
+    printf("Processing %s %lud bytes for %lud\n", msgcmd2str[reply[1]], reply[0], reply[3]);
+    assert(reply!=NULL);
 
-  switch(reply[1]) {
+    switch(reply[1]) {
   case SETID: /*Adding the setid command to the interface _ankit*/
-    handle_setid((deterministic_timestamp) reply[2], (db::node::node_id) reply[3]);
-    id=(db::node::node_id) reply[3];
-    ready=true;
-    break;
-    case RECEIVE_MESSAGE:
-    handle_receive_message((deterministic_timestamp)reply[2],
-      (db::node::node_id)reply[3],
-      (face_t)reply[4],
-      (db::node::node_id)reply[5],
-      (utils::byte*)reply,
-      6 * sizeof(message_type),
-      (int)(reply[0] + sizeof(message_type)));
-    break;
-    case ADD_NEIGHBOR:
-    if(id==(db::node::node_id) reply[3])
-      handle_add_neighbor((deterministic_timestamp)reply[2],
-       (db::node::node_id)reply[3],
-       (db::node::node_id)reply[4],
-       (face_t)reply[5]);
-    break;
-    case REMOVE_NEIGHBOR:
+      handle_setid((deterministic_timestamp) reply[2], (db::node::node_id) reply[3]);
+      id=(db::node::node_id) reply[3];
+      ready=true;
+      break;
+      case RECEIVE_MESSAGE:
+      handle_receive_message((deterministic_timestamp)reply[2],
+        (db::node::node_id)reply[3],
+        (face_t)reply[4],
+        (db::node::node_id)reply[5],
+        (utils::byte*)reply,
+        6 * sizeof(message_type),
+        (int)(reply[0] + sizeof(message_type)));
+      break;
+      case ADD_NEIGHBOR:
+      if(id==(db::node::node_id) reply[3])
+        handle_add_neighbor((deterministic_timestamp)reply[2],
+         (db::node::node_id)reply[3],
+         (db::node::node_id)reply[4],
+         (face_t)reply[5]);
+      break;
+      case REMOVE_NEIGHBOR:
    // if(id==(db::node::node_id) reply[3])
-     handle_remove_neighbor((deterministic_timestamp)reply[2],
-      (db::node::node_id)reply[3],
-      (face_t)reply[4]);
-   break;
-   case TAP:
-   handle_tap((deterministic_timestamp)reply[2], (db::node::node_id)reply[3]);
-   break;
-   case ACCEL:
-   handle_accel((deterministic_timestamp)reply[2],
-     (db::node::node_id)reply[3],
-     (int)reply[4]);
-   break;
-   case SHAKE:
-   handle_shake((deterministic_timestamp)reply[2], (db::node::node_id)reply[3],
-     (int)reply[4], (int)reply[5], (int)reply[6]);
-   break;
-   case STOP:
-   stop_all = true;
-   sleep(1);
-   usleep(200);
-   break;
+      handle_remove_neighbor((deterministic_timestamp)reply[2],
+        (db::node::node_id)reply[3],
+        (face_t)reply[4]);
+      break;
+      case TAP:
+      handle_tap((deterministic_timestamp)reply[2], (db::node::node_id)reply[3]);
+      break;
+      case ACCEL:
+      handle_accel((deterministic_timestamp)reply[2],
+       (db::node::node_id)reply[3],
+       (int)reply[4]);
+      break;
+      case SHAKE:
+      handle_shake((deterministic_timestamp)reply[2], (db::node::node_id)reply[3],
+       (int)reply[4], (int)reply[5], (int)reply[6]);
+      break;
+      case STOP:
+      stop_all = true;
+      sleep(1);
+      usleep(200);
+      break;
 
-   default: cerr << "Unrecognized message " << reply[1] << endl;
+      default: cerr << "Unrecognized message " << reply[1] << endl;
+    }
+  }
+
+  bool
+  ensembleFinished()
+  {
+   return stop_all;
  }
-}
-
-bool
-ensembleFinished()
-{
-	return stop_all;
-}
 
 /*Adds the tuple to the node's work queue*/
-static void 
-add_received_tuple(serial_node *no, size_t ts, db::simple_tuple *stpl)
-{
+ static void 
+ add_received_tuple(serial_node *no, size_t ts, db::simple_tuple *stpl)
+ {
+  if(ts>0){}
 
  work new_work(no, stpl);
  sched_state->new_work(no, new_work);
@@ -460,6 +461,8 @@ static void handle_receive_message(const deterministic_timestamp ts,
   db::node::node_id dest_id,
   const face_t face, db::node::node_id node, utils::byte *data, int offset, const int limit)
 {
+ 
+  if(ts>0&&face==0&&node==0){}
  //  serial_node *origin(dynamic_cast<serial_node*>((sched_state->state).all->DATABASE->find_node(node)));
   serial_node *target(NULL);
   target=dynamic_cast<serial_node*>((sched_state->state).all->DATABASE->find_node(dest_id));
@@ -528,29 +531,29 @@ handle_remove_neighbor(const deterministic_timestamp ts,
 {
   cout<<"Removing"<<endl;
 #ifdef DEBUG
- cout << ts << " remove neighbor(" << in << ", " << face << ")" << endl;
+  cout << ts << " remove neighbor(" << in << ", " << face << ")" << endl;
 #endif
 
- serial_node *no_in(dynamic_cast<serial_node*>((sched_state->state).all->DATABASE->find_node(in)));
- node_val *neighbor(no_in->get_node_at_face(face));
+  serial_node *no_in(dynamic_cast<serial_node*>((sched_state->state).all->DATABASE->find_node(in)));
+  node_val *neighbor(no_in->get_node_at_face(face));
 
- if(*neighbor == serial_node::NO_NEIGHBOR) {
+  if(*neighbor == serial_node::NO_NEIGHBOR) {
       // remove vacant first, add 1 to neighbor count
-  cerr << "Current face is vacant, cannot remove node!" << endl;
-  assert(false);
-} else {
+    cerr << "Current face is vacant, cannot remove node!" << endl;
+    assert(false);
+  } else {
       // remove old node
-  if(no_in->has_been_instantiated())
-   add_neighbor_count(ts, no_in, no_in->get_neighbor_count(), -1);
- no_in->dec_neighbor_count();
- add_vacant(ts, no_in, face, 1);
- if(no_in->has_been_instantiated())
-   add_neighbor_count(ts, no_in, no_in->get_neighbor_count(), 1);
-}
+    if(no_in->has_been_instantiated())
+     add_neighbor_count(ts, no_in, no_in->get_neighbor_count(), -1);
+   no_in->dec_neighbor_count();
+   add_vacant(ts, no_in, face, 1);
+   if(no_in->has_been_instantiated())
+     add_neighbor_count(ts, no_in, no_in->get_neighbor_count(), 1);
+ }
 
-add_neighbor(ts, no_in, *neighbor, face, -1);
+ add_neighbor(ts, no_in, *neighbor, face, -1);
 
-*neighbor = serial_node::NO_NEIGHBOR;
+ *neighbor = serial_node::NO_NEIGHBOR;
 }
 
 static void 

@@ -27,39 +27,42 @@ using namespace api;
 
 namespace process
 {
-   
-bool
-machine::same_place(const node::node_id id1, const node::node_id id2) const
-{
-   return true;
-}
+
+  bool
+  machine::same_place(const node::node_id id1, const node::node_id id2) const
+  {
+    if(id1==id2)
+      return true;
+    else
+      return false;
+  }
 
 
-void
-machine::run_action(sched::base *sched, node* node, vm::tuple *tpl, const bool from_other)
-{
-	const predicate_id pid(tpl->get_predicate_id());
-	int r(0), g(0), b(0);
-	assert(tpl->is_action());
-	
+  void
+  machine::run_action(sched::base *sched, node* node, vm::tuple *tpl, const bool from_other)
+  {
+   const predicate_id pid(tpl->get_predicate_id());
+   int r(0), g(0), b(0);
+   assert(tpl->is_action());
+
    switch(pid) {
-      case SETCOLOR_PREDICATE_ID:
+    case SETCOLOR_PREDICATE_ID:
 #ifdef USE_UI
-      if(state::UI) {
-         LOG_SET_COLOR(node, tpl->get_int(0), tpl->get_int(1), tpl->get_int(2));
-      }
+    if(state::UI) {
+     LOG_SET_COLOR(node, tpl->get_int(0), tpl->get_int(1), tpl->get_int(2));
+   }
 #endif
 //#ifdef USE_SIM
     //  if(state::SIM) {
-			api::set_color(node, tpl->get_int(0), tpl->get_int(1), tpl->get_int(2));
+   api::set_color(node, tpl->get_int(0), tpl->get_int(1), tpl->get_int(2));
      // }
 //#endif
-      break;
-      case SETCOLOR2_PREDICATE_ID:
+   break;
+   case SETCOLOR2_PREDICATE_ID:
 //#ifdef USE_SIM
       //if(state::SIM) {
         //: int r(0), g(0), b(0);
-         switch(tpl->get_int(0)) {
+   switch(tpl->get_int(0)) {
             case 0: r = 255; break; // RED
             case 1: r = 255; g = 160; break; // ORANGE
             case 2: r = 255; g = 247; break; // YELLOW
@@ -71,67 +74,67 @@ machine::run_action(sched::base *sched, node* node, vm::tuple *tpl, const bool f
             case 8: r = 255; g = 192; b = 203; break; // PINK
             case -1: return; break;
             default: break;
-         }
-			api::set_color(node, r, g, b);
+          }
+          api::set_color(node, r, g, b);
      // }
 //#endif
-      break;
-      case SETEDGELABEL_PREDICATE_ID:
+          break;
+          case SETEDGELABEL_PREDICATE_ID:
 #ifdef USE_UI
-      if(state::UI) {
-         LOG_SET_EDGE_LABEL(node->get_id(), tpl->get_node(0), tpl->get_string(1)->get_content());
-      }
+          if(state::UI) {
+           LOG_SET_EDGE_LABEL(node->get_id(), tpl->get_node(0), tpl->get_string(1)->get_content());
+         }
 #endif
-      break;
-      case SET_PRIORITY_PREDICATE_ID:
-      if(from_other)
-         sched->set_node_priority_other(node, tpl->get_float(0));
-      else {
-         sched->set_node_priority(node, tpl->get_float(0));
-      }
-      break;
-      case ADD_PRIORITY_PREDICATE_ID:
-      if(from_other)
-         sched->add_node_priority_other(node, tpl->get_float(0));
-      else
-         sched->add_node_priority(node, tpl->get_float(0));
-      break;
-      case WRITE_STRING_PREDICATE_ID: {
-         runtime::rstring::ptr s(tpl->get_string(0));
+         break;
+         case SET_PRIORITY_PREDICATE_ID:
+         if(from_other)
+           sched->set_node_priority_other(node, tpl->get_float(0));
+         else {
+           sched->set_node_priority(node, tpl->get_float(0));
+         }
+         break;
+         case ADD_PRIORITY_PREDICATE_ID:
+         if(from_other)
+           sched->add_node_priority_other(node, tpl->get_float(0));
+         else
+           sched->add_node_priority(node, tpl->get_float(0));
+         break;
+         case WRITE_STRING_PREDICATE_ID: {
+           runtime::rstring::ptr s(tpl->get_string(0));
 
-         cout << s->get_content() << endl;
-        }
-      break;
-      case SCHEDULE_NEXT_PREDICATE_ID:
-      if(!from_other) {
-         sched->schedule_next(node);
-      } else {
+           cout << s->get_content() << endl;
+         }
+         break;
+         case SCHEDULE_NEXT_PREDICATE_ID:
+         if(!from_other) {
+           sched->schedule_next(node);
+         } else {
+           assert(false);
+         }
+         break;
+         default:
          assert(false);
+         break;
+       }
+
+       delete tpl;
+     }
+
+     void
+     machine::route_self(sched::base *sched, node *node, simple_tuple *stpl, const uint_val delay)
+     {
+       if(delay > 0) {
+        work new_work(node, stpl);
+        sched->new_work_delay(sched, node, new_work, delay);
+      } else {
+        assert(!stpl->get_tuple()->is_action());
+        sched->new_work_self(node, stpl);
       }
-      break;
-      default:
-		assert(false);
-      break;
-   }
+    }
 
-	delete tpl;
-}
-
-void
-machine::route_self(sched::base *sched, node *node, simple_tuple *stpl, const uint_val delay)
-{
-   if(delay > 0) {
-      work new_work(node, stpl);
-      sched->new_work_delay(sched, node, new_work, delay);
-   } else {
-      assert(!stpl->get_tuple()->is_action());
-      sched->new_work_self(node, stpl);
-   }
-}
-
-void
-machine::route(node* from, sched::base *sched_caller, const node::node_id id, simple_tuple* stpl, const uint_val delay)
-{  
+    void
+    machine::route(node* from, sched::base *sched_caller, const node::node_id id, simple_tuple* stpl, const uint_val delay)
+    {  
 
  /*   const predicate *pred(stpl->get_predicate());
 	if((from->get_id())!=id){
@@ -160,22 +163,25 @@ machine::route(node* from, sched::base *sched_caller, const node::node_id id, si
      work new_work(node, stpl);
      sched_caller->new_work_other(sched_other, new_work);
   }*/
+
+     if(delay==0){}//Redundant statement
+
      cout<<"in route"<<endl;
-  if((from->get_id())!=id){
-    api::send_message(from,id,stpl);
-    return;
+     if((from->get_id())!=id){
+      api::send_message(from,id,stpl);
+      return;
+    }
+    work new_work(from, stpl);
+    sched_caller->new_work(from, new_work);
+
   }
- work new_work(from, stpl);
- sched_caller->new_work(from, new_work);
-
-}
 
 
 
 
-void
-machine::deactivate_signals(void)
-{
+  void
+  machine::deactivate_signals(void)
+  {
    sigset_t set;
    
    sigemptyset(&set);
@@ -183,11 +189,11 @@ machine::deactivate_signals(void)
    sigaddset(&set, SIGUSR1);
    
    sigprocmask(SIG_BLOCK, &set, NULL);
-}
+ }
 
-void
-machine::set_timer(void)
-{
+ void
+ machine::set_timer(void)
+ {
    // pre-compute the number of usecs from msecs
    static long usec = SLICE_PERIOD * 1000;
    struct itimerval t;
@@ -198,11 +204,11 @@ machine::set_timer(void)
    t.it_value.tv_usec = usec;
    
    setitimer(ITIMER_REAL, &t, 0);
-}
+ }
 
-void
-machine::slice_function(void)
-{
+ void
+ machine::slice_function(void)
+ {
    bool tofinish(false);
    
    // add SIGALRM and SIGUSR1 to sigset
@@ -217,24 +223,24 @@ machine::slice_function(void)
    set_timer();
    
    while (true) {
-      
-      const int ret(sigwait(&set, &sig));
-		
-		assert(ret == 0);
-      
-      switch(sig) {
-         case SIGALRM:
-         if(tofinish)
-            return;
-         slices.beat(all);
-         set_timer();
-         break;
-         case SIGUSR1:
-         tofinish = true;
-         break;
-         default: assert(false);
-      }
-   }
+
+    const int ret(sigwait(&set, &sig));
+
+    assert(ret == 0);
+
+    switch(sig) {
+     case SIGALRM:
+     if(tofinish)
+      return;
+    slices.beat(all);
+    set_timer();
+    break;
+    case SIGUSR1:
+    tofinish = true;
+    break;
+    default: assert(false);
+  }
+}
 }
 
 void
@@ -257,124 +263,124 @@ machine::init_thread(sched::base *sched)
 }*/
 
 // Start all schedulers in the VM
-void
-machine::start(void)
-{
+  void
+  machine::start(void)
+  {
 	// execute constants code
 //api::set_color(this->all->DATABASE->max_id(),255,0,0);	
-execute_const_code();
-	
-   deactivate_signals();
-   
+    execute_const_code();
+
+    deactivate_signals();
+
    // Statistics sampling
-   if(stat_enabled()) {
+    if(stat_enabled()) {
       // initiate alarm thread
       alarm_thread = new boost::thread(bind(&machine::slice_function, this));
-   }
-   
+    }
+
    //for(size_t i(1); i < all->NUM_THREADS; ++i)
       //this->all->ALL_THREADS[i]->start();
-   this->all->ALL_THREADS[0]->start();
-   
+    this->all->ALL_THREADS[0]->start();
+
    // Wait for threads to finish, if thread > 1
    //for(size_t i(1); i < all->NUM_THREADS; ++i)
       //this->all->ALL_THREADS[i]->join();
-      
+
 #ifndef NDEBUG
-   for(size_t i(1); i < all->NUM_THREADS; ++i)
+    for(size_t i(1); i < all->NUM_THREADS; ++i)
       assert(this->all->ALL_THREADS[i-1]->num_iterations() == this->all->ALL_THREADS[i]->num_iterations());
-   if(this->all->PROGRAM->is_safe())
+    if(this->all->PROGRAM->is_safe())
       assert(this->all->ALL_THREADS[0]->num_iterations() == 1);
 #endif
-   
-   if(alarm_thread) {
+
+    if(alarm_thread) {
       kill(getpid(), SIGUSR1);
       alarm_thread->join();
       delete alarm_thread;
       alarm_thread = NULL;
       slices.write(get_stat_file(), sched_type, all);
-   }
+    }
 
-   const bool will_print(show_database || dump_database);
+    const bool will_print(show_database || dump_database);
 
-   if(will_print) {
-         if(show_database)
-            all->DATABASE->print_db(cout);
-         if(dump_database)
-            all->DATABASE->dump_db(cout);
-   }
+    if(will_print) {
+     if(show_database)
+      all->DATABASE->print_db(cout);
+    if(dump_database)
+      all->DATABASE->dump_db(cout);
+  }
 
-   if(memory_statistics) {
+  if(memory_statistics) {
 #ifdef MEMORY_STATISTICS
-      cout << "Total memory in use: " << get_memory_in_use() / 1024 << "KB" << endl;
-      cout << "Malloc()'s called: " << get_num_mallocs() << endl;
+    cout << "Total memory in use: " << get_memory_in_use() / 1024 << "KB" << endl;
+    cout << "Malloc()'s called: " << get_num_mallocs() << endl;
 #else
-      cout << "Memory statistics support was not compiled in" << endl;
+    cout << "Memory statistics support was not compiled in" << endl;
 #endif
-   }
+  }
 }
 
 /* Implementation specific function */
 static inline database::create_node_fn
 get_creation_function(const scheduler_type sched_type)
 {
-   switch(sched_type) {
-      case SCHED_SERIAL:
-         return database::create_node_fn(sched::serial_local::create_node);
-      case SCHED_UNKNOWN:
-         return NULL;
-      default:
-         return NULL;
-   }
-   
-   throw machine_error("unknown scheduler type");
+ switch(sched_type) {
+  case SCHED_SERIAL:
+  return database::create_node_fn(sched::serial_local::create_node);
+  case SCHED_UNKNOWN:
+  return NULL;
+  default:
+  return NULL;
+}
+
+throw machine_error("unknown scheduler type");
 }
 
 machine::machine(const string& file, const size_t th,
-		const scheduler_type _sched_type, const machine_arguments& margs):
-   all(new vm::all()),
-   filename(file),
-   sched_type(_sched_type),
-   alarm_thread(NULL),
+  const scheduler_type _sched_type, const machine_arguments& margs):
+all(new vm::all()),
+filename(file),
+sched_type(_sched_type),
+alarm_thread(NULL),
    slices(th) /* th = number of threads, slices is for statistics */
 {
     this->all->PROGRAM = new vm::program(file); /* predicates information, byte code for all the rules */
-    
-    if(margs.size() < this->all->PROGRAM->num_args_needed())
-        throw machine_error(string("this program requires ") + utils::to_string(all->PROGRAM->num_args_needed()) + " arguments");
-   
-   this->all->ARGUMENTS = margs;
-   this->all->DATABASE =  new database(filename, get_creation_function(_sched_type), this->all);
-   this->all->NUM_THREADS = th;
-   this->all->MACHINE = this;
-   
+
+  if(margs.size() < this->all->PROGRAM->num_args_needed())
+    throw machine_error(string("this program requires ") + utils::to_string(all->PROGRAM->num_args_needed()) + " arguments");
+
+  this->all->ARGUMENTS = margs;
+  this->all->DATABASE =  new database(filename, get_creation_function(_sched_type), this->all);
+  this->all->NUM_THREADS = th;
+  this->all->MACHINE = this;
+
    // Instantiate the scheduler object
-   switch(sched_type) {
-      case SCHED_SERIAL:
-         this->all->ALL_THREADS.push_back(dynamic_cast<sched::base*>(new sched::serial_local(this->all)));
-         break;
-      case SCHED_UNKNOWN: assert(false); break;
-      default: break;
-   }
-   
-   assert(this->all->ALL_THREADS.size() == all->NUM_THREADS);
+  switch(sched_type) {
+    case SCHED_SERIAL:
+    this->all->ALL_THREADS.push_back(dynamic_cast<sched::base*>(new sched::serial_local(this->all)));
+    break;
+    case SCHED_UNKNOWN: assert(false); break;
+    default: break;
+  }
+
+  assert(this->all->ALL_THREADS.size() == all->NUM_THREADS);
 }
 
 machine::~machine(void)
 {
    // when deleting database, we need to access the program,
    // so we must delete this in correct order
-   delete this->all->DATABASE;
-   
-   for(process_id i(0); i != all->NUM_THREADS; ++i)
-      delete all->ALL_THREADS[i];
+ delete this->all->DATABASE;
 
-   delete this->all->PROGRAM;
-      
-   if(alarm_thread)
-      delete alarm_thread;
-      
-   mem::cleanup(all->NUM_THREADS);
+ for(process_id i(0); i != all->NUM_THREADS; ++i)
+  delete all->ALL_THREADS[i];
+
+delete this->all->PROGRAM;
+
+if(alarm_thread)
+  delete alarm_thread;
+
+mem::cleanup(all->NUM_THREADS);
 }
 
 }
