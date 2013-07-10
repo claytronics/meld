@@ -7,9 +7,9 @@
 struct debugnode{
   struct debugnode* next;
   struct debugnode* prev;
-  char* type;
-  char* name;
-  int nodeID;
+  char* type;//must be dynamically allocated upon insertion
+  char* name;//same
+  int nodeID;//not dynamically allocated
 };
 
 

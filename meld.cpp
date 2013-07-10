@@ -103,10 +103,10 @@ read_arguments(int argc, char **argv)
             break;
          case 'D':
 	   cout << "DEBUGGING MODE- type help for options" << endl;
-	   setDebuggingMode(true);
+	   debugger::setDebuggingMode(true);
 	   break;
          case 'S':
-	   setSimDebuggingMode(true);
+	   debugger::setSimDebuggingMode(true);
 	   break;
 	   
 			case '-':
