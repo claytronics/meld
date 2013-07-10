@@ -14,9 +14,6 @@ namespace sched
 void
 assert_static_nodes_end_iteration(const process_id id, vm::all *all)
 {
-   if(id==0){} //redundant statement
-   //const node::node_id first(0);
-   //const node::node_id final(all->DATABASE->nodes_total - 1);
    database::map_nodes::const_iterator it(all->DATABASE->nodes_begin());
    database::map_nodes::const_iterator end(all->DATABASE->nodes_end());
 
@@ -27,9 +24,6 @@ assert_static_nodes_end_iteration(const process_id id, vm::all *all)
 void
 assert_static_nodes_end(const process_id id, vm::all *all)
 {
-   if(id==0){} 
-  // const node::node_id first(0);
-  // const node::node_id final(all->DATABASE->nodes_total - 1);
    database::map_nodes::const_iterator it(all->DATABASE->nodes_begin());
    database::map_nodes::const_iterator end(all->DATABASE->nodes_end());
 

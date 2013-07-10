@@ -139,9 +139,4 @@ return NULL;
     no->queue.top_list(ls);
   }
 
-void
-serial_local::set_color(db::node *n, const int r, const int g, const int b){
-api::set_color(n,r,g,b);
-}
-
 }
