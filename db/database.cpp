@@ -13,6 +13,7 @@ using namespace std;
 using namespace vm;
 using namespace process;
 using namespace utils;
+using namespace api;
 namespace mpi = boost::mpi;
 
 namespace db

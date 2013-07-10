@@ -51,7 +51,7 @@ namespace process
    void run_action(sched::base *, db::node *, vm::tuple *, const bool from_other = false);
    void route_self(sched::base *, db::node *, db::simple_tuple *, const vm::uint_val delay = 0);
 
-   void route(db::node *, sched::base *, const db::node::node_id, db::simple_tuple*, const vm::uint_val delay = 0);
+   void route(const db::node *, sched::base *, const db::node::node_id, db::simple_tuple*, const vm::uint_val delay = 0);
 
    void init_thread(sched::base *);
    void start(void);

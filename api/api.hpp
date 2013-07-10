@@ -38,7 +38,7 @@
      * Initialize the API layer
      */
      void init(sched::base *schedular);
-     extern void send_message(const db::node* from, const db::node::node_id to, const db::simple_tuple* stpl);
+     extern void send_message(const db::node* from, const db::node::node_id to, db::simple_tuple* stpl);
      
     /* Return whether or not the node with id `id` belongs to the current
      * process

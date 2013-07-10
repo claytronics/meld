@@ -73,7 +73,6 @@ predicate::make_predicate_from_buf(byte *buf, code_size_t *code_size, const pred
    pred->name = string((const char*)buf);
 
    printf("predicate [%s]\n", (const char*)buf);
-   pred->global_prio = NO_GLOBAL_PRIORITY;
 
 
    buf += PRED_NAME_SIZE_MAX;
