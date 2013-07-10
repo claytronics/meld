@@ -84,8 +84,8 @@ namespace api {
         }
     }
 
-    void send_message(const db::node::node_id id,
-                      const db::simple_tuple *stpl) {
+    void send_message(const db::node* from, const db::node::node_id id,
+                      const db::simple_tuple* stpl) {
         /* Given a node id and tuple, figure out the process id to send the
            tuple and id to be processed
            ================================================================
@@ -114,7 +114,7 @@ namespace api {
         free_msgs();
     };
 
-    bool poll(sched::base *sched, vm::all *all) {
+    bool pollAndProcess(sched::base *sched, vm::all *all) {
         /* Call the mpi asking for messages in the receive queue.  The messages
            are handled appropriately.
            ====================================================================
@@ -259,6 +259,11 @@ namespace api {
         return id % world->size();
     }
 
-    void init(int argc, char **argv) {}
+    void init(int argc, char **argv, sched::base*) {
+        mpi::environment* env = new mpi::environment(argc, argv);
+        world = new mpi::communicator();
+    }
+
+    void set_color(db::node *n, const int r, const int g, const int b) {}
 
 } /* namespace api */

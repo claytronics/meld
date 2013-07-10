@@ -24,9 +24,8 @@ namespace process
   class machine
   {
 
-  public:
-    vm::all *all;
   private:
+      vm::all *all;
 
     const std::string filename;
     const sched::scheduler_type sched_type;
@@ -40,8 +39,8 @@ namespace process
     void set_timer(void);
 
   public:
-    
-   
+
+
    sched::scheduler_type get_sched_type(void) const { return sched_type; }
 
    sched::base *get_scheduler(const vm::process_id id) { return this->all->ALL_THREADS[id]; }

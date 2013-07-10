@@ -627,9 +627,6 @@ state::run_node(db::node *no)
    cout << "Node " << node->get_id() << endl;
 #endif
 
-   if((node->get_id())==0)
-      return;
-
    assert(local_tuples.empty());
    // Gather_next_tuples is implementation specific
    sched->gather_next_tuples(node, local_tuples);

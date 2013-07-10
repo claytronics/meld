@@ -92,10 +92,6 @@ node*
 database::create_node_id(const db::node::node_id id)
 {
    utils::spinlock::scoped_lock l(mtx);
-  /* if(max_node_id > 0) {
-      assert(max_node_id < id);
-      assert(max_translated_id < id);
-   }*/
 
    max_node_id = id;
    max_translated_id = id;
