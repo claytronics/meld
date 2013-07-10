@@ -460,7 +460,7 @@ execute_send(const pcounter& pc, state& state)
    }
 
    debugMsg << "\t-Fact has been derived" << endl;
-   runBreakPoint("factDer",(char*)debugMsg.str().c_str(),
+   debugger::runBreakPoint("factDer",(char*)debugMsg.str().c_str(),
 		 (char*)tuple->pred_name().c_str(),
 		 (int)state.node->get_translated_id());
 }
@@ -1655,7 +1655,7 @@ execute_remove(pcounter pc, state& state)
 
    debugMsg << "\t-Fact has been consumed" << endl;
 
-   runBreakPoint("factCon",debugMsg.str().c_str(),
+   debugger::runBreakPoint("factCon",debugMsg.str().c_str(),
 		 (char*)tpl->pred_name().c_str(),
 		 (int)state.node->get_translated_id());
 }

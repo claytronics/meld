@@ -72,7 +72,7 @@ machine::run_action(sched::base *sched, node* node, vm::tuple *tpl, const bool f
    }
 
 	delete tpl;
-	runBreakPoint("action","","",-1);
+	debugger::runBreakPoint("action","","",-1);
 }
 
 void
@@ -193,11 +193,11 @@ machine::execute_const_code(void)
 	// no node or tuple whatsoever
 	st.setup(NULL, NULL, 0);
 
-	if (isInDebuggingMode()) {
-	  debug(st);
-	  pauseIt();
-	} else if (isInSimDebuggingMode()){
-	  initSimDebug();
+	if (debugger::isInDebuggingMode()) {
+	  debugger::debug(st);
+	  debugger::pauseIt();
+	} else if (debugger::isInSimDebuggingMode()){
+	  debugger::initSimDebug();
 	}
 
 	execute_bytecode(all->PROGRAM->get_const_bytecode(), st);

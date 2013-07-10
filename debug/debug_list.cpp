@@ -5,34 +5,11 @@
 #include <stdlib.h>
 #include <string.h>
 #include <iostream>
+#include "debug/debug_list.hpp"
 
 using namespace std;
 
-
-struct debugnode{
-  struct debugnode* next;
-  struct debugnode* prev;
-  char* type;//must be dynamically allocated upon insertion
-  char* name;//same
-  int nodeID;//not dynamically allocated
-};
-
-
-struct list_header{
-  struct debugnode* front;
-  struct debugnode* back;
-};
-
-typedef struct list_header* debugList;
-
-
-bool isInBreakPointList(debugList L, char* type, 
-			char* name, int nodeID);
-void insertBreak(debugList L, char* type, 
-		 char* name, int nodeID);
-void listFree(debugList L);
-debugList newBreakpointList();
-
+namespace debugger {
 
 /*returns an empty breakpoint list - an empty breakpoint list has 
   one node but NULL data*/
@@ -111,6 +88,6 @@ bool isInBreakPointList(debugList L, char* type, char* name, int nodeID){
   return false;
 }
 
-
+}
 
 
