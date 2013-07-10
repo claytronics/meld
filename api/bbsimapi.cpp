@@ -36,6 +36,8 @@ using namespace msg;
 
 namespace api
 {
+
+  boost::mpi::communicator *world = NULL;
   static const char* msgcmd2str[16];
   static boost::asio::ip::tcp::socket *my_tcp_socket;
   static void process_message(message_type* reply);
@@ -102,7 +104,7 @@ namespace api
       init_tcp();
       check_pre(schedular);
       while(!isReady())
-        poll();
+        pollAndProcess(NULL,NULL);
     } catch(std::exception &e) {
       throw machine_error("can't connect to simulator");
     }
@@ -201,6 +203,12 @@ set_color(db::node *n, const int r, const int g, const int b)
 
   }
 
+/*returns the node id for bbsimAPI*/
+  int 
+  get_process_id(const db::node::node_id id)
+  {
+    return id;
+  }
 
 /*Sends the "SEND_MESSAGE" command*/
  /* void 
@@ -231,7 +239,7 @@ set_color(db::node *n, const int r, const int g, const int b)
 }*/
 
 /*Sends the "SEND_MESSAGE" command*/
-  void send_message(const db::node* from,const db::node::node_id to, const db::simple_tuple* stpl)
+  void send_message(const db::node* from,const db::node::node_id to,  db::simple_tuple* stpl)
   {
     message_type reply[MAXLENGTH];
 

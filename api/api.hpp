@@ -36,7 +36,10 @@
 	 /*
      * Initialize the API layer
      */
+
      extern void init(int argc, char **argv, sched::base*);
+
+     void init(sched::base *schedular);
 
     /* Return whether or not the node with id `id` belongs to the current
      * process

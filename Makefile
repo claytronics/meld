@@ -87,10 +87,10 @@ SRCS = utils/utils.cpp \
 			 stat/slice.cpp \
 			 stat/slice_set.cpp \
 			 interface.cpp \
-			 api/mpi.cpp \
 			 debug/debug_prompt.cpp \
 			 debug/debug_handler.cpp \
 			 debug/debug_list.cpp \
+			 api/mpi.cpp \
 #			 api/bbsimapi.cpp \
 
 OBJS = $(patsubst %.cpp,%.o,$(SRCS))

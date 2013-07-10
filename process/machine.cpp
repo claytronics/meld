@@ -112,7 +112,7 @@ void
 machine::route(node* from, sched::base *sched_caller, const node::node_id id, simple_tuple* stpl, const uint_val delay)
 {
    assert(sched_caller != NULL);
-   assert(id <= this->all->DATABASE->max_id());
+  
 
    if (api::on_current_process(id)){
        /* Belongs to the same process, does not require MPI */
