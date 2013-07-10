@@ -5,7 +5,8 @@
 #include "utils/utils.hpp"
 #include "utils/fs.hpp"
 #include "vm/state.hpp"
-
+#include "debug/debug_handler.hpp"
+#include "debug/debug_prompt.hpp"
 #include "interface.hpp"
 
 using namespace utils;
@@ -14,14 +15,16 @@ using namespace std;
 using namespace sched;
 
 static char *program = NULL;
+static char *data_file = NULL;
 static char *progname = NULL;
 
 static void
 help(void)
 {
 	cerr << "meld: execute meld program" << endl;
-	cerr << "meld -f <program file> -c <scheduler> -- arg1 arg2 ... argN" << endl;
+	cerr << "meld -f <program file> -c <scheduler> [options] -- arg1 arg2 ... argN" << endl;
 	cerr << "\t-f <name>\tmeld program" << endl;
+   cerr << "\t-r <data file>\tdata file for meld program" << endl;
 	help_schedulers();
 	cerr << "\t-t \t\ttime execution" << endl;
 	cerr << "\t-m \t\tmemory statistics" << endl;
@@ -29,6 +32,9 @@ help(void)
 	cerr << "\t-s \t\tshows database" << endl;
    cerr << "\t-d \t\tdump database (debug option)" << endl;
    cerr << "\t-h \t\tshow this screen" << endl;
+   cerr << "\t-D \t\tgo into debugging mode" << endl;
+   cerr << "\t-S \t\tused to go into debugging mode called from simulator" << endl;
+
 
    exit(EXIT_SUCCESS);
 }
@@ -48,6 +54,16 @@ read_arguments(int argc, char **argv)
                help();
 
             program = argv[1];
+
+            argc--;
+            argv++;
+         }
+         break;
+         case 'r': {
+            if(data_file != NULL || argc < 2)
+               help();
+
+            data_file = argv[1];
 
             argc--;
             argv++;
@@ -85,6 +101,14 @@ read_arguments(int argc, char **argv)
          case 'h':
             help();
             break;
+         case 'D':
+	   cout << "DEBUGGING MODE- type help for options" << endl;
+	   setDebuggingMode(true);
+	   break;
+         case 'S':
+	   setSimDebuggingMode(true);
+	   break;
+	   
 			case '-':
 				
 				for(--argc, ++argv ; argc > 0; --argc, ++argv)
@@ -122,7 +146,7 @@ main(int argc, char **argv)
 	}
 	
    try {
-      run_program(argc, argv, program, margs);
+      run_program(argc, argv, program, margs, data_file);
    } catch(vm::load_file_error& err) {
       cerr << "File error: " << err.what() << endl;
       exit(EXIT_FAILURE);

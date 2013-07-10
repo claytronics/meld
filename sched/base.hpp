@@ -1,4 +1,3 @@
-
 #ifndef SCHED_BASE_HPP
 #define SCHED_BASE_HPP
 
@@ -12,7 +11,6 @@
 
 #include "db/tuple.hpp"
 #include "db/node.hpp"
-#include "vm/state.hpp"
 #include "utils/macros.hpp"
 #include "stat/slice.hpp"
 #include "process/work.hpp"

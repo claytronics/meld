@@ -55,10 +55,12 @@ namespace api
     const int_val f);
   static void handle_shake(const deterministic_timestamp ts, const db::node::node_id node,
     const int_val x, const int_val y, const int_val z);
-
+  static void   check_pre(sched::base *schedular);
+  static bool isReady();
   static message_type *tcp_poll();
   static void init_tcp();
   static void send_message_tcp(message_type *msg);
+  static bool  ensembleFinished();
   //static void send_message_tcp(message *m);
 
   static bool ready(false);
@@ -156,16 +158,23 @@ namespace api
    }
  }
 
+bool on_current_process(const db::node::node_id id){
+  return false;
+}
+
 
 /*Polls the socket for any message and processes the message*/
  bool 
- poll(void)
+ pollAndProcess(sched::base *sched, vm::all *all)
  {
   message_type *reply;
 
   /*Change the name of the poll function here*/
   if((reply =(message_type*)tcp_poll()) == NULL) {
-    return false;
+    if(ensembleFinished())
+      return false;
+    else
+      return true;
   }
   process_message(reply);
   return true;
@@ -222,7 +231,7 @@ set_color(db::node *n, const int r, const int g, const int b)
 }*/
 
 /*Sends the "SEND_MESSAGE" command*/
-  void send_message(db::node* from,const db::node::node_id to, db::simple_tuple* stpl)
+  void send_message(const db::node* from,const db::node::node_id to, const db::simple_tuple* stpl)
   {
     message_type reply[MAXLENGTH];
 
@@ -386,7 +395,7 @@ send_message_tcp(message *m)
  {
   if(ts>0){}
 
- work new_work(no, stpl);
+   work new_work(no, stpl);
  sched_state->new_work(no, new_work);
 
 }
@@ -461,10 +470,10 @@ static void handle_receive_message(const deterministic_timestamp ts,
   db::node::node_id dest_id,
   const face_t face, db::node::node_id node, utils::byte *data, int offset, const int limit)
 {
- 
+
   if(ts>0&&face==0&&node==0){}
  //  serial_node *origin(dynamic_cast<serial_node*>((sched_state->state).all->DATABASE->find_node(node)));
-  serial_node *target(NULL);
+    serial_node *target(NULL);
   target=dynamic_cast<serial_node*>((sched_state->state).all->DATABASE->find_node(dest_id));
 
 /*

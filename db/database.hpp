@@ -9,6 +9,7 @@
 #include <stdexcept>
 #include <boost/function.hpp>
 #include <boost/static_assert.hpp>
+#include <boost/mpi.hpp>
 
 #include "conf.hpp"
 #include "db/node.hpp"
@@ -65,6 +66,7 @@ public:
    node* create_node_id(const node::node_id);
    
    void print_db(std::ostream&) const;
+  void print_db_debug(std::ostream&, unsigned int nodeNumber) const;
    void dump_db(std::ostream&) const;
    
    void print(std::ostream&) const;

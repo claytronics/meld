@@ -1,7 +1,9 @@
 
+#include <iostream>
 #include "vm/state.hpp"
 #include "process/machine.hpp"
 #include "vm/exec.hpp"
+#include "debug/debug_handler.hpp"
 
 using namespace vm;
 using namespace db;
@@ -24,11 +26,11 @@ state::linear_tuple_can_be_used(db::tuple_trie_leaf *leaf) const
       it++)
    {
       const pair_linear& p(*it);
-      
+
       if(p.first == leaf)
          return p.second > 0;
    }
-   
+
    return true; // not found, first time
 }
 
@@ -40,14 +42,14 @@ state::using_new_linear_tuple(db::tuple_trie_leaf *leaf)
       it++)
    {
       pair_linear& p(*it);
-      
+
       if(p.first == leaf) {
          assert(p.second > 0);
          p.second--;
          return;
       }
    }
-   
+
    // first time, get the count
    used_linear_tuples.push_front(pair_linear(leaf, leaf->get_count() - 1));
 }
@@ -60,13 +62,13 @@ state::no_longer_using_linear_tuple(db::tuple_trie_leaf *leaf)
       it++)
    {
       pair_linear &p(*it);
-      
+
       if(p.first == leaf) {
          p.second++; // a free count
          return;
       }
    }
-   
+
    assert(false);
 }
 
@@ -88,9 +90,9 @@ state::purge_runtime_objects(void)
    PURGE_LIST(int);
    PURGE_LIST(node);
 #undef PURGE_LIST
-	
+
 	PURGE_OBJ(rstring);
-	
+
 #undef PURGE_OBJ
 }
 
@@ -199,7 +201,7 @@ state::check_if_rule_predicate_activated(vm::rule *rule)
 		if(predicates[pred->get_id()])
 			return true;
 	}
-	
+
 	return false;
 }
 #endif
@@ -225,7 +227,7 @@ state::mark_active_rules(void)
 			}
 		}
 	}
-	
+
 	for(rule_matcher::rule_iterator it(node->matcher.begin_dropped_rules()),
 		end(node->matcher.end_dropped_rules());
 		it != end;
@@ -337,6 +339,7 @@ state::do_persistent_tuples(void)
 {
    // we grab the stratification level here
    while(!generated_persistent_tuples.empty()) {
+
       db::simple_tuple *stpl(generated_persistent_tuples.front());
       vm::tuple *tpl(stpl->get_tuple());
 
@@ -347,7 +350,6 @@ state::do_persistent_tuples(void)
          if(stpl->get_count() == 1 && (tpl->is_aggregate() && !stpl->is_aggregate())) {
             db::simple_tuple *stpl2(search_for_negative_tuple_partial_agg(stpl));
             if(stpl2) {
-               cout << "=========> Deleted " << *stpl << " " << *stpl2 << endl;
                assert(stpl != stpl2);
                //assert(stpl2->get_tuple() != stpl->get_tuple());
                //assert(stpl2->get_predicate() == stpl->get_predicate());
@@ -360,7 +362,6 @@ state::do_persistent_tuples(void)
          if(stpl->get_count() == 1 && (tpl->is_aggregate() && stpl->is_aggregate())) {
             db::simple_tuple *stpl2(search_for_negative_tuple_full_agg(stpl));
             if(stpl2) {
-               cout << "=========> Deleted " << *stpl << " " << *stpl2 << endl;
                assert(stpl != stpl2);
                /*if(stpl2->get_tuple() == stpl->get_tuple()) {
                   cout << "fail " << *(stpl2->get_tuple()) << endl;
@@ -376,7 +377,6 @@ state::do_persistent_tuples(void)
          if(stpl->get_count() == 1 && !tpl->is_aggregate()) {
             db::simple_tuple *stpl2(search_for_negative_tuple_normal(stpl));
             if(stpl2) {
-               cout << "========> Deleted normal " << *stpl << " " << *stpl2 << endl;
                //simple_tuple::wipeout(stpl);
                //simple_tuple::wipeout(stpl2);
                continue;
@@ -385,9 +385,15 @@ state::do_persistent_tuples(void)
       }
 
       if(tuple_for_assertion(stpl)) {
+#ifdef DEBUG_RULES
+      cout << ">>>>>>>>>>>>> Running process for " << node->get_id() << " " << *stpl << endl;
+#endif
          process_persistent_tuple(stpl, tpl);
       } else {
          // aggregate
+#ifdef DEBUG_RULES
+      cout << ">>>>>>>>>>>>> Adding aggregate " << node->get_id() << " " << *stpl << endl;
+#endif
          add_to_aggregate(stpl);
       }
    }
@@ -396,12 +402,12 @@ state::do_persistent_tuples(void)
       pair<vm::predicate*, db::tuple_trie_leaf*> p(leaves_for_deletion.front());
 		vm::predicate* pred(p.first);
 		db::tuple_trie_leaf *leaf(p.second);
-		
+
 		leaves_for_deletion.pop_front();
-		
+
 		node->delete_by_leaf(pred, leaf);
 	}
-	
+
 	assert(leaves_for_deletion.empty());
 
    return true;
@@ -469,6 +475,39 @@ state::process_consumed_local_tuples(void)
 	}
 }
 
+
+void
+state::print_local_tuples(ostream& cout){
+
+  if (generated_tuples.empty())
+    cout << "(empty)" << endl;
+
+  for(db::simple_tuple_list::iterator it(local_tuples.begin());
+      it != local_tuples.end();
+      ++it)
+    {
+      simple_tuple *stpl(*it);
+      cout << *stpl << endl;
+    }
+}
+
+
+void
+state::print_generated_tuples(ostream& cout){
+
+  if (generated_tuples.empty())
+    cout << "(empty)" << endl;
+
+  for(db::simple_tuple_list::iterator it(generated_tuples.begin());
+      it != generated_tuples.end();
+      ++it)
+    {
+      simple_tuple *stpl(*it);
+      cout << *stpl << endl;
+    }
+}
+
+
 void
 state::add_to_aggregate(db::simple_tuple *stpl)
 {
@@ -485,6 +524,7 @@ state::add_to_aggregate(db::simple_tuple *stpl)
 
    simple_tuple_list list;
 
+
    agg->generate(pred->get_aggregate_type(), pred->get_aggregate_field(), list);
 
    for(simple_tuple_list::iterator it(list.begin()); it != list.end(); ++it) {
@@ -500,10 +540,12 @@ state::process_persistent_tuple(db::simple_tuple *stpl, vm::tuple *tpl)
    if(stpl->get_count() > 0) {
 		const bool is_new(add_fact_to_node(tpl));
 
-      setup(tpl, node, stpl->get_count());
-      use_local_tuples = false;
-      persistent_only = true;
-      execute_bytecode(all->PROGRAM->get_predicate_bytecode(tpl->get_predicate_id()), *this);
+      if(is_new) {
+         setup(tpl, node, stpl->get_count());
+         use_local_tuples = false;
+         persistent_only = true;
+         execute_bytecode(all->PROGRAM->get_predicate_bytecode(tpl->get_predicate_id()), *this);
+      }
 
 #ifdef USE_RULE_COUNTING
       node->matcher.register_tuple(tpl, stpl->get_count(), is_new);
@@ -535,9 +577,18 @@ state::process_persistent_tuple(db::simple_tuple *stpl, vm::tuple *tpl)
          	use_local_tuples = false;
          	execute_bytecode(all->PROGRAM->get_predicate_bytecode(tuple->get_predicate_id()), *this);
          	deleter();
-      	} else
+		runBreakPoint("factRet",
+			      "Fact has been removed from database",
+			      (char*)tpl->pred_name().c_str(),
+			      (int)node->get_translated_id());
+      	} else{
+	  runBreakPoint("factRet","Fact has been retracted",
+			(char*)tpl->pred_name().c_str(),
+			(int)node->get_translated_id());
          	delete tpl;
+	}
 		}
+
    }
 }
 
@@ -571,7 +622,7 @@ state::run_node(db::node *no)
    bool aborted(false);
 
 	this->node = no;
-	
+
 #ifdef DEBUG_RULES
    cout << "Node " << node->get_id() << endl;
 #endif
@@ -581,23 +632,23 @@ state::run_node(db::node *no)
 
    assert(local_tuples.empty());
    // Gather_next_tuples is implementation specific
-	sched->gather_next_tuples(node, local_tuples);
+   sched->gather_next_tuples(node, local_tuples);
    start_matching();
 	current_level = mark_rules_using_local_tuples(local_tuples);
+#ifdef DEBUG_RULES
+	cout << "Strat level: " << current_level << " got " << local_tuples.size() << " tuples " << endl;
+#endif
+
    if(do_persistent_tuples()) {
       mark_active_rules();
    } else
       // if using the simulator, we check if we exhausted the available time to run
       aborted = true;
 
-#ifdef DEBUG_RULES
-	cout << "Strat level: " << current_level << " got " << local_tuples.size() << " tuples " << endl;
-#endif
-
 	while(!rule_queue.empty() && !aborted) {
 
 		rule_id rule(rule_queue.pop());
-		
+
 #ifdef DEBUG_RULES
 		cout << "Run rule " << all->PROGRAM->get_rule(rule)->get_string() << endl;
 #endif
@@ -608,7 +659,7 @@ state::run_node(db::node *no)
 		node->matcher.clear_dropped_rules();
 #endif
       start_matching();
-		
+
 		setup(NULL, node, 1);
 		use_local_tuples = true;
       persistent_only = false;
@@ -631,7 +682,7 @@ state::run_node(db::node *no)
 	{
 		simple_tuple *stpl(*it);
 		vm::tuple *tpl(stpl->get_tuple());
-		
+
 		if(stpl->can_be_consumed()) {
          if(aborted) {
             assert(false);

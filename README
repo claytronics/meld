@@ -14,6 +14,7 @@ Installation:
 
 Execution:
 	./meld -f bytecodefile -c scheduler
+	Use -D to enter debugging mode
 	Use ./meld -h for help
 
 Directories:

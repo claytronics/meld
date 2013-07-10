@@ -35,40 +35,45 @@ num_cpus_available(void)
 static inline bool
 match_serial(const char *name, char *arg, const scheduler_type type)
 {
-  const size_t len(strlen(name));
+    const size_t len(strlen(name));
 
-  if(strlen(arg) == len && strncmp(name, arg, len) == 0) {
-    sched_type = type;
-    num_threads = 1;
-    return true;
-  }
+    if(strlen(arg) == len && strncmp(name, arg, len) == 0) {
+        sched_type = type;
+        num_threads = 1;
+        return true;
+    }
 
-  return false;
+    return false;
+
 }
 
 static inline bool fail_sched(char* sched)
 {
-  cerr << "Error: invalid scheduler " << sched << endl;
-  exit(EXIT_FAILURE);
-  return false;
+
+	cerr << "Error: invalid scheduler " << sched << endl;
+    exit(EXIT_FAILURE);
+    return false;
+
 }
 
 void
 parse_sched(char *sched)
 {
-  assert(sched != NULL);
+    assert(sched != NULL);
 
-  if(strlen(sched) < 2)
-    fail_sched(sched);
+    if(strlen(sched) < 2)
+        fail_sched(sched);
 
-// attempt to parse the scheduler string
-  match_serial("sl", sched, SCHED_SERIAL) ||
-  fail_sched(sched);
+    // attempt to parse the scheduler string
+    match_serial("sl", sched, SCHED_SERIAL) ||
+		match_serial("ui", sched, SCHED_SERIAL_UI) ||
+        fail_sched(sched);
 
-  if (num_threads == 0) {
-    cerr << "Error: invalid number of threads" << endl;
-    exit(EXIT_FAILURE);
-  }
+	if (num_threads == 0) {
+        cerr << "Error: invalid number of threads" << endl;
+        exit(EXIT_FAILURE);
+    }
+
 }
 
 void
@@ -88,62 +93,49 @@ finish(void)
 
 /* program = meld program */
 bool
-run_program(int argc, char **argv, const char *program, const vm::machine_arguments& margs)
+run_program(int argc, char **argv, const char *program, const vm::machine_arguments& margs, const char *data_file)
 {
-  assert(utils::file_exists(string(program)));
-  assert(num_threads > 0);
 
-  try {
-/* save time to compute execution time */
-/* calculate execution time */
-   // double start_time(0.0);
-    execution_time tm;
+	assert(utils::file_exists(string(program)));
+	assert(num_threads > 0);
 
-    if(time_execution) {
-      tm.start();
+	try {
+        /* save time to compute execution time */
+        /* calculate execution time */
+        double start_time(0.0);
+        execution_time tm;
+
+        if(time_execution) {
+            tm.start();
+        }
+         api::init(NULL):
+         machine mac(program, num_threads, sched_type, margs, data_file == NULL ? string("") : string(data_file));
+         api::init(mac.all->ALL_THREADS[0]);
+
+
+        mac.start();
+
+        if(time_execution) {
+            {
+                tm.stop();
+                size_t ms = tm.milliseconds();
+
+                cout << "Time: " << ms << " ms" << endl;
+            }
+        }
+
+    } catch(machine_error& err) {
+        finish();
+        throw err;
+    } catch(load_file_error& err) {
+        finish();
+        throw err;
+    } catch(db::database_error& err) {
+        finish();
+        throw err;
     }
 
-/* instantiate machine
- * serial: 1 thread, sched_serial
- * margs: meld argv, argc*/
+    finish();
 
-/*Init the API here*/
- api::init(NULL);
-
- machine mac(program, num_threads, sched_type, margs);
-/*Call the bbsim if simulation is true*/
- sleep(3);
- api::init(mac.all->ALL_THREADS[0]);
-
-/*api::set_color(255,0,0);*/
-
-//api::check_pre(mac.all->ALL_THREADS[0]);
-//Call the predicate check with the scheduler object
-//api::pre_check(scheduler object);
-
-/* initiates threads */
- mac.start();
-
- if(time_execution) {
-  {
-   tm.stop();
-   size_t ms = tm.milliseconds();
-   cout << "Time: " << ms << " ms" << endl;
- }
-}
-
-} catch(machine_error& err) {
-  finish();
-  throw err;
-} catch(load_file_error& err) {
-  finish();
-  throw err;
-} catch(db::database_error& err) {
-  finish();
-  throw err;
-}
-
-finish();
-
-return true;
+	return true;
 }

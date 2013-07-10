@@ -9,6 +9,7 @@
 #include <vector>
 #include <boost/thread/mutex.hpp>
 #include <boost/thread/barrier.hpp>
+#include <boost/mpi.hpp>
 #include "db/database.hpp"
 #include "db/tuple.hpp"
 #include "db/node.hpp"
@@ -47,8 +48,6 @@ namespace process
 
    vm::all *get_all(void) const { return this->all; }
 
-   bool same_place(const db::node::node_id, const db::node::node_id) const;
-
    void run_action(sched::base *, db::node *, vm::tuple *, const bool from_other = false);
    void route_self(sched::base *, db::node *, db::simple_tuple *, const vm::uint_val delay = 0);
 
@@ -57,7 +56,7 @@ namespace process
    void init_thread(sched::base *);
    void start(void);
 
-   explicit machine(const std::string&, const size_t, const sched::scheduler_type, const vm::machine_arguments& args = vm::machine_arguments());
+   explicit machine(const std::string&, const size_t, const sched::scheduler_type, const vm::machine_arguments& args = vm::machine_arguments(), const std::string& data_file = std::string());
 
    ~machine(void);
  };
@@ -72,4 +71,3 @@ namespace process
 }
 
 #endif
-

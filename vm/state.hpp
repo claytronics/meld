@@ -3,6 +3,7 @@
 #define VM_STATE_HPP
 
 #include <list>
+#include <iostream>
 
 #include "conf.hpp"
 #include "vm/tuple.hpp"
@@ -22,14 +23,12 @@ namespace sched {
 namespace vm {
 	
 typedef size_t deterministic_timestamp;
+static const size_t NUM_REGS = 32;
 
 class state
 {
 private:
    
-   static const size_t NUM_REGS = 32;
-   typedef tuple_field reg;
-   reg regs[NUM_REGS];
    db::tuple_trie_leaf *saved_leafs[NUM_REGS];
 	db::simple_tuple *saved_stuples[NUM_REGS];
 	bool is_leaf[NUM_REGS];
@@ -60,7 +59,10 @@ private:
    db::simple_tuple* search_for_negative_tuple_normal(db::simple_tuple *);
 
 public:
-	
+
+   typedef tuple_field reg;
+   reg regs[NUM_REGS];
+   std::vector<tuple_field> stack;
    vm::tuple *tuple;
    db::tuple_trie_leaf *tuple_leaf;
 	db::simple_tuple *tuple_queue;
@@ -137,13 +139,17 @@ public:
    
 #undef define_set
    
+   inline void set_reg(const reg_num& num, const reg val) { regs[num] = val; }
    inline void set_nil(const reg_num& num) { set_ptr(num, null_ptr_val); }
+   inline reg get_reg(const reg_num& num) { return regs[num]; }
    
    inline void set_leaf(const reg_num& num, db::tuple_trie_leaf* leaf) { is_leaf[num] = true; saved_leafs[num] = leaf; }
    inline db::tuple_trie_leaf* get_leaf(const reg_num& num) const { return saved_leafs[num]; }
 	inline void set_tuple_queue(const reg_num& num, db::simple_tuple *stpl) { is_leaf[num] = false; saved_stuples[num] = stpl; }
 	inline db::simple_tuple* get_tuple_queue(const reg_num& num) const { return saved_stuples[num]; }
 	inline bool is_it_a_leaf(const reg_num& num) const { return is_leaf[num]; }
+
+   inline tuple_field* get_stack_at(const offset_num& off) { return &stack[stack.size() - 1 - off]; }
    
    inline void copy_reg(const reg_num& reg_from, const reg_num& reg_to) {
       regs[reg_to] = regs[reg_from];
@@ -165,15 +171,18 @@ public:
 	bool check_if_rule_predicate_activated(vm::rule *);
 #endif
 	
-	void mark_predicate_to_run(const vm::predicate *);
-	void mark_active_rules(void);
+   void mark_predicate_to_run(const vm::predicate *);
+   void mark_active_rules(void);
    void add_to_aggregate(db::simple_tuple *);
    bool do_persistent_tuples(void);
    void process_persistent_tuple(db::simple_tuple *, vm::tuple *);
-	void process_consumed_local_tuples(void);
-	void process_others(void);
+   void process_consumed_local_tuples(void);
+   void print_local_tuples(std::ostream& cout);
+   void print_generated_tuples(std::ostream& cout);
+
+   void process_others(void);
    vm::strat_level mark_rules_using_local_tuples(db::simple_tuple_list&);
-	void run_node(db::node *);
+   void run_node(db::node *);
    void setup(vm::tuple*, db::node*, const ref_count);
    void cleanup(void);
    bool linear_tuple_can_be_used(db::tuple_trie_leaf *) const;

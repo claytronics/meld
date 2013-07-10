@@ -72,11 +72,11 @@ val_string(const instr_val v, pcounter *pm, const program *prog)
    } else if(val_is_int(v)) {
       const string ret(to_string(pcounter_int(*pm)));
       pcounter_move_int(pm);
-      return ret;
+      return string("INT ") + ret;
    } else if(val_is_float(v)) {
       const string ret(to_string(pcounter_float(*pm)));
       pcounter_move_float(pm);
-      return ret;
+      return string("FLOAT ") + ret;
    } else if(val_is_node(v)) {
       const string ret(string("@") + to_string(pcounter_node(*pm)));
       pcounter_move_node(pm);
@@ -95,12 +95,26 @@ val_string(const instr_val v, pcounter *pm, const program *prog)
 		pcounter_move_argument_id(pm);
 
 		return ret;
+   } else if(val_is_stack(v)) {
+      const offset_num offset(pcounter_offset_num(*pm));
+
+      pcounter_move_offset_num(pm);
+
+      return string("STACK ") + to_string((int)offset);
+   } else if(val_is_pcounter(v)) {
+      return string("PCOUNTER");
 	} else if(val_is_const(v)) {
 		const string ret(string("CONST ") + to_string(pcounter_const_id(*pm)));
 		
 		pcounter_move_const_id(pm);
 		
 		return ret;
+   } else if(val_is_ptr(v)) {
+      const string ret(string("PTR ") + to_string(pcounter_ptr(*pm)));
+
+      pcounter_move_ptr(pm);
+
+      return ret;
    } else
 		throw type_error("Unrecognized val type " + to_string(v) + " (val_string)");
    
@@ -305,6 +319,25 @@ instr_print(pcounter pc, const bool recurse, const int tabcount, const program *
             cout << ")" << endl;
    		}
    		break;
+   	case CALLE_INSTR: {
+            pcounter m = pc + CALL_BASE;
+            const external_function_id id(calle_extern_id(pc));
+
+   	      cout << "CALLE func(" << id << "):"
+   	           << calle_num_args(pc) << " TO "
+                 << reg_string(calle_dest(pc)) << " = (";
+            
+            for(size_t i = 0; i < calle_num_args(pc); ++i) {
+               if(i != 0)
+                  cout << ", ";
+               
+               pcounter val_ptr(m);
+               m += val_size;
+               cout << val_string(calle_val(val_ptr), &m, prog);
+            }
+            cout << ")" << endl;
+   		}
+   		break;
       case DELETE_INSTR: {
             pcounter m = pc + DELETE_BASE;
             const predicate_id pred_id(delete_predicate(pc));
@@ -411,8 +444,54 @@ instr_print(pcounter pc, const bool recurse, const int tabcount, const program *
          cout << "NEW NODE TO " << reg_string(new_node_reg(pc)) << endl;
          break;
 
-      case NEW_AXIOMS_INSTR:
-         cout << "NEW AXIOMS ..." << endl;
+      case NEW_AXIOMS_INSTR: {
+         cout << "NEW AXIOMS" << endl;
+         const pcounter end(pc + new_axioms_jump(pc));
+         pcounter p(pc);
+         p += NEW_AXIOMS_BASE;
+
+         while(p < end) {
+            // read axions until the end!
+            predicate_id pid(predicate_get(p, 0));
+            predicate *pred(prog->get_predicate(pid));
+            print_tab(tabcount+1);
+            cout << pred->get_name() << "(";
+
+            p++;
+
+            for(size_t i(0), num_fields(pred->num_fields());
+                  i != num_fields;
+                  ++i)
+            {
+               switch(pred->get_field_type(i)) {
+                  case FIELD_INT:
+                     cout << pcounter_int(p);
+                     pcounter_move_int(&p);
+                     break;
+                  case FIELD_FLOAT:
+                     cout << pcounter_float(p);
+                     pcounter_move_float(&p);
+                     break;
+                  case FIELD_NODE:
+                     cout << "@" << pcounter_node(p);
+                     pcounter_move_node(&p);
+                     break;
+                  case FIELD_LIST_FLOAT:
+                     cout << "[";
+                     while(*p++ == 1) {
+                        cout << pcounter_float(p) << ", ";
+                        pcounter_move_float(&p);
+                     }
+                     cout << "]";
+                     break;
+                  default: assert(false);
+               }
+               if(i != num_fields-1)
+                  cout << ", ";
+            }
+            cout << ")" << endl;
+         }
+                             }
          break;
 
       case SEND_DELAY_INSTR:
@@ -422,6 +501,29 @@ instr_print(pcounter pc, const bool recurse, const int tabcount, const program *
               << endl;
 
          break;
+
+      case PUSH_INSTR:
+         cout << "PUSH" << endl;
+         break;
+
+      case POP_INSTR:
+         cout << "POP" << endl;
+         break;
+
+      case PUSH_REGS_INSTR:
+         cout << "PUSH REGS" << endl;
+         break;
+
+      case POP_REGS_INSTR:
+         cout << "POP REGS" << endl;
+         break;
+
+      case CALLF_INSTR: {
+         const callf_id id(callf_get_id(pc));
+
+         cout << "CALLF " << to_string((int)id) << endl;
+         break;
+      }
 
     	case ELSE_INSTR:
 		default:

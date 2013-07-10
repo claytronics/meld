@@ -71,8 +71,10 @@ predicate::make_predicate_from_buf(byte *buf, code_size_t *code_size, const pred
    
    // read predicate name
    pred->name = string((const char*)buf);
+
    printf("predicate [%s]\n", (const char*)buf);
    pred->global_prio = NO_GLOBAL_PRIORITY;
+
 
    buf += PRED_NAME_SIZE_MAX;
    
@@ -196,9 +198,6 @@ predicate::print(ostream& cout) const
       cout << ",action";
    if(is_reused)
       cout << ",reused";
-	if(is_global_priority())
-		cout << ",global_prio/" << priority_argument << "=" <<
-			(global_prio == PRIORITY_ASC ? "asc" : "desc");
    
    cout << "]";
    
@@ -224,6 +223,26 @@ predicate::print(ostream& cout) const
       }
       cout << "]";
    }
+}
+
+bool
+predicate::operator==(const predicate& other) const
+{
+   if(id != other.id)
+      return false;
+
+   if(num_fields() != other.num_fields())
+      return false;
+
+   if(name != other.name)
+      return false;
+
+   for(size_t i = 0; i < num_fields(); ++i) {
+      if(types[i] != other.types[i])
+         return false;
+   }
+
+   return true;
 }
 
 ostream& operator<<(ostream& cout, const predicate& pred)

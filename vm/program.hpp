@@ -13,10 +13,16 @@
 #include "vm/defs.hpp"
 #include "vm/tuple.hpp"
 #include "vm/rule.hpp"
+#include "vm/function.hpp"
 #include "runtime/string.hpp"
 #include "queue/heap_implementation.hpp"
 
 namespace vm {
+
+typedef enum {
+   PRIORITY_ASC,
+   PRIORITY_DESC
+} priority_type;
 
 const size_t INIT_PREDICATE_ID(0);
 const size_t SET_PRIORITY_PREDICATE_ID(1);
@@ -35,7 +41,9 @@ private:
 	size_t num_args;
    size_t number_rules;
 
-   std::vector<rule *> rules;
+   std::vector<rule*> rules;
+
+   std::vector<function*> functions;
    
    std::vector<predicate*> predicates;
   
@@ -49,6 +57,9 @@ private:
    std::vector<predicate*> route_predicates;
    
    bool safe;
+   bool is_data_file;
+
+   rule *data_rule;
 
    mutable predicate *init;
 
@@ -56,7 +67,6 @@ private:
 	
 	string_store default_strings;
 	
-	predicate *priority_pred;
    strat_level priority_strat_level;
    field_type priority_type;
    vm::priority_type priority_order;
@@ -66,7 +76,7 @@ private:
    
 public:
 
-   static strat_level MAX_STRAT_LEVEL;
+   strat_level MAX_STRAT_LEVEL;
 
    inline size_t num_rules(void) const { return number_rules; }
 	inline size_t num_args_needed(void) const { return num_args; }
@@ -78,13 +88,15 @@ public:
       return rules[id];
    }
 
-	inline predicate *get_priority_predicate(void) const { return priority_pred; }
-	inline field_num get_priority_argument(void) const { return priority_pred->get_priority_argument(); }
+   inline function *get_function(const size_t id) const {
+      assert(id < functions.size());
+      return functions[id];
+   }
+
    inline field_type get_priority_type(void) const { return priority_type; }
    inline strat_level get_priority_strat_level(void) const { return priority_strat_level; }
 	inline bool is_priority_asc(void) const { return priority_order == PRIORITY_ASC; }
 	inline bool is_priority_desc(void) const { return priority_order == PRIORITY_DESC; }
-	inline bool has_global_priority(void) const { return priority_pred != NULL; }
 
    inline heap_priority get_initial_priority(void) const { return initial_priority; }
 	
@@ -120,6 +132,9 @@ public:
    tuple* new_tuple(const predicate_id&) const;
    
    inline bool is_safe(void) const { return safe; }
+   inline bool is_data(void) const { return is_data_file; }
+
+   bool add_data_file(vm::program&);
    
    explicit program(const std::string&);
    

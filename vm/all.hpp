@@ -2,6 +2,7 @@
 #ifndef VM_ALL_HPP
 #define VM_ALL_HPP
 
+#include <boost/mpi.hpp>
 #include "vm/program.hpp"
 
 #define MAX_CONSTS 32
@@ -58,6 +59,8 @@ class all
 	define_get_const(node, node_val, *(node_val*)(consts + id))
 	
 #undef define_get_const
+
+   inline tuple_field get_const(const const_id& id) { return consts[id]; }
 	
 #define define_set_const(WHAT, TYPE, CODE) void set_const_ ## WHAT (const const_id& id, const TYPE val) { CODE;}
 	

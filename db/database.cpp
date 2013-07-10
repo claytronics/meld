@@ -1,12 +1,19 @@
 #include "vm/defs.hpp"
 #include "db/database.hpp"
 #include "vm/state.hpp"
+#include "api/api.hpp"
+
+#define SYNC_MPI
+#ifdef SYNC_MPI
+#include "boost/serialization/string.hpp"
+#endif
 
 using namespace db;
 using namespace std;
 using namespace vm;
 using namespace process;
 using namespace utils;
+namespace mpi = boost::mpi;
 
 namespace db
 {
@@ -62,15 +69,23 @@ database::~database(void)
 node*
 database::find_node(const node::node_id id) const
 {
+    /* MPI NOTE: find_node only finds the node in the current database.
+     * Since the current implementation of the MPI has each process
+     * containing all of the nodes, this is a non-issue.  However if the
+     * nodes are partitioned throughout the process, then find node needs to
+     * take into consideration of the id translation
+     * -- Xing
+     */
    map_nodes::const_iterator it(nodes.find(id));
 
    if(it == nodes.end()) {
       cerr << "Could not find node with id " << id << endl;
       abort();
    }
-   
+
    return it->second;
 }
+
 
 node*
 database::create_node_id(const db::node::node_id id)
@@ -85,7 +100,6 @@ database::create_node_id(const db::node::node_id id)
    max_translated_id = id;
 
    node *ret(create_fn(max_node_id, max_translated_id, all));
-   /*Implementation specific for bbsimapi(singleton)*/
    translation[max_node_id] = max_translated_id;
    nodes[max_node_id] = ret;
 
@@ -104,9 +118,9 @@ database::create_node(void)
    	++max_node_id;
    	++max_translated_id;
 	}
-	
+
    node *ret(create_fn(max_node_id, max_translated_id, all));
-   
+
    translation[max_node_id] = max_translated_id;
    nodes[max_node_id] = ret;
 
@@ -116,23 +130,142 @@ database::create_node(void)
 void
 database::print_db(ostream& cout) const
 {
-   for(map_nodes::const_iterator it(nodes.begin());
-      it != nodes.end();
-      ++it)
-   {
-      cout << *(it->second) << endl;
-   }
+
+#ifdef SYNC_MPI
+    api::world->barrier();
+
+    const int TOKEN = 0;
+    const int DONE = 1;
+
+    int source = (api::world->rank() - 1) % api::world->size();
+    int dest = (api::world->rank() + 1) % api::world->size();
+
+    if (api::world->rank() == 0) {
+        for (map_nodes::const_iterator it(nodes.begin()); it != nodes.end(); ++it) {
+            node::node_id id = it->first;
+
+            if (api::on_current_process(id)) {
+                cout << "[PID " << api::world->rank() << "] " << *(it->second) << endl;
+                cout.flush();
+            } else {
+                api::world->send(api::get_process_id(id), TOKEN, id);
+
+                string result;
+                api::world->recv(api::get_process_id(id), TOKEN, result);
+
+                cout << result << endl;
+                cout.flush();
+            }
+        }
+        // Finish printing, signal done
+        api::world->isend(dest, DONE);
+    } else {
+        while(true) {
+            boost::mpi::status status = api::world->probe(boost::mpi::any_source,
+                                                          boost::mpi::any_tag);
+
+            if (status.tag() == DONE) {
+                // Done tag received, terminated
+                api::world->irecv(source, DONE);
+                api::world->isend(dest, DONE);
+                break;
+            }
+
+            node::node_id id;
+
+            api::world->recv(0, TOKEN, id);
+
+            assert(api::on_current_process(id));
+
+            ostringstream stream;
+            string output;
+
+            stream << "[PID " << api::world->rank() << "] " << *(nodes.at(id));
+
+            output = stream.str();
+
+            api::world->send(0, TOKEN, output);
+        }
+    }
+#endif
 }
 
 void
-database::dump_db(ostream& cout) const
+database::print_db_debug(ostream& cout, unsigned int nodeNumber) const
 {
    for(map_nodes::const_iterator it(nodes.begin());
       it != nodes.end();
       ++it)
    {
-      it->second->dump(cout);
+     if ((nodeNumber == it->second->get_translated_id())){
+      cout << *(it->second) << endl;
+      return;
+     }
    }
+   cout << "NODE SPECIFIED NOT IN DATABASE" << endl;
+}
+
+
+
+void
+database::dump_db(ostream& cout) const
+{
+#ifdef SYNC_MPI
+    api::world->barrier();
+
+    const int TOKEN = 0;
+    const int DONE = 1;
+
+    int source = (api::world->rank() - 1) % api::world->size();
+    int dest = (api::world->rank() + 1) % api::world->size();
+
+    if (api::world->rank() == 0) {
+        for (map_nodes::const_iterator it(nodes.begin()); it != nodes.end(); ++it) {
+            node::node_id id = it->first;
+
+            if (api::on_current_process(id)) {
+                it->second->dump(cout);
+            } else {
+                api::world->send(api::get_process_id(id), TOKEN, id);
+
+                string result;
+                api::world->recv(api::get_process_id(id), TOKEN, result);
+
+                cout << result;
+                cout.flush();
+            }
+        }
+        // Finish printing, signal done
+        api::world->isend(dest, DONE);
+    } else {
+        while(true) {
+            boost::mpi::status status = api::world->probe(boost::mpi::any_source,
+                                                          boost::mpi::any_tag);
+
+            if (status.tag() == DONE) {
+                // Done tag received, terminated
+                api::world->irecv(source, DONE);
+                api::world->isend(dest, DONE);
+                break;
+            }
+
+            node::node_id id;
+
+            api::world->recv(0, TOKEN, id);
+
+            assert(api::on_current_process(id));
+
+            ostringstream stream;
+            string output;
+
+            nodes.at(id)->dump(stream);
+
+            output = stream.str();
+
+            api::world->send(0, TOKEN, output);
+        }
+    }
+#endif
 }
 
 

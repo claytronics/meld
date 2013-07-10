@@ -1,6 +1,5 @@
 #include <iostream>
 #include <signal.h>
-
 #include "process/machine.hpp"
 #include "vm/program.hpp"
 #include "vm/state.hpp"
@@ -13,6 +12,9 @@
 #include "interface.hpp"
 #include "sched/serial.hpp"
 #include "api/api.hpp"
+#include "debug/debug_handler.hpp"
+#include "debug/debug_prompt.hpp"
+
 
 using namespace process;
 using namespace db;
@@ -27,15 +29,6 @@ using namespace api;
 
 namespace process
 {
-
-  bool
-  machine::same_place(const node::node_id id1, const node::node_id id2) const
-  {
-    if(id1==id2)
-      return true;
-    else
-      return false;
-  }
 
 
   void
@@ -118,11 +111,14 @@ namespace process
        }
 
        delete tpl;
+       runBreakPoint("action","","",-1);
      }
+   
+ 
 
-     void
-     machine::route_self(sched::base *sched, node *node, simple_tuple *stpl, const uint_val delay)
-     {
+  void
+  machine::route_self(sched::base *sched, node *node, simple_tuple *stpl, const uint_val delay)
+  {
        if(delay > 0) {
         work new_work(node, stpl);
         sched->new_work_delay(sched, node, new_work, delay);
@@ -130,51 +126,42 @@ namespace process
         assert(!stpl->get_tuple()->is_action());
         sched->new_work_self(node, stpl);
       }
-    }
-
-    void
-    machine::route(node* from, sched::base *sched_caller, const node::node_id id, simple_tuple* stpl, const uint_val delay)
-    {  
-
- /*   const predicate *pred(stpl->get_predicate());
-	if((from->get_id())!=id){
-		api::send_message(from,id,stpl);
-		return;
-	}
-
-
-	assert(sched_caller != NULL);
-   	assert(id <= this->all->DATABASE->max_id());
-
-  node *node(this->all->DATABASE->find_node(id));
-
-  sched::base *sched_other(sched_caller->find_scheduler(node));
-  
-  if(delay > 0) {
-        work new_work(node, stpl);
-     sched_caller->new_work_delay(sched_caller, from, new_work, delay);
-  } else if(pred->is_action_pred()) {
-        run_action(sched_other, node, stpl->get_tuple(), sched_caller != sched_other);
-        delete stpl;
-    } else if(sched_other == sched_caller) {
-      work new_work(from, stpl);
-     sched_caller->new_work(from, new_work);
-  } else {
-     work new_work(node, stpl);
-     sched_caller->new_work_other(sched_other, new_work);
-  }*/
-
-     if(delay==0){}//Redundant statement
-
-     cout<<"in route"<<endl;
-     if((from->get_id())!=id){
-      api::send_message(from,id,stpl);
-      return;
-    }
-    work new_work(from, stpl);
-    sched_caller->new_work(from, new_work);
-
   }
+
+
+void
+machine::route(const node* from, sched::base *sched_caller, const node::node_id id, simple_tuple* stpl, const uint_val delay)
+{
+   assert(sched_caller != NULL);
+   assert(id <= this->all->DATABASE->max_id());
+
+   if (api::on_current_process(id)){
+       /* Belongs to the same process, does not require MPI */
+      node *node(this->all->DATABASE->find_node(id));
+
+      sched::base *sched_other(sched_caller->find_scheduler(node));
+        const predicate *pred(stpl->get_predicate());
+
+      if(delay > 0) {
+            work new_work(node, stpl);
+         sched_caller->new_work_delay(sched_caller, from, new_work, delay);
+      } else if(pred->is_action_pred()) {
+            run_action(sched_other, node, stpl->get_tuple(), sched_caller != sched_other);
+            delete stpl;
+      } else if(sched_other == sched_caller) {
+            work new_work(node, stpl);
+
+         sched_caller->new_work(from, new_work);
+      } else {
+         work new_work(node, stpl);
+
+         sched_caller->new_work_other(sched_other, new_work);
+      }
+   } else {
+     /* Send to the correct process */
+     api::send_message(from,id,stpl);
+   }
+}
 
 
 
@@ -183,11 +170,11 @@ namespace process
   machine::deactivate_signals(void)
   {
    sigset_t set;
-   
+
    sigemptyset(&set);
    sigaddset(&set, SIGALRM);
    sigaddset(&set, SIGUSR1);
-   
+
    sigprocmask(SIG_BLOCK, &set, NULL);
  }
 
@@ -197,12 +184,12 @@ namespace process
    // pre-compute the number of usecs from msecs
    static long usec = SLICE_PERIOD * 1000;
    struct itimerval t;
-   
+
    t.it_interval.tv_sec = 0;
    t.it_interval.tv_usec = 0;
    t.it_value.tv_sec = 0;
    t.it_value.tv_usec = usec;
-   
+
    setitimer(ITIMER_REAL, &t, 0);
  }
 
@@ -210,7 +197,7 @@ namespace process
  machine::slice_function(void)
  {
    bool tofinish(false);
-   
+
    // add SIGALRM and SIGUSR1 to sigset
 	// to be used by sigwait
    sigset_t set;
@@ -219,11 +206,10 @@ namespace process
    sigaddset(&set, SIGUSR1);
 
    int sig;
-   
-   set_timer();
-   
-   while (true) {
 
+   set_timer();
+
+   while (true) {
     const int ret(sigwait(&set, &sig));
 
     assert(ret == 0);
@@ -241,23 +227,36 @@ namespace process
     default: assert(false);
   }
 }
+
 }
 
 void
 machine::execute_const_code(void)
 {
 	state st(all);
-	
+
 	// no node or tuple whatsoever
 	st.setup(NULL, NULL, 0);
-	sleep(2);
+
+	/*start execution of byte code once ID is received*/
+
+
+	if (isInDebuggingMode()) {
+	  debug(st);
+	  pauseIt();
+	} else if (isInSimDebuggingMode()){
+	  initSimDebug();
+	}
+
+
 	execute_bytecode(all->PROGRAM->get_const_bytecode(), st);
 }
+
 /*
 void
 machine::init_thread(sched::base *sched)
 {
-	all->ALL_THREADS.push_back(sched);
+        all->ALL_THREADS.push_back(sched);
 	all->NUM_THREADS++;
 	sched->start();
 }*/
@@ -267,24 +266,26 @@ machine::init_thread(sched::base *sched)
   machine::start(void)
   {
 	// execute constants code
-//api::set_color(this->all->DATABASE->max_id(),255,0,0);	
-    execute_const_code();
 
-    deactivate_signals();
+	execute_const_code();
+
+   deactivate_signals();
+
 
    // Statistics sampling
     if(stat_enabled()) {
       // initiate alarm thread
       alarm_thread = new boost::thread(bind(&machine::slice_function, this));
-    }
+   }
 
    //for(size_t i(1); i < all->NUM_THREADS; ++i)
       //this->all->ALL_THREADS[i]->start();
-    this->all->ALL_THREADS[0]->start();
+   this->all->ALL_THREADS[0]->start();
 
    // Wait for threads to finish, if thread > 1
    //for(size_t i(1); i < all->NUM_THREADS; ++i)
       //this->all->ALL_THREADS[i]->join();
+
 
 #ifndef NDEBUG
     for(size_t i(1); i < all->NUM_THREADS; ++i)
@@ -324,63 +325,84 @@ machine::init_thread(sched::base *sched)
 static inline database::create_node_fn
 get_creation_function(const scheduler_type sched_type)
 {
- switch(sched_type) {
-  case SCHED_SERIAL:
-  return database::create_node_fn(sched::serial_local::create_node);
-  case SCHED_UNKNOWN:
-  return NULL;
-  default:
-  return NULL;
+
+   switch(sched_type) {
+      case SCHED_SERIAL:
+         return database::create_node_fn(sched::serial_local::create_node);
+      case SCHED_UNKNOWN:
+         return NULL;
+      default:
+         return NULL;
+   }
+
+   throw machine_error("unknown scheduler type");
+
 }
 
-throw machine_error("unknown scheduler type");
-}
 
 machine::machine(const string& file, const size_t th,
-  const scheduler_type _sched_type, const machine_arguments& margs):
-all(new vm::all()),
-filename(file),
-sched_type(_sched_type),
-alarm_thread(NULL),
+		const scheduler_type _sched_type, const machine_arguments& margs, const string& data_file):
+   all(new vm::all()),
+   filename(file),
+   sched_type(_sched_type),
+   alarm_thread(NULL),
    slices(th) /* th = number of threads, slices is for statistics */
 {
-    this->all->PROGRAM = new vm::program(file); /* predicates information, byte code for all the rules */
+    bool added_data_file(false);
 
-  if(margs.size() < this->all->PROGRAM->num_args_needed())
-    throw machine_error(string("this program requires ") + utils::to_string(all->PROGRAM->num_args_needed()) + " arguments");
+    this->all->PROGRAM = new vm::program(file);
+    if(this->all->PROGRAM->is_data())
+       throw machine_error(string("cannot run data files"));
+    if(data_file != string("")) {
+       if(file_exists(data_file)) {
+          vm::program data(data_file);
+          if(!this->all->PROGRAM->add_data_file(data)) {
+             throw machine_error(string("could not import data file"));
+          }
+          added_data_file = true;
+       } else {
+          throw machine_error(string("data file ") + data_file + string(" not found"));
+       }
+    }
 
-  this->all->ARGUMENTS = margs;
-  this->all->DATABASE =  new database(filename, get_creation_function(_sched_type), this->all);
-  this->all->NUM_THREADS = th;
-  this->all->MACHINE = this;
+    if(margs.size() < this->all->PROGRAM->num_args_needed())
+        throw machine_error(string("this program requires ") + utils::to_string(all->PROGRAM->num_args_needed()) + " arguments");
+
+   this->all->MACHINE = this;
+   this->all->ARGUMENTS = margs;
+   this->all->DATABASE = new database(added_data_file ? data_file : filename, get_creation_function(_sched_type), this->all);
+   this->all->NUM_THREADS = th;
 
    // Instantiate the scheduler object
-  switch(sched_type) {
-    case SCHED_SERIAL:
-    this->all->ALL_THREADS.push_back(dynamic_cast<sched::base*>(new sched::serial_local(this->all)));
-    break;
-    case SCHED_UNKNOWN: assert(false); break;
-    default: break;
-  }
+   switch(sched_type) {
+      case SCHED_SERIAL:
+         this->all->ALL_THREADS.push_back(dynamic_cast<sched::base*>(new sched::serial_local(this->all)));
+         break;
+      case SCHED_UNKNOWN: assert(false); break;
+      default: break;
+   }
 
-  assert(this->all->ALL_THREADS.size() == all->NUM_THREADS);
+   assert(this->all->ALL_THREADS.size() == all->NUM_THREADS);
+
 }
 
 machine::~machine(void)
 {
    // when deleting database, we need to access the program,
    // so we must delete this in correct order
- delete this->all->DATABASE;
 
- for(process_id i(0); i != all->NUM_THREADS; ++i)
-  delete all->ALL_THREADS[i];
+   delete this->all->DATABASE;
 
-delete this->all->PROGRAM;
+   for(process_id i(0); i != all->NUM_THREADS; ++i)
+      delete all->ALL_THREADS[i];
 
-if(alarm_thread)
-  delete alarm_thread;
+   delete this->all->PROGRAM;
 
-mem::cleanup(all->NUM_THREADS);
+   if(alarm_thread)
+      delete alarm_thread;
+
+   mem::cleanup(all->NUM_THREADS);
+
 }
 
 }
