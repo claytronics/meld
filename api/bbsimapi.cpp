@@ -87,7 +87,7 @@ namespace api
     if (schedular == NULL) return;
 
     for (int i=0; i<16; i++) 
-      msgcmd2str[i] = NULL;
+    msgcmd2str[i] = NULL;
     msgcmd2str[SETID] = "SETID";
     msgcmd2str[STOP] = "STOP";
     msgcmd2str[ADD_NEIGHBOR] = "ADD_NEIGHBOR";
@@ -312,14 +312,6 @@ tcp_poll()
   }
   return NULL;
 }
-
-/*static void 
-send_message_tcp(message *m)
-{
-  message_type msg[20];
-  msg=dynamic_cast<message_type*> (m);
-  boost::asio::write(*my_tcp_socket, boost::asio::buffer(msg, msg[0] + sizeof(message_type)));
-}*/
 
   static void 
   send_message_tcp(message_type *msg)
