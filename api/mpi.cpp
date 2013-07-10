@@ -38,10 +38,7 @@ namespace api {
 //#define DEBUG_MPI
 
 // token tags to specify the token message being sent
-#define BLACK 0
-#define WHITE 1
-#define DONE 2
-#define TOKEN_OFFSET 3
+    enum {BLACK, WHITE, DONE, TOKEN_OFFSET};
 
     mpi::communicator *world;
     int world_sum;
