@@ -140,7 +140,7 @@ base::do_loop(void)
      finish_work(node);
    }
 
-   if (!api::poll(this, state.all))
+   if (!api::pollAndProcess(this, state.all))
      break;
  }
     // cout << "Process " << api::world->rank() << " terminated!!!" << endl;

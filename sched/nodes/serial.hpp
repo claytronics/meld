@@ -13,7 +13,7 @@
 
 // Node type for sequential scheduler
 namespace sched
-{ 
+{
 
 enum face_t {
    INVALID_FACE = -1,
@@ -41,7 +41,7 @@ class serial_node: public in_queue_node
 /*Making it compatible with simulator*/
 public:
    DECLARE_DOUBLE_QUEUE_NODE(serial_node);
-   typedef queue::unsafe_bounded_pqueue<db::simple_tuple*>::type queue_type;  
+   typedef queue::unsafe_bounded_pqueue<db::simple_tuple*>::type queue_type;
    queue_type queue;
 
 
@@ -59,17 +59,17 @@ private:
 
 
 public:
-	
+
 	typedef queue_type::const_iterator queue_iterator;
-	
+
 	inline queue_iterator begin(void) const { return queue.begin(); }
 	inline queue_iterator end(void) const { return queue.end(); }
-   
+
    inline void add_work(db::simple_tuple *stpl)
    {
       queue.push(stpl, stpl->get_strat_level());
    }
-   
+
    inline bool has_work(void) const { return !queue.empty(); }
 
    virtual void assert_end(void) const
@@ -141,26 +141,12 @@ public:
    explicit serial_node(const db::node::node_id _id, const db::node::node_id _trans, vm::all *all):
       in_queue_node(_id, _trans, all),
       INIT_DOUBLE_QUEUE_NODE(),
-<<<<<<< HEAD
-      queue(vm::program::MAX_STRAT_LEVEL),
-	  top(NO_NEIGHBOR), bottom(NO_NEIGHBOR), east(NO_NEIGHBOR),
-      west(NO_NEIGHBOR), north(NO_NEIGHBOR), south(NO_NEIGHBOR),
-      instantiated_flag(false),
-      neighbor_count(0)
-    {
-	top = bottom = west = east = north = south = -1;
-	}
-
-
-
-=======
       queue(all->PROGRAM->MAX_STRAT_LEVEL)
    {}
->>>>>>> boostmpi
 
    virtual ~serial_node(void) { }
 };
-   
+
 }
 
 #endif
