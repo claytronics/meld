@@ -15,7 +15,7 @@
 
 using namespace std;
 using namespace vm;
-
+using namespace debugger;
 
 namespace debugger {
 

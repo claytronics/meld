@@ -9,6 +9,7 @@
 
 using namespace std;
 
+namespace debugger {
 
 /*returns an empty breakpoint list - an empty breakpoint list has 
   one node but NULL data*/
@@ -87,6 +88,6 @@ bool isInBreakPointList(debugList L, char* type, char* name, int nodeID){
   return false;
 }
 
-
+}
 
 

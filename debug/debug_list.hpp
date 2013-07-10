@@ -2,7 +2,7 @@
 #ifndef DEBUG_LIST_HPP
 #define DEBUG_LIST_HPP
 
-
+namespace debugger {
 
 struct debugnode{
   struct debugnode* next;
@@ -25,5 +25,6 @@ void insertBreak(debugList L, char* type, char* name, int nodeID);
 void listFree(debugList L);
 debugList newBreakpointList();
 
+}
 
 #endif
