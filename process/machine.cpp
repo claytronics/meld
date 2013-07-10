@@ -194,7 +194,7 @@ machine::execute_const_code(void)
 	st.setup(NULL, NULL, 0);
 
 	if (isInDebuggingMode()) {
-	  debug(st);
+	  debugger::debug(st);
 	  pauseIt();
 	} else if (isInSimDebuggingMode()){
 	  initSimDebug();

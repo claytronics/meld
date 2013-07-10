@@ -9,15 +9,13 @@
 #include <stdlib.h>
 #include "debug/debug_handler.hpp"
 #include "debug/debug_list.hpp"
+#include "debug/debug_prompt.hpp"
 
 using namespace std;
 using namespace vm;
 
-/*function prototypes*/
-void *run_debugger(void * curState);
-void parseline(string line, state& st, debugList& factBreaks);
-int handle_command(string command, debugList& factList);
-void help();
+
+namespace debugger {
 
 /*to store the last input in the debugger*/
 int lastInstruction = 0;
@@ -173,7 +171,7 @@ void help(){
   cout << "*******************************************************************" << endl;
 }
   
-
+}
 
   
     
