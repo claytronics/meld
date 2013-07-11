@@ -58,7 +58,7 @@ namespace debugger {
   int characterInStringIndex(string str, char character){
     for(unsigned int i = 0; i < str.length(); i++){
       if (str[i] == character)
-  return (int)i;
+          return (int)i;
     }
     return -1;
   }
@@ -368,7 +368,7 @@ namespace debugger {
       break;
     }
   }
-}
+
 
   /***************************************************************************/
 
@@ -426,15 +426,7 @@ namespace debugger {
    //process the queue
   }
 
-
-
-
-
-
 }
 
 
 
-
-
->>>>>>> origin/debug
