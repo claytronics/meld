@@ -35,7 +35,7 @@ using namespace std;
 namespace mpi = boost::mpi;
 
 namespace api {
-//#define DEBUG_MPI
+#define DEBUG_MPI
 
     // Function Prototypes
     void free_msgs(void);
