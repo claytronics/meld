@@ -5,34 +5,11 @@
 #include <stdlib.h>
 #include <string.h>
 #include <iostream>
+#include "debug/debug_list.hpp"
 
 using namespace std;
 
-
-struct debugnode{
-  struct debugnode* next;
-  struct debugnode* prev;
-  char* type;//must be dynamically allocated upon insertion
-  char* name;//same
-  int nodeID;//not dynamically allocated
-};
-
-
-struct list_header{
-  struct debugnode* front;
-  struct debugnode* back;
-};
-
-typedef struct list_header* debugList;
-
-
-bool isInBreakPointList(debugList L, char* type, 
-			char* name, int nodeID);
-void insertBreak(debugList L, char* type, 
-		 char* name, int nodeID);
-void listFree(debugList L);
-debugList newBreakpointList();
-
+namespace debugger {
 
 /*returns an empty breakpoint list - an empty breakpoint list has 
   one node but NULL data*/
@@ -111,6 +88,79 @@ bool isInBreakPointList(debugList L, char* type, char* name, int nodeID){
   return false;
 }
 
+//removes a breakpoint from the list
+//returns 0 on success, -1 if specified is not in breakpoint list
+int removeBreakPoint(debugList L, char* type, char* name, int nodeID){
+  
+  struct debugnode* tmp;
 
+  if (isListEmpty(L))
+    return -1;
+  
+  for (struct debugnode* ptr = L->front; 
+       ptr->next!=NULL; ptr = ptr->next){
+    if (!strcmp(ptr->type,type)&&
+	//if "" the name or nodeId doesn't matter
+	(!strcmp(ptr->name,name)||!strcmp(ptr->name,""))&&
+	(ptr->nodeID == nodeID ||ptr->nodeID == -1)){
+      if (ptr == L->front){
+	L->front = ptr->next;
+	L->front->prev = NULL;
+	tmp = ptr;
+	free(tmp->type);
+	free(tmp->name);
+	free(tmp);
+	return 0;
+      } else if (ptr == L->back){
+	L->back = ptr->prev;
+	L->back->next = NULL;
+	tmp = ptr;
+	free(tmp->type);
+	free(tmp->name);
+	free(tmp);
+	return 0;
+      } else {
+	ptr->next->prev = ptr->prev;
+	ptr->prev->next = ptr->next;
+	tmp = ptr;
+	free(tmp->type);
+	free(tmp->name);
+	free(tmp);
+	return 0;
+      }
+    }
+  }
+  return -1;
+}
+
+
+void printList(debugList L){
+  int count  = 1;
+  cout << endl;
+  cout << "BREAKPOINT LIST";
+  if (isListEmpty(L)){
+    cout << ": (empty)" << endl << endl;
+    return;
+  } else
+    cout << endl;
+  cout << "\tTYPE\t\t\tNAME\t\t\tNODEID" << endl;
+  for (struct debugnode* ptr = L->front; ptr->next!=NULL; ptr=ptr->next){
+    cout << count << ". ";
+    cout << "\t" << ptr->type;
+    if (strcmp(ptr->name,"")!=0)
+      cout << "\t\t\t" << ptr->name;
+    else 
+      cout << "\t\t\t" << "(nil)";
+    if (ptr->nodeID != -1)
+      cout << "\t\t\t" << ptr->nodeID << endl;
+    else 
+      cout << "\t\t\t" << "(nil)" << endl;
+    count++;
+  }
+  cout << endl;
+}
+
+
+}
 
 

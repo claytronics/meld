@@ -9,23 +9,25 @@
 using namespace std;
 
 
+const int DUMP = 1;
+const int CONTINUE = 7;
+const int BREAKPOINT = 2;
+const int NOTHING = 8;
+const int REMOVE = 9;
+const int PAUSE = 4;
+const int UNPAUSE = 3;
+const int BREAKFOUND = 6;
+const int PRINTCONTENT = 5;
+const int FACTDER = 1;
+const int FACTCON = 2;
+const int FACTRET = 3;
+const int ACTION  = 4;
+const int SENSE = 5;
+const int BLOCK = 6;
+const int DEBUG = 16;
+const int DEBUGMPI = 0;
 
-#define DUMP 1
-#define CONTINUE 7
-#define BREAKPOINT 2
-#define NOTHING 8
-#define PAUSE 4
-#define UNPAUSE 3 
-#define BREAKFOUND 6
-#define PRINTCONTENT 5
-
-
-#define FACTDER 1
-#define FACTCON 2
-#define FACTRET 3
-#define ACTION 4
-#define SENSE 5
-#define BLOCK 6
+namespace debugger {
 
 
 void activateBreakPoint(string specification);
@@ -38,12 +40,20 @@ bool isTheSystemPaused();
 void setDebuggingMode(bool setting);
 bool isInDebuggingMode();
 bool isInSimDebuggingMode();
-bool setSimDebuggingMode();
 void setupFactList();
 debugList getFactList();
 void initSimDebug();
-bool setSimDebuggingMode(bool setting);
+void setSimDebuggingMode(bool setting);
 void handleDebugMessage(uint64_t *msg, vm::state& st);
+void display(string msg,int type);
+  int getInstruction(uint64_t* msg);
+  string getSpec(uint64_t* msg, int instruction);
+  string typeInt2String(int type);
+  string getNode(string specification);
+  string getName(string specification);
+  string getType(string specification);
+  int characterInStringIndex(string str, char character);
 
+}
 
 #endif

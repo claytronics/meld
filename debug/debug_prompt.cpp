@@ -9,15 +9,13 @@
 #include <stdlib.h>
 #include "debug/debug_handler.hpp"
 #include "debug/debug_list.hpp"
+#include "debug/debug_prompt.hpp"
 
 using namespace std;
 using namespace vm;
+using namespace debugger;
 
-/*function prototypes*/
-void *run_debugger(void * curState);
-void parseline(string line, state& st, debugList& factBreaks);
-int handle_command(string command, debugList& factList);
-void help();
+namespace debugger {
 
 /*to store the last input in the debugger*/
 int lastInstruction = 0;
@@ -95,7 +93,8 @@ void parseline(string line, state& st, debugList& factBreaks){
   if (wordCount == 1){
     command = handle_command(build,factBreaks);
     
-    if (command != BREAKPOINT && command!=DUMP){
+    if (command != BREAKPOINT && command!=DUMP 
+	&& command != REMOVE){
       debugController(st,command, build);
       lastInstruction = command;
       lastBuild = build;
@@ -104,14 +103,15 @@ void parseline(string line, state& st, debugList& factBreaks){
   }
   
   /*if not enough info - these  types must have a specification*/
-  if ((command == BREAKPOINT||command == DUMP)&& wordCount == 1){
+  if ((command == BREAKPOINT||command == DUMP||command == REMOVE)&& 
+      wordCount == 1){
       cout << "Please specify- type help for options" << endl;
       return;
   }
 
   /*handle breakpointsand dumps*/
   if (wordCount == 2){
-	if (command == BREAKPOINT||command == DUMP)
+	if (command == BREAKPOINT||command == DUMP||command == REMOVE)
 	  debugController(st,command,build);
 	else 
 	  debugController(st,command,"");
@@ -135,6 +135,11 @@ int handle_command(string command, debugList& factList){
     retVal = CONTINUE;
   } else if (command == "dump"||command == "d") {
     retVal = DUMP;
+  } else if (command == "print" || command == "p"){
+    printList(getFactList());
+    retVal = NOTHING;
+  } else if (command == "remove" || command == "rm"){
+    retVal = REMOVE;
   } else if (command == "continue"||command == "c"){
     retVal = CONTINUE;
   } else if (command == "quit"||command == "q"){
@@ -173,7 +178,7 @@ void help(){
   cout << "*******************************************************************" << endl;
 }
   
-
+}
 
   
     

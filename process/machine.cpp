@@ -25,6 +25,7 @@ using namespace mem;
 using namespace utils;
 using namespace statistics;
 using namespace api;
+using namespace debugger;
 
 namespace process
 {
@@ -106,6 +107,7 @@ namespace process
         sched->new_work_self(node, stpl);
       }
   }
+
 
 
 void
@@ -217,11 +219,11 @@ machine::execute_const_code(void)
 	// no node or tuple whatsoever
 	st.setup(NULL, NULL, 0);
 
-	if (isInDebuggingMode()) {
-	  debug(st);
-	  pauseIt();
-	} else if (isInSimDebuggingMode()){
-	  initSimDebug();
+	if (debugger::isInDebuggingMode()) {
+	  debugger::debug(st);
+	  debugger::pauseIt();
+	} else if (debugger::isInSimDebuggingMode()){
+	  debugger::initSimDebug();
 	}
 
 
