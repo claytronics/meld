@@ -29,23 +29,24 @@ const int DEBUGMPI = 0;
 
 namespace debugger {
 
+  std::queue<api::message_type*> messageQueue;
 
-void activateBreakPoint(string specification);
-void runBreakPoint(char* type, string msg, char* name, int nodeID);
-void pauseIt();
-void dumpSystemState(vm::state& st);
-void continueExecution();
-void debugController(vm::state& currentState, int instruction, string specification);
-bool isTheSystemPaused();
-void setDebuggingMode(bool setting);
-bool isInDebuggingMode();
-bool isInSimDebuggingMode();
-void setupFactList();
-debugList getFactList();
-void initSimDebug();
-void setSimDebuggingMode(bool setting);
-void handleDebugMessage(uint64_t *msg, vm::state& st);
-void display(string msg,int type);
+  void activateBreakPoint(string specification);
+  void runBreakPoint(char* type, string msg, char* name, int nodeID);
+  void pauseIt();
+  void dumpSystemState(vm::state& st);
+  void continueExecution();
+  void debugController(vm::state& currentState, int instruction, string specification);
+  bool isTheSystemPaused();
+  void setDebuggingMode(bool setting);
+  bool isInDebuggingMode();
+  bool isInSimDebuggingMode();
+  void setupFactList();
+  debugList getFactList();
+  void initSimDebug();
+  void setSimDebuggingMode(bool setting);
+  void handleDebugMessage(uint64_t *msg, vm::state& st);
+  void display(string msg,int type);
   int getInstruction(uint64_t* msg);
   string getSpec(uint64_t* msg, int instruction);
   string typeInt2String(int type);

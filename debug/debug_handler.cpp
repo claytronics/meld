@@ -12,7 +12,7 @@
 #include "db/database.hpp"
 #include "debug/debug_prompt.hpp"
 #include "debug/debug_handler.hpp"
- 
+#include "api/api.hpp" 
 
 using namespace std;
 using namespace vm;
@@ -374,7 +374,7 @@ namespace debugger {
   
   /*DEBUG MESSAGE SENDING*/
 
-  /***/
+  /***************************************************************************/
 
   inline int getSize(string content){
     return  3 + ((content.size()+1) + (SIZE-(content.size()+1)%SIZE))/SIZE;
@@ -383,7 +383,7 @@ namespace debugger {
   uint64_t* pack(int msgEncode, string content){
 
     int size;
-    uint64_t* msg;
+    api::message_type *msg;
     char * temp;
     
     switch(msgEncode){
@@ -393,7 +393,7 @@ namespace debugger {
     case UNPAUSE:
     case PAUSE:
       size = 3;
-      msg = new uint64_t[size];
+      msg = new api::message_type[size];
       msg[0] = size;
       msg[1] = DEBUG;
       msg[2] = msgEncode;
@@ -404,11 +404,11 @@ namespace debugger {
     case BREAKFOUND:
     case BREAKPOINT:
       size = getSize(content);
-      msg = new uint64_t[size];
+      msg = new api::message_type[size];
       msg[0] = size;
       msg[1] = DEBUG;
       msg[2] = msgEncode;
-      char *temp = (char*)&msg[3];
+      temp = (char*)&msg[3];
       sprintf(temp,"%s",content.c_str());
       return msg;
       break;
@@ -422,7 +422,7 @@ namespace debugger {
   }
 
   void getMsg(int numberExpected){
-    //api::debugGetMsg();
+    //api::debugGetMsgs();
    //process the queue
   }
 
