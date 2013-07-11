@@ -24,7 +24,8 @@ const int FACTRET = 3;
 const int ACTION  = 4;
 const int SENSE = 5;
 const int BLOCK = 6;
-
+const int DEBUG = 16;
+const int DEBUGMPI = 0;
 
 namespace debugger {
 

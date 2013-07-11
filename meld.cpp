@@ -102,12 +102,19 @@ read_arguments(int argc, char **argv)
             help();
             break;
          case 'D':
-	   cout << "DEBUGGING MODE- type help for options" << endl;
-	   debugger::setDebuggingMode(true);
+	   if (string(argv[1]) == "VM"){
+	     cout << "DEBUGGING MODE -- type 'help' for options" << endl;
+	     debugger::setDebuggingMode(true);
+	   } else if (string(argv[1]) == "MPI"){
+	     //setMpiDebuggingMode(true);
+	   } else if (string(argv[1]) == "SIM"){
+	     debugger::setSimDebuggingMode(true);
+	   } else {
+	     cout << "Unknow debug option" << endl;
+	     exit(0);
+	   }
 	   break;
-         case 'S':
-	   debugger::setSimDebuggingMode(true);
-	   break;
+	   
 	   
 			case '-':
 				
