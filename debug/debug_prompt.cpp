@@ -26,17 +26,17 @@ namespace debugger {
     setupFactList();
 
     pthread_t tid;
-    pthread_create(&tid,NULL,run_debugger, &st);
+    pthread_create(&tid,NULL,run, &st);
 
   }
 
 
   //continuously attend command line prompt for debugger
   //when the system is not paused
-  void *run_debugger(void * curState){
+  void *run(void * curState){
  
     string inpt;
-    vm::state st = *(vm::state *)curState;
+    vm::state st = *(getState());
     debugList factBreaks = getFactList();
 
     while(true){

@@ -30,6 +30,8 @@
 #include "process/machine.hpp"
 #include <vector>
 #include <utility>
+#include "debug/debug_handler.hpp"
+#include "debug/debug_prompt.hpp"
 
 using namespace std;
 namespace mpi = boost::mpi;
@@ -264,6 +266,11 @@ namespace api {
         if (sched == NULL) {
             mpi::environment* env = new mpi::environment(argc, argv);
             world = new mpi::communicator();
+        }
+        
+        //force process zero to be the debugging master process
+        if (debugger::isInMpiDebuggingMode()&&world->rank()==0){
+            debugger::run(NULL);
         }
     }
 

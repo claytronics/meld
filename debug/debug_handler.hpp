@@ -54,8 +54,10 @@ namespace debugger {
     std::string getType(std::string specification);
     int characterInStringIndex(std::string str, char character);
     void initMpiDebug(void);
-    bool isInMpiDebeuggingMode(void);
-
+    bool isInMpiDebuggingMode(void);
+    void setState(vm::state& st);
+    void setMpiDebuggingMode(bool setting);
+    vm::state *getState(void);
 }
 
 #endif

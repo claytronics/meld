@@ -38,6 +38,9 @@ namespace debugger {
     /*the pointer to the list of break points*/
     static debugList factBreakList = NULL;
 
+    /*pointer to the system state class*/
+    static state *systemState;
+
     /******************************************************************/
     
     /*DEBUG INITIALIZERS*/
@@ -53,7 +56,13 @@ namespace debugger {
     /*setup MPI debugging mode*/
     void initMpiDebug(void){
         setupFactList();
-        std::queue<api::message_type*> messageQueue;
+        std::queue<api::message_type*> messageQueue = 
+            *(new std::queue<api::message_type*>());
+    }
+    
+    /*extract the pointer to the system state*/
+    void setState(vm::state& st){
+        systemState = &st;
     }
 
 
@@ -73,7 +82,7 @@ namespace debugger {
     }
 
     /*indicate to go into MPI debugging mode*/
-    void setMpiDebuggingMore(bool setting){
+    void setMpiDebuggingMode(bool setting){
         isMpiDebug  = setting;
     }
 
@@ -108,6 +117,10 @@ namespace debugger {
     /*return the pointer the list of breakpoints*/
     debugList getFactList(void){
         return factBreakList;
+    }
+    
+    vm::state *getState(void){
+        return systemState;
     }
         
 
