@@ -1,4 +1,3 @@
-
 /*API TO HANDLE BREAKPOINTS, DUMPS, AND CONTINUES*/
 
 
@@ -54,7 +53,7 @@ namespace debugger {
     return isSystemPaused;
   }
 
-  //returns the index of a character in a string, 
+  //returns the index of a character in a string,
   //if it is not there it returns -1
   int characterInStringIndex(string str, char character){
     for(unsigned int i = 0; i < str.length(); i++){
@@ -70,9 +69,9 @@ namespace debugger {
   string getType(string specification){
     string build = "";
     for (unsigned int i = 0; i < specification.length(); i++){
-      if(specification[i] == ':' || specification[i] == '@') 
+      if(specification[i] == ':' || specification[i] == '@')
   return build;
-      else 
+      else
   build += specification[i];
     }
     return build;
@@ -89,7 +88,7 @@ namespace debugger {
     // if colon not there
     if (index == -1)
       return "";
-    for (unsigned int i = index +1; 
+    for (unsigned int i = index +1;
    i < specification.length(); i++){
       if (specification[i] == '@')
   return build;
@@ -128,7 +127,7 @@ namespace debugger {
       cout << "Please Enter a Type" << endl;
       return;
     }
-  
+
     //parse for different specification formats
     string type = getType(specification);
     string name = getName(specification);
@@ -141,7 +140,7 @@ namespace debugger {
       return;
     }
 
-  
+
     //create mempory on heap to store break point information
     char* type_copy = (char*)malloc(strlen(type.c_str())+1);
     char* name_copy = (char*)malloc(strlen(name.c_str())+1);
@@ -150,15 +149,15 @@ namespace debugger {
     //move the memory over
     memcpy(type_copy, (char*)type.c_str(),strlen(type.c_str())+1);
     memcpy(name_copy, (char*)name.c_str(),strlen(name.c_str())+1);
-  
-    if (nodeID != "") 
+
+    if (nodeID != "")
       node_copy = atoi(nodeID.c_str());
-    else 
+    else
       node_copy = -1;
 
     //insert the information in the breakpoint list
     insertBreak(factBreakList,type_copy,name_copy, node_copy);
-    
+
 
     msg << "-->Breakpoint set with following conditions:" << endl;
     msg  << "\tType: " << type << endl;
@@ -168,7 +167,7 @@ namespace debugger {
       msg <<  "\tNode: " << nodeID << endl;
 
     display(msg.str(),PRINTCONTENT);
-  
+
   }
 
 
@@ -185,7 +184,7 @@ namespace debugger {
    *--> to be inserted in the code of the actual VM
    *    at specific breakpoints*/
   void runBreakPoint(char* type, string msg, char* name, int nodeID){
-  
+
     ostringstream MSG;
 
     if (!isInDebuggingMode()&&!isInSimDebuggingMode())
@@ -193,7 +192,7 @@ namespace debugger {
 
     if (isTheSystemPaused())
       pauseIt();
-  
+
     //if the specifications are a hit, then pause the system
     if (isInBreakPointList(factBreakList,type,name,nodeID)){
       MSG << "Breakpoint-->";
@@ -201,7 +200,7 @@ namespace debugger {
       MSG <<  msg;
       display(MSG.str(),BREAKPOINT);
       pauseIt();
-    }  
+    }
   }
 
 
@@ -218,8 +217,8 @@ namespace debugger {
   void dumpSystemState(state& st, int nodeNumber){
 
     ostringstream msg;
-  
-    msg << "*******************************************************************" << endl; 
+
+    msg << "*******************************************************************" << endl;
     msg << "Memory Dump:" << endl;
     msg << endl;
     msg << endl;
@@ -227,11 +226,11 @@ namespace debugger {
     //if a node is not specified by the dump command
     if (nodeNumber == -1)
       st.all->DATABASE->print_db(msg);
-    else 
+    else
       //print out only the given node
       st.all->DATABASE->print_db_debug(msg,(unsigned int)nodeNumber);
     msg  << endl;
-  
+
     msg << "Facts to be consumed:" << endl;
     st.print_local_tuples(msg);
     msg << endl << endl;
@@ -297,7 +296,7 @@ namespace debugger {
 
 
 
-  /*returns the specification out of a message 
+  /*returns the specification out of a message
    *sent from the simulator*/
   string getSpec(uint64_t* msg, int instruction){
     if (instruction == BREAKPOINT){
@@ -307,13 +306,13 @@ namespace debugger {
       return typeInt2String(type) + ":" +  str;
     } else if (instruction == DUMP){
       return "all";
-    } else { 
+    } else {
       return "";
     }
-  } 
+  }
 
 
-  int getInstruction(uint64_t* msg){ 
+  int getInstruction(uint64_t* msg){
     return (int)msg[2];
   }
 
@@ -324,14 +323,14 @@ namespace debugger {
     string specification = getSpec(msg,instruction);
     debugController(st,instruction,specification);
   }
-    
+
 
 
   /*execute instruction based on encoding and specification
     call from the debug_prompt*/
   void debugController(state& currentState,
            int instruction, string specification){
-  
+
     string type;
     string name;
     string node;
@@ -342,7 +341,7 @@ namespace debugger {
     case DUMP:
       if (specification == "all")
   dumpSystemState(currentState,-1);
-      else 
+      else
   dumpSystemState(currentState, atoi(specification.c_str()));
       break;
     case PAUSE:
@@ -369,9 +368,10 @@ namespace debugger {
       break;
     }
   }
+}
 
   /***************************************************************************/
-  
+
   /*DEBUG MESSAGE SENDING*/
 
   /***************************************************************************/
@@ -385,7 +385,7 @@ namespace debugger {
     int size;
     api::message_type *msg;
     char * temp;
-    
+
     switch(msgEncode){
 
       //master tells processes to dump their state
@@ -399,7 +399,7 @@ namespace debugger {
       msg[2] = msgEncode;
       return msg;
       break;
-       
+
     case PRINTCONTENT:
     case BREAKFOUND:
     case BREAKPOINT:
@@ -416,7 +416,7 @@ namespace debugger {
     return NULL;
   }
 
-  void send(int destination, int msgType, 
+  void send(int destination, int msgType,
       string content, bool broadcast = false)  {
     //api::debugSendMsg(destination,pack(msgType,content),broadcast);
   }
@@ -426,14 +426,15 @@ namespace debugger {
    //process the queue
   }
 
-  
 
-  
+
+
 
 
 }
 
 
-  
 
-     
+
+
+>>>>>>> origin/debug

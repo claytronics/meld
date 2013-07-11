@@ -63,12 +63,12 @@ typedef queue_type::const_iterator queue_iterator;
 
 inline queue_iterator begin(void) const { return queue.begin(); }
 inline queue_iterator end(void) const { return queue.end(); }
-   
+
    inline void add_work(db::simple_tuple *stpl)
    {
       queue.push(stpl, stpl->get_strat_level());
    }
-   
+
    inline bool has_work(void) const { return !queue.empty(); }
 
    virtual void assert_end(void) const
@@ -89,6 +89,7 @@ static const vm::node_val NO_NEIGHBOR = (vm::node_val)-1;
    static const face_t INITIAL_FACE = BOTTOM;
    static const face_t FINAL_FACE = TOP;
 // returns a pointer to a certain face, allowing modification
+
    vm::node_val *get_node_at_face(const face_t face) {
       switch(face) {
          case BOTTOM: return &bottom;
@@ -141,20 +142,17 @@ static const vm::node_val NO_NEIGHBOR = (vm::node_val)-1;
       in_queue_node(_id, _trans, all),
       INIT_DOUBLE_QUEUE_NODE(),
       queue(all->PROGRAM->MAX_STRAT_LEVEL),
-top(NO_NEIGHBOR), bottom(NO_NEIGHBOR), east(NO_NEIGHBOR),
+	  top(NO_NEIGHBOR), bottom(NO_NEIGHBOR), east(NO_NEIGHBOR),
       west(NO_NEIGHBOR), north(NO_NEIGHBOR), south(NO_NEIGHBOR),
       instantiated_flag(false),
       neighbor_count(0)
     {
-top = bottom = west = east = north = south = -1;
-}
-
-
-
+	top = bottom = west = east = north = south = -1;
+	}
 
    virtual ~serial_node(void) { }
 };
-   
+
 }
 
 #endif

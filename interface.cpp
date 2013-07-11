@@ -113,7 +113,7 @@ run_program(int argc, char **argv, const char *program, const vm::machine_argume
 
         machine mac(program, num_threads, sched_type, margs, data_file == NULL ? string("") : string(data_file));
 
-        api::init(argc, argv, mac.get_all()->ALL_THREADS[0]);
+        //api::init(argc, argv, mac.get_all()->ALL_THREADS[0]);
 
         mac.start();
 
