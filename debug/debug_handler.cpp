@@ -12,116 +12,120 @@
 #include "debug/debug_prompt.hpp"
 #include "debug/debug_handler.hpp"
 
+
 using namespace std;
 using namespace vm;
 using namespace debugger;
 
 namespace debugger {
 
-/*global variables to controll main thread*/
-static bool isSystemPaused = true;
-static bool isDebug = false;
-static bool isSimDebug = false;
+#define SIZE (sizeof(uint64_t))
+#define BROADCAST true;
 
-/*the pointer to the list of break points*/
-static debugList factBreakList = NULL;
+  /*global variables to controll main thread*/
+  static bool isSystemPaused = true;
+  static bool isDebug = false;
+  static bool isSimDebug = false;
+
+  /*the pointer to the list of break points*/
+  static debugList factBreakList = NULL;
 
 
-void initSimDebug(){
+  void initSimDebug(){
     setupFactList();
     pauseIt();
-}
+  }
 
 
-//starts the new fact list
-void setupFactList(){
+  //starts the new fact list
+  void setupFactList(){
     factBreakList = newBreakpointList();
-}
+  }
 
-//returns the pointer to the list of break points
-debugList getFactList(){
+  //returns the pointer to the list of break points
+  debugList getFactList(){
     return factBreakList;
-}
+  }
 
 
-/*returns if the VM is paused for debugging or not*/
-bool isTheSystemPaused(){
+  /*returns if the VM is paused for debugging or not*/
+  bool isTheSystemPaused(){
     return isSystemPaused;
-}
+  }
 
-//returns the index of a character in a string,
-//if it is not there it returns -1
-int characterInStringIndex(string str, char character){
+  //returns the index of a character in a string,
+  //if it is not there it returns -1
+  int characterInStringIndex(string str, char character){
     for(unsigned int i = 0; i < str.length(); i++){
-        if (str[i] == character)
-            return (int)i;
+      if (str[i] == character)
+  return (int)i;
     }
     return -1;
-}
+  }
 
 
-//extracts the type from the specification
-//returns the type of breakpoint from the specification
-string getType(string specification){
+  //extracts the type from the specification
+  //returns the type of breakpoint from the specification
+  string getType(string specification){
     string build = "";
     for (unsigned int i = 0; i < specification.length(); i++){
-        if(specification[i] == ':' || specification[i] == '@')
-            return build;
-        else
-            build += specification[i];
+      if(specification[i] == ':' || specification[i] == '@')
+  return build;
+      else
+  build += specification[i];
     }
     return build;
-}
+  }
 
 
-//extracts the name from the specification
-//returns the name from the specification
-//returns "" if name is not present
-string getName(string specification){
+  //extracts the name from the specification
+  //returns the name from the specification
+  //returns "" if name is not present
+  string getName(string specification){
     string build = "";
     //find index of colon
     int index = characterInStringIndex(specification, ':');
     // if colon not there
     if (index == -1)
-        return "";
+      return "";
     for (unsigned int i = index +1;
-         i < specification.length(); i++){
-        if (specification[i] == '@')
-            return build;
-        else
-            build += specification[i];
+   i < specification.length(); i++){
+      if (specification[i] == '@')
+  return build;
+      else
+  build += specification[i];
     }
     return build;
-}
+  }
 
 
-//extracts the node from the specification
-//returns the node from the specification
-//returns "" if node is not given
-string getNode(string specification){
+  //extracts the node from the specification
+  //returns the node from the specification
+  //returns "" if node is not given
+  string getNode(string specification){
     string build = "";
     int index = characterInStringIndex(specification, '@');
     if (index == -1)
-        return "";
+      return "";
     for (unsigned int i = index+1; i < specification.length(); i++){
-        build+=specification[i];
+      build+=specification[i];
     }
     return build;
-}
+  }
 
 
 
-/*given the type, turn the breakPoint on*/
-/*given the type, turn the breakPoint on by inserting
-  it into the breakpoint list*/
-void activateBreakPoint(string specification){
+  /*given the type, turn the breakPoint on*/
+  /*given the type, turn the breakPoint on by inserting
+    it into the breakpoint list*/
+  void activateBreakPoint(string specification){
 
     ostringstream msg;
 
     //to follow a format that a type must be presented first
     if (specification[0] == ':'|| specification[0] == '@'){
-        cout << "Please Enter a Type" << endl;
-        return;
+      cout << "Please Enter a Type" << endl;
+      return;
     }
 
     //parse for different specification formats
@@ -131,9 +135,9 @@ void activateBreakPoint(string specification){
 
     //if this type of break point is not valid
     if (type!="block"&&type!="action"&&type!="factDer"&&type!="sense"&&
-        type!="factCon"&&type!="factRet"){
-        cout << "Please Enter a Valid Type-- type help for options" << endl;
-        return;
+  type!="factCon"&&type!="factRet"){
+      cout << "Please Enter a Valid Type-- type help for options" << endl;
+      return;
     }
 
 
@@ -147,9 +151,9 @@ void activateBreakPoint(string specification){
     memcpy(name_copy, (char*)name.c_str(),strlen(name.c_str())+1);
 
     if (nodeID != "")
-        node_copy = atoi(nodeID.c_str());
+      node_copy = atoi(nodeID.c_str());
     else
-        node_copy = -1;
+      node_copy = -1;
 
     //insert the information in the breakpoint list
     insertBreak(factBreakList,type_copy,name_copy, node_copy);
@@ -158,56 +162,59 @@ void activateBreakPoint(string specification){
     msg << "-->Breakpoint set with following conditions:" << endl;
     msg  << "\tType: " << type << endl;
     if (name!="")
-        msg << "\tName: " << name << endl;
+      msg << "\tName: " << name << endl;
     if (nodeID!="")
-        msg <<  "\tNode: " << nodeID << endl;
+      msg <<  "\tNode: " << nodeID << endl;
 
     display(msg.str(),PRINTCONTENT);
 
-}
+  }
 
-void display(string msg, int type){
+
+  void display(string msg, int type){
     if (isInDebuggingMode())
-        cout << msg;
+      cout << msg;
     else if (isInSimDebuggingMode())
-        return;
-}
+      return;
+  }
 
-/*initiate the system to wait until further notice
- *--> to be inserted in the code of the actual VM
- *    at specific breakpoints*/
-void runBreakPoint(char* type, string msg, char* name, int nodeID){
+
+
+  /*initiate the system to wait until further notice
+   *--> to be inserted in the code of the actual VM
+   *    at specific breakpoints*/
+  void runBreakPoint(char* type, string msg, char* name, int nodeID){
 
     ostringstream MSG;
 
     if (!isInDebuggingMode()&&!isInSimDebuggingMode())
-        return;
+      return;
 
     if (isTheSystemPaused())
-        pauseIt();
+      pauseIt();
 
     //if the specifications are a hit, then pause the system
     if (isInBreakPointList(factBreakList,type,name,nodeID)){
-        MSG << "Breakpoint-->";
-        MSG << type << ":" << name << "@" << nodeID << endl;
-        MSG <<  msg;
-        display(MSG.str(),BREAKPOINT);
-        pauseIt();
+      MSG << "Breakpoint-->";
+      MSG << type << ":" << name << "@" << nodeID << endl;
+      MSG <<  msg;
+      display(MSG.str(),BREAKPOINT);
+      pauseIt();
     }
-}
+  }
 
 
-/*pause the VM*/
-void pauseIt(){
+  /*pause the VM*/
+  void pauseIt(){
     isSystemPaused = true;
     while(isSystemPaused == true)
-        sleep(1);
-}
+      sleep(1);
+  }
 
 
 
-/*display the contents of VM*/
-void dumpSystemState(state& st, int nodeNumber){
+  /*display the contents of VM*/
+  void dumpSystemState(state& st, int nodeNumber){
 
     ostringstream msg;
 
@@ -218,10 +225,10 @@ void dumpSystemState(state& st, int nodeNumber){
 
     //if a node is not specified by the dump command
     if (nodeNumber == -1)
-        st.all->DATABASE->print_db(msg);
+      st.all->DATABASE->print_db(msg);
     else
-        //print out only the given node
-        st.all->DATABASE->print_db_debug(msg,(unsigned int)nodeNumber);
+      //print out only the given node
+      st.all->DATABASE->print_db_debug(msg,(unsigned int)nodeNumber);
     msg  << endl;
 
     msg << "Facts to be consumed:" << endl;
@@ -237,113 +244,197 @@ void dumpSystemState(state& st, int nodeNumber){
     msg << endl;
 
     display(msg.str(),PRINTCONTENT);
-}
+  }
 
 
-/*resume a paused system*/
-void continueExecution(){
+  /*resume a paused system*/
+  void continueExecution(){
     //setting this will break it out of a while loop
     //from pauseIt function
     isSystemPaused = false;
-}
+  }
 
-/*turn debugging Mode on*/
-void setDebuggingMode(bool setting){
+  /*turn debugging Mode on*/
+  void setDebuggingMode(bool setting){
     isDebug = setting;
-}
+  }
 
 
-void setSimDebuggingMode(bool setting){
+  void setSimDebuggingMode(bool setting){
     isSimDebug = setting;
-}
+  }
 
 
-bool isInSimDebuggingMode(){
+  bool isInSimDebuggingMode(){
     return isSimDebug;
-}
+  }
 
 
-/*check id debugging mode is on*/
-bool isInDebuggingMode(){
+  /*check id debugging mode is on*/
+  bool isInDebuggingMode(){
     return isDebug;
-}
+  }
 
 
-string typeInt2String(int type){
+  string typeInt2String(int type){
     switch(type){
-        case FACTDER:
-            return "factDer";
-        case FACTCON:
-            return "factCon";
-        case FACTRET:
-            return "factRet";
-        case ACTION:
-            return "action";
-        case SENSE:
-            return "sense";
-        case BLOCK:
-            return "block";
+    case FACTDER:
+      return "factDer";
+    case FACTCON:
+      return "factCon";
+    case FACTRET:
+      return "factRet";
+    case ACTION:
+      return "action";
+    case SENSE:
+      return "sense";
+    case BLOCK:
+      return "block";
     }
     return "";
-}
+  }
 
 
 
-/*returns the specification out of a message
- *sent from the simulator*/
-string getSpec(uint64_t* msg, int instruction){
+  /*returns the specification out of a message
+   *sent from the simulator*/
+  string getSpec(uint64_t* msg, int instruction){
     if (instruction == BREAKPOINT){
-        int type = (int)msg[3];
-        char* spec = (char*)msg[4];
-        string str(spec);
-        return typeInt2String(type) + ":" +  str;
+      int type = (int)msg[3];
+      char* spec = (char*)msg[4];
+      string str(spec);
+      return typeInt2String(type) + ":" +  str;
     } else if (instruction == DUMP){
-        return "all";
+      return "all";
     } else {
-        return "";
+      return "";
     }
-}
+  }
 
 
-int getInstruction(uint64_t* msg){
+  int getInstruction(uint64_t* msg){
     return (int)msg[2];
-}
+  }
 
 
-//to be called when a debug message is recieved
-void handleDebugMessage(uint64_t *msg, state& st){
+  //to be called when a debug message is recieved
+  void handleDebugMessage(uint64_t *msg, state& st){
     int instruction = getInstruction(msg);
     string specification = getSpec(msg,instruction);
     debugController(st,instruction,specification);
-}
+  }
 
 
 
-/*execute instruction based on encoding and specification
-  call from the debug_prompt*/
-void debugController(state& currentState,
-                     int instruction, string specification){
+  /*execute instruction based on encoding and specification
+    call from the debug_prompt*/
+  void debugController(state& currentState,
+           int instruction, string specification){
+
+    string type;
+    string name;
+    string node;
+
 
     switch(instruction){
 
-        case DUMP:
-            if (specification == "all")
-                dumpSystemState(currentState,-1);
-            else
-                dumpSystemState(currentState, atoi(specification.c_str()));
-            break;
-        case PAUSE:
-            isSystemPaused = true;
-            break;
-        case UNPAUSE:
-        case CONTINUE:
-            continueExecution();
-            break;
-        case BREAKPOINT:
-            activateBreakPoint(specification);
-            instruction = NOTHING;
-            break;
+    case DUMP:
+      if (specification == "all")
+  dumpSystemState(currentState,-1);
+      else
+  dumpSystemState(currentState, atoi(specification.c_str()));
+      break;
+    case PAUSE:
+      isSystemPaused = true;
+      break;
+    case UNPAUSE:
+    case CONTINUE:
+      continueExecution();
+      break;
+    case REMOVE:
+      type = getType(specification);
+      name = getName(specification);
+      node = getNode(specification);
+      if (removeBreakPoint(getFactList(),(char*)type.c_str(),
+         (char *)name.c_str(),atoi(node.c_str())) < 0){
+  display("Breakpoint is not in List\n",REMOVE);
+      } else {
+  display("Breakpoint removed\n",REMOVE);
+      }
+      break;
+    case BREAKPOINT:
+      activateBreakPoint(specification);
+      instruction = NOTHING;
+      break;
     }
+  }
 }
 
+  /***************************************************************************/
+
+  /*DEBUG MESSAGE SENDING*/
+
+  /***************************************************************************/
+
+  inline int getSize(string content){
+    return  3 + ((content.size()+1) + (SIZE-(content.size()+1)%SIZE))/SIZE;
+  }
+
+  uint64_t* pack(int msgEncode, string content){
+
+    int size;
+    api::message_type *msg;
+    char * temp;
+
+    switch(msgEncode){
+
+      //master tells processes to dump their state
+    case DUMP:
+    case UNPAUSE:
+    case PAUSE:
+      size = 3;
+      msg = new api::message_type[size];
+      msg[0] = size;
+      msg[1] = DEBUG;
+      msg[2] = msgEncode;
+      return msg;
+      break;
+
+    case PRINTCONTENT:
+    case BREAKFOUND:
+    case BREAKPOINT:
+      size = getSize(content);
+      msg = new api::message_type[size];
+      msg[0] = size;
+      msg[1] = DEBUG;
+      msg[2] = msgEncode;
+      temp = (char*)&msg[3];
+      sprintf(temp,"%s",content.c_str());
+      return msg;
+      break;
+    }
+    return NULL;
+  }
+
+  void send(int destination, int msgType,
+      string content, bool broadcast = false)  {
+    //api::debugSendMsg(destination,pack(msgType,content),broadcast);
+  }
+
+  void getMsg(int numberExpected){
+    //api::debugGetMsgs();
+   //process the queue
+  }
+
+
+
+
+
+
 }
+
+
+
+
+
+>>>>>>> origin/debug

@@ -1,4 +1,3 @@
-
 #ifndef SCHED_NODES_SERIAL_HPP
 #define SCHED_NODES_SERIAL_HPP
 
@@ -60,10 +59,10 @@ private:
 
 public:
 
-	typedef queue_type::const_iterator queue_iterator;
+typedef queue_type::const_iterator queue_iterator;
 
-	inline queue_iterator begin(void) const { return queue.begin(); }
-	inline queue_iterator end(void) const { return queue.end(); }
+inline queue_iterator begin(void) const { return queue.begin(); }
+inline queue_iterator end(void) const { return queue.end(); }
 
    inline void add_work(db::simple_tuple *stpl)
    {
@@ -84,12 +83,13 @@ public:
       assert(!has_work());
    }
 
-	/*Making compatible with simulator*/
-	static const vm::node_val NO_NEIGHBOR = (vm::node_val)-1;
+/*Making compatible with simulator*/
+static const vm::node_val NO_NEIGHBOR = (vm::node_val)-1;
 
    static const face_t INITIAL_FACE = BOTTOM;
    static const face_t FINAL_FACE = TOP;
-	   // returns a pointer to a certain face, allowing modification
+// returns a pointer to a certain face, allowing modification
+
    vm::node_val *get_node_at_face(const face_t face) {
       switch(face) {
          case BOTTOM: return &bottom;
@@ -137,7 +137,7 @@ public:
       return neighbor_count;
    }
 
-	/*Changed constructor to conform to new member variables*/
+/*Changed constructor to conform to new member variables*/
    explicit serial_node(const db::node::node_id _id, const db::node::node_id _trans, vm::all *all):
       in_queue_node(_id, _trans, all),
       INIT_DOUBLE_QUEUE_NODE(),
@@ -149,9 +149,6 @@ public:
     {
 	top = bottom = west = east = north = south = -1;
 	}
-
-
-
 
    virtual ~serial_node(void) { }
 };

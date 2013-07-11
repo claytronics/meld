@@ -24,7 +24,7 @@
     /* Given a node destination, compute the process id that the node
      * belongs to, serialize the data for MPI and send the data
      */
-     extern void send_message(const db::node* from, const db::node::node_id to, const db::simple_tuple* stpl);
+     extern void send_message(const db::node* from, const db::node::node_id to, db::simple_tuple* stpl);
      extern message_type *create_message(const db::simple_tuple *tuple);
 
 
@@ -50,6 +50,18 @@
      */
      extern int get_process_id(const db::node::node_id id);
 
+  /* 
+   * send a massage to a specified node, if broadcast specified, send to all
+   * nodes---msg is to be freed 
+   */
+    extern void debugSendMsg(const db::node::node_id destination, 
+			     message_type* msg, size_t messageSize, 
+			     bool broadcast = false);
+  
+    /*populate a debugger queue with incomming messages*/
+    extern void debugGetMsgs(void);
+
      extern void set_color(db::node *n, const int r, const int g, const int b);
+
 } // namespace api
 #endif
