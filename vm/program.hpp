@@ -76,7 +76,7 @@ private:
    
 public:
 
-   strat_level MAX_STRAT_LEVEL;
+    strat_level MAX_STRAT_LEVEL;
 
    inline size_t num_rules(void) const { return number_rules; }
 	inline size_t num_args_needed(void) const { return num_args; }

@@ -12,26 +12,28 @@ using namespace vm;
 
 namespace vm
 {
-namespace external
-{
+	namespace external
+	{
 
-argument
-node_priority(EXTERNAL_ARG(id))
-{
-   DECLARE_NODE(id);
-   float_val ret(0.0);
+		argument
+		node_priority(EXTERNAL_ARG(id))
+		{
 
-   RETURN_FLOAT(ret);
-}
+			DECLARE_NODE(id);
+			float_val ret(0.0);
 
-argument
-cpu_id(EXTERNAL_ARG(id))
-{
-   int_val ret(0);
-   DECLARE_NODE(id);
+			RETURN_FLOAT(ret);
+		}
 
-   RETURN_INT(ret);
-}
+		argument
+		cpu_id(EXTERNAL_ARG(id))
+		{
+			
+			int_val ret(0);
+			DECLARE_NODE(id);
 
-}
+			RETURN_INT(ret);
+		}
+
+	}
 }
