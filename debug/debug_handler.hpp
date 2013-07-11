@@ -13,6 +13,7 @@ const int DUMP = 1;
 const int CONTINUE = 7;
 const int BREAKPOINT = 2;
 const int NOTHING = 8;
+const int REMOVE = 9;
 const int PAUSE = 4;
 const int UNPAUSE = 3;
 const int BREAKFOUND = 6;

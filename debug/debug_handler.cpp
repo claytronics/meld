@@ -328,7 +328,12 @@ void handleDebugMessage(uint64_t *msg, state& st){
   call from the debug_prompt*/
 void debugController(state& currentState,
 		     int instruction, string specification){
-    
+  
+    string type;
+    string name;
+    string node;
+
+
     switch(instruction){
 
     case DUMP:
@@ -343,6 +348,17 @@ void debugController(state& currentState,
     case UNPAUSE:
     case CONTINUE:
       continueExecution();
+      break;
+    case REMOVE:
+      type = getType(specification);
+      name = getName(specification);
+      node = getNode(specification);
+      if (removeBreakPoint(getFactList(),(char*)type.c_str(),
+			   (char *)name.c_str(),atoi(node.c_str())) < 0){
+	display("Breakpoint is not in List\n",REMOVE);
+      } else {
+	display("Breakpoint removed\n",REMOVE);
+      }
       break;
     case BREAKPOINT:
       activateBreakPoint(specification);
