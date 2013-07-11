@@ -112,6 +112,9 @@ slice_set::write(const string& file, const scheduler_type type, vm::all *all) co
    write_sent_facts(file, all);
    write_stolen_nodes(file, all);
    write_steal_requests(file, all);
+   /*Redundant statments*/
+   scheduler_type type1=type;
+   type1=type1;
 }
    
 void

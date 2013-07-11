@@ -12,7 +12,7 @@
 #include "db/database.hpp"
 #include "debug/debug_prompt.hpp"
 #include "debug/debug_handler.hpp"
-#include "api/api.hpp" 
+
 
 using namespace std;
 using namespace vm;
@@ -59,7 +59,7 @@ namespace debugger {
   int characterInStringIndex(string str, char character){
     for(unsigned int i = 0; i < str.length(); i++){
       if (str[i] == character)
-	return (int)i;
+  return (int)i;
     }
     return -1;
   }
@@ -71,9 +71,9 @@ namespace debugger {
     string build = "";
     for (unsigned int i = 0; i < specification.length(); i++){
       if(specification[i] == ':' || specification[i] == '@') 
-	return build;
+  return build;
       else 
-	build += specification[i];
+  build += specification[i];
     }
     return build;
   }
@@ -90,11 +90,11 @@ namespace debugger {
     if (index == -1)
       return "";
     for (unsigned int i = index +1; 
-	 i < specification.length(); i++){
+   i < specification.length(); i++){
       if (specification[i] == '@')
-	return build;
+  return build;
       else
-	build += specification[i];
+  build += specification[i];
     }
     return build;
   }
@@ -136,7 +136,7 @@ namespace debugger {
 
     //if this type of break point is not valid
     if (type!="block"&&type!="action"&&type!="factDer"&&type!="sense"&&
-	type!="factCon"&&type!="factRet"){
+  type!="factCon"&&type!="factRet"){
       cout << "Please Enter a Valid Type-- type help for options" << endl;
       return;
     }
@@ -330,7 +330,7 @@ namespace debugger {
   /*execute instruction based on encoding and specification
     call from the debug_prompt*/
   void debugController(state& currentState,
-		       int instruction, string specification){
+           int instruction, string specification){
   
     string type;
     string name;
@@ -341,9 +341,9 @@ namespace debugger {
 
     case DUMP:
       if (specification == "all")
-	dumpSystemState(currentState,-1);
+  dumpSystemState(currentState,-1);
       else 
-	dumpSystemState(currentState, atoi(specification.c_str()));
+  dumpSystemState(currentState, atoi(specification.c_str()));
       break;
     case PAUSE:
       isSystemPaused = true;
@@ -357,10 +357,10 @@ namespace debugger {
       name = getName(specification);
       node = getNode(specification);
       if (removeBreakPoint(getFactList(),(char*)type.c_str(),
-			   (char *)name.c_str(),atoi(node.c_str())) < 0){
-	display("Breakpoint is not in List\n",REMOVE);
+         (char *)name.c_str(),atoi(node.c_str())) < 0){
+  display("Breakpoint is not in List\n",REMOVE);
       } else {
-	display("Breakpoint removed\n",REMOVE);
+  display("Breakpoint removed\n",REMOVE);
       }
       break;
     case BREAKPOINT:
@@ -417,7 +417,7 @@ namespace debugger {
   }
 
   void send(int destination, int msgType, 
-	    string content, bool broadcast = false)  {
+      string content, bool broadcast = false)  {
     //api::debugSendMsg(destination,pack(msgType,content),broadcast);
   }
 
@@ -436,4 +436,4 @@ namespace debugger {
 
   
 
-		 
+     

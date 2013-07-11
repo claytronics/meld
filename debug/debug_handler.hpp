@@ -1,13 +1,11 @@
-
 #ifndef DEBUG_HANDLER_HPP
 #define DEBUG_HANDLER_HPP
 
 #include <string>
 #include "vm/state.hpp"
 #include "debug/debug_list.hpp"
-
-using namespace std;
-
+#include <queue>
+#include "api/api.hpp"
 
 const int DUMP = 1;
 const int CONTINUE = 7;
@@ -29,14 +27,14 @@ const int DEBUGMPI = 0;
 
 namespace debugger {
 
-  std::queue<api::message_type*> messageQueue;
+  extern std::queue<api::message_type*> messageQueue;
 
-  void activateBreakPoint(string specification);
-  void runBreakPoint(char* type, string msg, char* name, int nodeID);
+  void activateBreakPoint(std::string specification);
+  void runBreakPoint(char* type, std::string msg, char* name, int nodeID);
   void pauseIt();
   void dumpSystemState(vm::state& st);
   void continueExecution();
-  void debugController(vm::state& currentState, int instruction, string specification);
+  void debugController(vm::state& currentState, int instruction, std::string specification);
   bool isTheSystemPaused();
   void setDebuggingMode(bool setting);
   bool isInDebuggingMode();
@@ -46,14 +44,14 @@ namespace debugger {
   void initSimDebug();
   void setSimDebuggingMode(bool setting);
   void handleDebugMessage(uint64_t *msg, vm::state& st);
-  void display(string msg,int type);
+  void display(std::string msg,int type);
   int getInstruction(uint64_t* msg);
-  string getSpec(uint64_t* msg, int instruction);
-  string typeInt2String(int type);
-  string getNode(string specification);
-  string getName(string specification);
-  string getType(string specification);
-  int characterInStringIndex(string str, char character);
+  std::string getSpec(uint64_t* msg, int instruction);
+  std::string typeInt2String(int type);
+  std::string getNode(std::string specification);
+  std::string getName(std::string specification);
+  std::string getType(std::string specification);
+  int characterInStringIndex(std::string str, char character);
 
 }
 

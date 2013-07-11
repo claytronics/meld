@@ -8,6 +8,7 @@ using namespace db;
 using namespace vm;
 using namespace process;
 using namespace std;
+using namespace api;
 
 namespace sched
 {
@@ -22,6 +23,7 @@ namespace sched
 void
 serial_local::new_work(const node *, work& new_work)
 {
+
    serial_node *to(dynamic_cast<serial_node*>(new_work.get_node()));
 
    to->add_work(new_work.get_tuple());
@@ -46,25 +48,26 @@ serial_local::new_work(const node *, work& new_work)
     assert_static_nodes_end_iteration(id, state.all);
   }
 
-  // Look through the scheduler's queue finding any node that has new facts to
-  // process
-  node*
+
+// Look through the scheduler's queue finding any node that has new facts to
+// process
+node*
   serial_local::get_work(void)
   {
     if(current_node != NULL) {
       if(!current_node->has_work()) {
-	current_node->set_in_queue(false);
-	current_node = NULL;
-	if(!has_work())
-	  return NULL;
-	if(!queue_nodes.pop(current_node))
-	  return NULL;
+current_node->set_in_queue(false);
+current_node = NULL;
+if(!has_work())
+return NULL;
+if(!queue_nodes.pop(current_node))
+return NULL;
       }
     } else {
       if(!has_work())
-	return NULL;
+return NULL;
       if(!queue_nodes.pop(current_node))
-	return NULL;
+return NULL;
       assert(current_node->has_work());
     }
 

@@ -17,6 +17,7 @@ using namespace sched;
 using namespace std;
 using namespace utils;
 using namespace vm;
+using namespace api;
 
 scheduler_type sched_type = SCHED_UNKNOWN;
 size_t num_threads = 0;
@@ -28,7 +29,7 @@ bool memory_statistics = false;
 static inline size_t
 num_cpus_available(void)
 {
-    return (size_t)sysconf(_SC_NPROCESSORS_ONLN );
+  return (size_t)sysconf(_SC_NPROCESSORS_ONLN );
 }
 
 static inline bool
@@ -43,13 +44,16 @@ match_serial(const char *name, char *arg, const scheduler_type type)
     }
 
     return false;
+
 }
 
 static inline bool fail_sched(char* sched)
 {
+
 	cerr << "Error: invalid scheduler " << sched << endl;
     exit(EXIT_FAILURE);
     return false;
+
 }
 
 void
@@ -69,16 +73,17 @@ parse_sched(char *sched)
         cerr << "Error: invalid number of threads" << endl;
         exit(EXIT_FAILURE);
     }
+
 }
 
 void
 help_schedulers(void)
 {
-	cerr << "\t-c <scheduler>\tselect scheduling type" << endl;
-	cerr << "\t\t\tsl simple serial scheduler" << endl;
-	cerr << "\t\t\tui serial scheduler + ui" << endl;
-    cerr << "\t\t\tthX multithreaded scheduler with task stealing" << endl;
-    cerr << "\t\t\tthpX multithreaded scheduler with priorities and task stealing" << endl;
+  cerr << "\t-c <scheduler>\tselect scheduling type" << endl;
+  cerr << "\t\t\tsl simple serial scheduler" << endl;
+  cerr << "\t\t\tui serial scheduler + ui" << endl;
+  cerr << "\t\t\tthX multithreaded scheduler with task stealing" << endl;
+  cerr << "\t\t\tthpX multithreaded scheduler with priorities and task stealing" << endl;
 }
 
 static inline void
@@ -90,6 +95,7 @@ finish(void)
 bool
 run_program(int argc, char **argv, const char *program, const vm::machine_arguments& margs, const char *data_file)
 {
+
 	assert(utils::file_exists(string(program)));
 	assert(num_threads > 0);
 
@@ -103,22 +109,11 @@ run_program(int argc, char **argv, const char *program, const vm::machine_argume
             tm.start();
         }
 
-        boost::mpi::environment env(argc, argv);
-        boost::mpi::communicator world;
-        api::world = &world;
-        api::init(argc, argv);
+        api::init(argc, argv, NULL);
 
         machine mac(program, num_threads, sched_type, margs, data_file == NULL ? string("") : string(data_file));
 
-        /* Creat barrier here, to prevent processes from sneding messages to
-         * processes that have not been started yet */
-        api::world->barrier();
-
-#ifdef USE_UI
-        if(ui::man != NULL) {
-            ui::man->set_all(mac.get_all());
-        }
-#endif
+        api::init(argc, argv, mac.get_all()->ALL_THREADS[0]);
 
         mac.start();
 
