@@ -85,14 +85,14 @@ namespace api {
         }
     }
 
-    void send_message(const db::node* from, const db::node::node_id id,
-                      const db::simple_tuple* stpl) {
+    void send_message(const db::node* from, const db::node::node_id to,
+                      db::simple_tuple* stpl) {
         /* Given a node id and tuple, figure out the process id to send the
            tuple and id to be processed
            ================================================================
         */
 
-        int dest = get_process_id(id);
+        int dest = get_process_id(to);
 
         message_type *msg = new message_type[MAXLENGTH];
         size_t msg_length = MAXLENGTH * sizeof(message_type);
@@ -105,10 +105,10 @@ namespace api {
 
 #ifdef DEBUG_MPI
         cout << "[" << world->rank() << "==>" << dest << "] "
-             << "@" << id << " " << *stpl << endl;
+             << "@" << to << " " << *stpl << endl;
 #endif
 
-        mpi::request req = world->isend(dest, id + TOKEN_OFFSET, msg, msg_length);
+        mpi::request req = world->isend(dest, to + TOKEN_OFFSET, msg, msg_length);
 
         // Store the message and request in order to free later
         msgs.push_back(make_pair(req, msg));
