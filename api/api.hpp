@@ -24,7 +24,7 @@
     /* Given a node destination, compute the process id that the node
      * belongs to, serialize the data for MPI and send the data
      */
-     extern void send_message(const db::node* from, const db::node::node_id to, const db::simple_tuple* stpl);
+     extern void send_message(const db::node* from, const db::node::node_id to, db::simple_tuple* stpl);
      extern message_type *create_message(const db::simple_tuple *tuple);
 
 

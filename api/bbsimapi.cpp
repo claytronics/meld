@@ -82,7 +82,7 @@ namespace api
 
 /*To initialize the connection to the simulator*/	
   void 
-  init(sched::base *schedular)
+  init(int argc, char **argv, sched::base* schedular)
   {	
     if (schedular == NULL) return;
 

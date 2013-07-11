@@ -109,7 +109,7 @@ namespace process
 
 
 void
-machine::route(node* from, sched::base *sched_caller, const node::node_id id, simple_tuple* stpl, const uint_val delay)
+machine::route(const node* from, sched::base *sched_caller, const node::node_id id, simple_tuple* stpl, const uint_val delay)
 {
    assert(sched_caller != NULL);
   

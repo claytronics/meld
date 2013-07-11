@@ -90,8 +90,8 @@ SRCS = utils/utils.cpp \
 			 debug/debug_prompt.cpp \
 			 debug/debug_handler.cpp \
 			 debug/debug_list.cpp \
-			 api/mpi.cpp \
-#			 api/bbsimapi.cpp \
+			 api/bbsimapi.cpp \
+#			 api/mpi.cpp \
 
 OBJS = $(patsubst %.cpp,%.o,$(SRCS))
 
