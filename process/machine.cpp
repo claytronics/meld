@@ -136,7 +136,7 @@ machine::route(node* from, sched::base *sched_caller, const node::node_id id, si
       }
    } else {
      /* Send to the correct process */
-     api::send_message(from,id,stpl);
+       api::send_message(from,id,stpl);
    }
 }
 
@@ -244,13 +244,6 @@ machine::execute_const_code(void)
    }
 
    this->all->ALL_THREADS[0]->start();
-
-#ifndef NDEBUG
-    for(size_t i(1); i < all->NUM_THREADS; ++i)
-      assert(this->all->ALL_THREADS[i-1]->num_iterations() == this->all->ALL_THREADS[i]->num_iterations());
-    if(this->all->PROGRAM->is_safe())
-      assert(this->all->ALL_THREADS[0]->num_iterations() == 1);
-#endif
 
     if(alarm_thread) {
       kill(getpid(), SIGUSR1);

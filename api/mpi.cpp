@@ -37,7 +37,11 @@ namespace mpi = boost::mpi;
 namespace api {
 //#define DEBUG_MPI
 
-// token tags to specify the token message being sent
+    // Function Prototypes
+    void free_msgs(void);
+    void init(int argc, char **argv, sched::base*);
+
+	// token tags to specify the token message being sent
     enum {BLACK, WHITE, DONE, TOKEN_OFFSET};
 
     mpi::communicator *world;
@@ -133,7 +137,7 @@ namespace api {
             // Safra's Algorithm
             // Begin Token collection
             // Token should only be sent once, and retransmitted below
-            world->isend(1, WHITE, 0);
+            world->isend(get_process_id(1), WHITE, 0);
             token_sent = true;
         }
 
@@ -256,9 +260,11 @@ namespace api {
         return id % world->size();
     }
 
-    void init(int argc, char **argv, sched::base*) {
-        mpi::environment* env = new mpi::environment(argc, argv);
-        world = new mpi::communicator();
+    void init(int argc, char **argv, sched::base *sched) {
+        if (sched == NULL) {
+            mpi::environment* env = new mpi::environment(argc, argv);
+            world = new mpi::communicator();
+        }
     }
 
     void set_color(db::node *n, const int r, const int g, const int b) {}
