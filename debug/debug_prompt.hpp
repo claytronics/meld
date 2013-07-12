@@ -6,11 +6,11 @@
 
 namespace debugger {
 
-void debug(vm::state& st);
-void *run_debugger(void * curState);
-void parseline(std::string line, vm::state& st, debugList& factBreaks);
-int handle_command(std::string command, debugList& factList);
-void help();
+    void debug(vm::state& st);
+    void *run(void *curState);
+    void parseline(std::string line, vm::state& st, debugList& factBreaks);
+    int handle_command(std::string command, debugList& factList);
+    void help();
 
 }
 

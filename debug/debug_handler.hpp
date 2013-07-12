@@ -27,32 +27,37 @@ const int DEBUGMPI = 0;
 
 namespace debugger {
 
-  extern std::queue<api::message_type*> messageQueue;
+    extern std::queue<api::message_type*> messageQueue;
 
-  void activateBreakPoint(std::string specification);
-  void runBreakPoint(char* type, std::string msg, char* name, int nodeID);
-  void pauseIt();
-  void dumpSystemState(vm::state& st);
-  void continueExecution();
-  void debugController(vm::state& currentState, int instruction, std::string specification);
-  bool isTheSystemPaused();
-  void setDebuggingMode(bool setting);
-  bool isInDebuggingMode();
-  bool isInSimDebuggingMode();
-  void setupFactList();
-  debugList getFactList();
-  void initSimDebug();
-  void setSimDebuggingMode(bool setting);
-  void handleDebugMessage(uint64_t *msg, vm::state& st);
-  void display(std::string msg,int type);
-  int getInstruction(uint64_t* msg);
-  std::string getSpec(uint64_t* msg, int instruction);
-  std::string typeInt2String(int type);
-  std::string getNode(std::string specification);
-  std::string getName(std::string specification);
-  std::string getType(std::string specification);
-  int characterInStringIndex(std::string str, char character);
-
+    void activateBreakPoint(std::string specification);
+    void runBreakPoint(char* type, std::string msg, char* name, int nodeID);
+    void pauseIt(void);
+    void dumpSystemState(vm::state& st);
+    void continueExecution(void);
+    void debugController(vm::state& currentState, 
+                         int instruction, std::string specification);
+    bool isTheSystemPaused(void);
+    void setDebuggingMode(bool setting);
+    bool isInDebuggingMode(void);
+    bool isInSimDebuggingMode(void);
+    void setupFactList(void);
+    debugList getFactList(void);
+    void initSimDebug(void);
+    void setSimDebuggingMode(bool setting);
+    void handleDebugMessage(uint64_t *msg, vm::state& st);
+    void display(std::string msg,int type);
+    int getInstruction(uint64_t* msg);
+    std::string getSpec(uint64_t* msg, int instruction);
+    std::string typeInt2String(int type);
+    std::string getNode(std::string specification);
+    std::string getName(std::string specification);
+    std::string getType(std::string specification);
+    int characterInStringIndex(std::string str, char character);
+    void initMpiDebug(void);
+    bool isInMpiDebuggingMode(void);
+    void setState(vm::state& st);
+    void setMpiDebuggingMode(bool setting);
+    vm::state *getState(void);
 }
 
 #endif
