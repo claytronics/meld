@@ -67,6 +67,7 @@ namespace api {
     vector<pair<mpi::request, message_type *> > sendMsgs;
     vector<pair<mpi::request, pair<mpi::status, message_type *> > > recv_q;
     vector<pair<mpi::request, message_type *> > debugMsgs;
+    vector<pair<mpi::request, message_type *> > debugRecvMsgs;
 
     // Dijkstra and Safra's token ring termination detection algorithm
     // Default states
@@ -354,16 +355,38 @@ namespace api {
 
     void debugSendMsg(const db::node::node_id dest, message_type *msg,
                       size_t msgSize, bool bcast) {
+        /* Send the message through MPI and place the message and status into
+           the debugMsgs vector to be freed when the request completes */
 
-        int pid = get_process_id(dest);
-        mpi::request req = world->isend(pid, DEBUG, msg, msgSize);
+        int pid = get_process_id(dest); mpi::request req = world->isend(pid,
+        DEBUG, msg, msgSize);
 
         debugMsgs.push_back(make_pair(req, msg));
         freeDebugMsgs();
     }
 
     void debugGetMsgs(void) {
+        /* Poll the MPI to find any debug messages and populate the debug
+         * message queue */
 
+        while(world->iprobe(mpi::any_source, DEBUG)) {
+            message_type *msg = new message_type[MAXLENGTH];
+
+            mpi::request req = world->irecv(mpi::any_source, DEBUG, msg, MAXLENGTH);
+
+            debugRecvMsgs.push_back(make_pair(req, msg));
+        }
+
+        // Iterate through the message queue and add the messages with completed
+        // requests to the debugger's message queue
+        for (vector<pair<mpi::request, message_type*> >::iterator it = debugRecvMsgs.begin();
+             it != debugRecvMsgs.end(); ++it) {
+            mpi::request req(it->first);
+
+            if (req.test()) {
+                debugger::messageQueue->push(it->second);
+            }
+        }
     }
 
     void freeDebugMsgs(void) {}
