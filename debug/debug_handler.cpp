@@ -56,14 +56,12 @@ namespace debugger {
 
     /*setup MPI debugging mode*/
     void initMpiDebug(void){
+
         setupFactList();
-<<<<<<< HEAD
-        std::queue<api::message_type*> messageQueue =
-            *(new std::queue<api::message_type*>());
-=======
+
         std::queue<api::message_type*> *messageQueue = 
             new std::queue<api::message_type*>();
->>>>>>> refs/remotes/origin/debug
+
     }
 
     /*extract the pointer to the system state*/
@@ -402,18 +400,7 @@ namespace debugger {
         return (int)msg[2];
     }
 
-<<<<<<< HEAD
 
-    /*to be called when a debug message is recieved
-     *from the simulator*/
-    void handleDebugMessage(uint64_t *msg, state& st){
-        int instruction = getInstruction(msg);
-        string specification = getSpec(msg,instruction);
-        debugController(st,instruction,specification);
-    }
-
-=======
->>>>>>> refs/remotes/origin/debug
     /*execute instruction based on encoding and specification
       call from the debug_prompt*/
     void debugController(state& currentState,
@@ -511,10 +498,6 @@ namespace debugger {
         api::debugSendMsg(destination,pack(msgType,content),3,broadcast);
     }
 
-<<<<<<< HEAD
-    void getMsg(int numberExpected){
-        //api::debugGetMsgs();
-=======
     void receiveMsg(void){
         
         api::message_type* msg;
@@ -532,7 +515,5 @@ namespace debugger {
             debugController(*getState(),instruction,specification);
         }
     }
->>>>>>> refs/remotes/origin/debug
 
-    }
 }
