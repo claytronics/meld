@@ -451,7 +451,7 @@ namespace debugger {
         return  3 + ((content.size()+1) + (SIZE-(content.size()+1)%SIZE))/SIZE;
     }
 
-    uint64_t* pack(int msgEncode, string content){
+    api::message_type* pack(int msgEncode, string content){
 
         int size;
         api::message_type *msg;
