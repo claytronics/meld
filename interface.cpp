@@ -89,6 +89,7 @@ help_schedulers(void)
 static inline void
 finish(void)
 {
+    api::end();
 }
 
 /* program = meld program */
