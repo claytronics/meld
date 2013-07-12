@@ -11,6 +11,8 @@
 #include "utils/fs.hpp"
 #include "process/machine.hpp"
 #include "api/api.hpp"
+#include "debug/debug_handler.hpp"
+#include "debug/debug_prompt.hpp"
 
 using namespace process;
 using namespace sched;
@@ -116,15 +118,18 @@ run_program(int argc, char **argv, const char *program, const vm::machine_argume
 
         //api::init(argc, argv, mac.get_all()->ALL_THREADS[0]);
 
-        mac.start();
+        //force process zero to be the debugging master process
+        if (debugger::isInMpiDebuggingMode() &&
+            	world->rank() == debugger::MASTER)
+            debugger::run(NULL);
+        else
+            mac.start();
 
         if(time_execution) {
-            {
-                tm.stop();
-                size_t ms = tm.milliseconds();
+            tm.stop();
+            size_t ms = tm.milliseconds();
 
-                cout << "Time: " << ms << " ms" << endl;
-            }
+            cout << "Time: " << ms << " ms" << endl;
         }
 
     } catch(machine_error& err) {

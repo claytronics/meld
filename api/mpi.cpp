@@ -340,11 +340,6 @@ namespace api {
         if (sched == NULL) {
             env = new mpi::environment(argc, argv);
             world = new mpi::communicator();
-
-            //force process zero to be the debugging master process
-            if (debugger::isInMpiDebuggingMode()&&world->rank()==0){
-                debugger::run(NULL);
-            }
         }
     }
 
