@@ -41,10 +41,12 @@ namespace api {
 //#define DEBUG_MPI
 //#define DEBUG_MPI_TERM
 
-const int MASTER = 0;
+    const int MASTER = 0;
 
     // Function Prototypes
-    static void free_msgs(void);
+    static void freeSendMsgs(void);
+    static void freeDebugMsgs(void);
+
     static void processRecvMsgs(sched::base *sched, vm::all *all);
     static bool detectTerm(sched::base *sched);
 
@@ -56,13 +58,15 @@ const int MASTER = 0;
            DONE,
            TUPLE};
 
+    // Global MPI variables
     mpi::environment *env;
     mpi::communicator *world;
 
     // Vectors to hold created messages in order to free them after the
     // asynchronous MPI calls are complete
-    vector<pair<mpi::request, message_type *> > msgs;
+    vector<pair<mpi::request, message_type *> > sendMsgs;
     vector<pair<mpi::request, pair<mpi::status, message_type *> > > recv_q;
+    vector<pair<mpi::request, message_type *> > debugMsgs;
 
     // Dijkstra and Safra's token ring termination detection algorithm
     // Default states
@@ -70,25 +74,26 @@ const int MASTER = 0;
     int color = WHITE;
     bool token_sent = false;
 
-    void free_msgs(void) {
-        /* free the messags in the msgs vector if appropriate since the mpi
+    void freeSendMsgs(void) {
+        /* free messages in the send messages collection if appropriate
            ================================================================
 
-           functions are asynchronous, we cannot assume that the messages buffer
-           created can be removed as soon as the sents calls are executed.
+           since the mpi functions are asynchronous, we cannot assume that the
+           messages buffer created can be removed as soon as the sents calls are
+           executed.
 
-           Instead, the messages are queued up in the msgs vector along with
-           their mpi status. Then free_msgs are called periodically in order to
-           free the messages where their mpi status indicates as complete.
+           Instead, the messages are queued up in the sendMsgs vector along with
+           their mpi status. Then this function is called periodically in order
+           to free the messages where their mpi status indicates as complete.
         */
 
-        for (vector<pair<mpi::request, message_type*> >::iterator it = msgs.begin();
-             it != msgs.end(); ) {
+        for (vector<pair<mpi::request, message_type*> >::iterator it = sendMsgs.begin();
+             it != sendMsgs.end(); ) {
             mpi::request req(it->first);
             if (req.test()) {
                 // Completed Transmission, save to delete message
                 delete[] (it->second);
-                it = msgs.erase(it);
+                it = sendMsgs.erase(it);
 
                 // Safra's algorithm
                 counter++;
@@ -126,8 +131,8 @@ const int MASTER = 0;
         mpi::request req = world->isend(dest, TUPLE, msg, MAXLENGTH);
 
         // Store the message and request in order to free later
-        msgs.push_back(make_pair(req, msg));
-        free_msgs();
+        sendMsgs.push_back(make_pair(req, msg));
+        freeSendMsgs();
     };
 
     bool pollAndProcess(sched::base *sched, vm::all *all) {
@@ -143,7 +148,7 @@ const int MASTER = 0;
            Otherwise, returns false if the system has terminated.
         */
 
-        free_msgs();
+        freeSendMsgs();
 
         boost::optional<mpi::status> statusOpt;
 
@@ -276,28 +281,28 @@ const int MASTER = 0;
 #endif
 
         if (world->rank() == MASTER) {
-        if (tokenColor == WHITE && color == WHITE && acc + counter == 0) {
-        // System Termination detected, notify other processes
+            if (tokenColor == WHITE && color == WHITE && acc + counter == 0) {
+                // System Termination detected, notify other processes
 #ifdef DEBUG_MPI_TERM
-        cout << "DONE" << endl;
+                cout << "DONE" << endl;
 
-        assert(!sched->get_work());
-        assert(msgs.empty());
-        assert(recv_q.empty());
+                assert(!sched->get_work());
+                assert(sendMsgs.empty());
+                assert(recv_q.empty());
 #endif
-        world->isend(dest, DONE);
-        return false;
-    }
+                world->isend(dest, DONE);
+                return false;
+            }
 
-        /* Safra's Algorithm: RETRANSMIT TOKEN */
-        world->isend(dest, WHITE, 0);
+            /* Safra's Algorithm: RETRANSMIT TOKEN */
+            world->isend(dest, WHITE, 0);
 
 #ifdef DEBUG_MPI_TERM
-    cout << world->rank() << " > RETRANSMIT" << endl;
+            cout << world->rank() << " > RETRANSMIT" << endl;
 #endif
 
-    color = WHITE;
-}
+            color = WHITE;
+        }
 
         /* Not MASTER Process, which originates the token */
         else {
@@ -319,51 +324,53 @@ const int MASTER = 0;
 #endif
         }
 
-return true;
-}
+        return true;
+    }
 
-bool on_current_process(const db::node::node_id id) {
-    return get_process_id(id) == world->rank();
-}
+    bool on_current_process(const db::node::node_id id) {
+        return get_process_id(id) == world->rank();
+    }
 
-int get_process_id(const db::node::node_id id) {
-    return id % world->size();
-}
+    int get_process_id(const db::node::node_id id) {
+        return id % world->size();
+    }
 
-void init(int argc, char **argv, sched::base *sched) {
-    if (sched == NULL) {
-        env = new mpi::environment(argc, argv);
-        world = new mpi::communicator();
+    void init(int argc, char **argv, sched::base *sched) {
+        if (sched == NULL) {
+            env = new mpi::environment(argc, argv);
+            world = new mpi::communicator();
 
-        //force process zero to be the debugging master process
-        if (debugger::isInMpiDebuggingMode()&&world->rank()==0){
-            debugger::run(NULL);
+            //force process zero to be the debugging master process
+            if (debugger::isInMpiDebuggingMode()&&world->rank()==0){
+                debugger::run(NULL);
+            }
         }
     }
-}
 
-void end(void) {
-    delete env;
-    delete world;
-}
+    void end(void) {
+        delete env;
+        delete world;
+    }
 
-void debugSendMsg(const db::node::node_id dest, message_type *msg,
-                  size_t msgSize, bool bcast) {
+    void debugSendMsg(const db::node::node_id dest, message_type *msg,
+                      size_t msgSize, bool bcast) {
 
-    int pid = get_process_id(dest);
-    mpi::request req = world->isend(pid, DEBUG, msg, msgSize);
+        int pid = get_process_id(dest);
+        mpi::request req = world->isend(pid, DEBUG, msg, msgSize);
 
-    msgs.push_back(make_pair(req, msg));
-    free_msgs();
-}
+        debugMsgs.push_back(make_pair(req, msg));
+        freeDebugMsgs();
+    }
 
-void debugGetMsgs(void) {
+    void debugGetMsgs(void) {
 
-}
+    }
+
+    void freeDebugMsgs(void) {}
 
 /*
  * Unimplemented functions in MPI
  */
-void set_color(db::node *n, const int r, const int g, const int b) {}
+    void set_color(db::node *n, const int r, const int g, const int b) {}
 
 } /* namespace api */
