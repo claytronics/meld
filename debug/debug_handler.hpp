@@ -48,8 +48,8 @@ namespace debugger {
     void setSimDebuggingMode(bool setting);
     void handleDebugMessage(uint64_t *msg, vm::state& st);
     void display(std::string msg,int type);
-    int getInstruction(uint64_t* msg);
-    std::string getSpec(uint64_t* msg, int instruction);
+    api::message_type getInstruction(api::message_type* msg);
+    std::string getSpec(api::message_type* msg, int instruction);
     std::string typeInt2String(int type);
     std::string getNode(std::string specification);
     std::string getName(std::string specification);
