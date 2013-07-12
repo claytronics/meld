@@ -39,7 +39,7 @@ namespace api {
 //#define DEBUG_MPI
 //#define DEBUG_MPI_TERM
 
-    const int MASTER = 0;
+const int MASTER = 0;
 
     // Function Prototypes
     static void free_msgs(void);
@@ -161,8 +161,6 @@ namespace api {
             recv_q.push_back(make_pair(req, make_pair(status, msg)));
         }
 
-        processRecvMsgs(sched, all);
-
         if (recv_q.empty()) {
             if (world->rank() == MASTER && !token_sent) {
                 /* Safra's Algorithm: Begin Token Collection, when MASTER is idle */
@@ -174,9 +172,10 @@ namespace api {
             }
 
             return detectTerm(sched);
+        } else {
+            processRecvMsgs(sched, all);
+            return true;
         }
-
-        return true;
     }
 
     void processRecvMsgs(sched::base *sched, vm::all *all) {
@@ -275,28 +274,28 @@ namespace api {
 #endif
 
         if (world->rank() == MASTER) {
-            if (tokenColor == WHITE && color == WHITE && acc + counter == 0) {
-                // System Termination detected, notify other processes
+        if (tokenColor == WHITE && color == WHITE && acc + counter == 0) {
+        // System Termination detected, notify other processes
 #ifdef DEBUG_MPI_TERM
-                cout << "DONE" << endl;
+        cout << "DONE" << endl;
 
-                assert(!sched->get_work());
-                assert(msgs.empty());
-                assert(recv_q.empty());
+        assert(!sched->get_work());
+        assert(msgs.empty());
+        assert(recv_q.empty());
 #endif
-                world->isend(dest, DONE);
-                return false;
-            }
+        world->isend(dest, DONE);
+        return false;
+    }
 
-            /* Safra's Algorithm: RETRANSMIT TOKEN */
-            world->isend(dest, WHITE, 0);
+        /* Safra's Algorithm: RETRANSMIT TOKEN */
+        world->isend(dest, WHITE, 0);
 
 #ifdef DEBUG_MPI_TERM
-            cout << world->rank() << " > RETRANSMIT" << endl;
+    cout << world->rank() << " > RETRANSMIT" << endl;
 #endif
 
-            color = WHITE;
-        }
+    color = WHITE;
+}
 
         /* Not MASTER Process, which originates the token */
         else {
@@ -318,46 +317,46 @@ namespace api {
 #endif
         }
 
-        return true;
+return true;
+}
+
+bool on_current_process(const db::node::node_id id) {
+    return get_process_id(id) == world->rank();
+}
+
+int get_process_id(const db::node::node_id id) {
+    return id % world->size();
+}
+
+void init(int argc, char **argv, sched::base *sched) {
+    if (sched == NULL) {
+        env = new mpi::environment(argc, argv);
+        world = new mpi::communicator();
     }
+}
 
-    bool on_current_process(const db::node::node_id id) {
-        return get_process_id(id) == world->rank();
-    }
+void end(void) {
+    delete env;
+    delete world;
+}
 
-    int get_process_id(const db::node::node_id id) {
-        return id % world->size();
-    }
+void debugSendMsg(const db::node::node_id dest, message_type *msg,
+                  size_t msgSize, bool bcast) {
 
-    void init(int argc, char **argv, sched::base *sched) {
-        if (sched == NULL) {
-            env = new mpi::environment(argc, argv);
-            world = new mpi::communicator();
-        }
-    }
+    int pid = get_process_id(dest);
+    mpi::request req = world->isend(pid, DEBUG, msg, msgSize);
 
-    void end(void) {
-        delete env;
-        delete world;
-    }
+    msgs.push_back(make_pair(req, msg));
+    free_msgs();
+}
 
-    void debugSendMsg(const db::node::node_id dest, message_type *msg,
-                      size_t msgSize, bool bcast) {
+void debugGetMsgs(void) {
 
-        int pid = get_process_id(dest);
-        mpi::request req = world->isend(pid, DEBUG, msg, msgSize);
+}
 
-        msgs.push_back(make_pair(req, msg));
-        free_msgs();
-    }
-
-    void debugGetMsgs(void) {
-
-    }
-
-    /*
-     * Unimplemented functions in MPI
-     */
-    void set_color(db::node *n, const int r, const int g, const int b) {}
+/*
+ * Unimplemented functions in MPI
+ */
+void set_color(db::node *n, const int r, const int g, const int b) {}
 
 } /* namespace api */

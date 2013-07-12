@@ -67,12 +67,17 @@ run_serial_n ()
 }
 
 run_mpi () {
-    SCHED="sl"
-    TO_RUN="mpiexec -n 3 ${EXEC} -f ${TEST} -c ${SCHED}"
+    ITER=1
+    while [ $ITER -lt 6 ]; do
+        SCHED="sl"
+        TO_RUN="mpiexec -n ${ITER} ${EXEC} -f ${TEST} -c ${SCHED}"
 
-    echo -n "Running ${TEST} with MPI..."
-    run_diff "${TO_RUN}"
-    echo " DONE!"
+        echo -n "Running ${TEST} with MPI on [${ITER}] processes ..."
+        run_diff "${TO_RUN}"
+        echo " DONE!"
+
+        let ITER=$ITER+1
+    done
 }
 
 run_test_n ()
