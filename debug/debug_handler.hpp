@@ -27,7 +27,7 @@ const int DEBUGMPI = 0;
 
 namespace debugger {
 
-    std::queue<api::message_type*> messageQueue;
+    extern std::queue<api::message_type*> *messageQueue;
     
     const int MASTER = 0;
 

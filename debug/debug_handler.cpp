@@ -28,6 +28,7 @@ namespace debugger {
 
     /****************************************************************/
 
+    std::queue<api::message_type*> *messageQueue;
 
     /*global variables to controll main thread*/
     static bool isSystemPaused = true;
@@ -56,8 +57,8 @@ namespace debugger {
     /*setup MPI debugging mode*/
     void initMpiDebug(void){
         setupFactList();
-        std::queue<api::message_type*> messageQueue = 
-            *(new std::queue<api::message_type*>());
+        std::queue<api::message_type*> *messageQueue = 
+            new std::queue<api::message_type*>();
     }
     
     /*extract the pointer to the system state*/
@@ -502,8 +503,8 @@ namespace debugger {
         api::debugGetMsgs();
 
         /*process each message until empty*/
-        while(!messageQueue.empty()){
-            //msg = messageQueue.pop();
+        while(!messageQueue->empty()){
+            //msg = messageQueue->pop();
             instruction = getInstruction((uint64_t*)msg);
             specification = getContent((uint64_t*)msg);
             debugController(*getState(),instruction,specification);
