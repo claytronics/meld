@@ -1,6 +1,7 @@
 /*API TO HANDLE BREAKPOINTS, DUMPS, AND CONTINUES*/
 
 
+#include <string.h>
 #include <pthread.h>
 #include <iostream>
 #include <sstream>
@@ -11,7 +12,8 @@
 #include "db/database.hpp"
 #include "debug/debug_prompt.hpp"
 #include "debug/debug_handler.hpp"
-
+#include "utils/serialization.hpp"
+#include "utils/types.hpp"
 
 using namespace std;
 using namespace vm;
@@ -19,7 +21,7 @@ using namespace debugger;
 
 namespace debugger {
 
-#define SIZE (sizeof(uint64_t))
+#define SIZE (sizeof(api::message_type))
 #define BROADCAST true;
 
     /*****************************************************************/
@@ -385,7 +387,7 @@ namespace debugger {
 
     /*returns the specification out of a message
      *sent from the simulator*/
-    string getContent(uint64_t* msg){
+    string getContent(api::message_type* msg){
         
         char* content = (char*)&msg[3];
         std::string str(content);
@@ -396,8 +398,8 @@ namespace debugger {
 
 
     /*exrtact the intruction encoding from a message*/
-    int getInstruction(uint64_t* msg){
-        return (int)msg[2];
+    api::message_type getInstruction(api::message_type* msg){
+        return msg[2];
     }
 
 
@@ -409,7 +411,8 @@ namespace debugger {
         string type;
         string name;
         string node;
-
+        
+        systemState = &currentState;
 
         switch(instruction){
 
@@ -457,10 +460,11 @@ namespace debugger {
     }
 
     api::message_type* pack(int msgEncode, string content){
-
+        
+        utils::byte* msg = new utils::byte[api::MAXLENGTH*SIZE];
+        int pos = 0;
+        int debugFlag =  DEBUG;
         int size;
-        api::message_type *msg;
-        char * temp;
 
         switch(msgEncode){
 
@@ -469,50 +473,66 @@ namespace debugger {
             case UNPAUSE:
             case PAUSE:
                 size = 3;
-                msg = new api::message_type[size];
-                msg[0] = size;
-                msg[1] = DEBUG;
-                msg[2] = msgEncode;
-                return msg;
+                utils::pack<size_t>(&size,1,msg,api::MAXLENGTH*SIZE,&pos);
+                utils::pack<int>(&debugFlag,1,msg,api::MAXLENGTH*SIZE,&pos);
+                utils::pack<int>(&msgEncode,1,msg,api::MAXLENGTH*SIZE,&pos);
+                return (api::message_type*)msg;
                 break;
 
             case PRINTCONTENT:
             case BREAKFOUND:
             case BREAKPOINT:
                 size = getSize(content);
-                msg = new api::message_type[size];
-                msg[0] = size;
-                msg[1] = DEBUG;
-                msg[2] = msgEncode;
-                temp = (char*)&msg[3];
-                sprintf(temp,"%s",content.c_str());
-                return msg;
+                utils::pack<size_t>(&size,1,msg,api::MAXLENGTH*SIZE,&pos);
+                utils::pack<int>(&debugFlag,1,msg,api::MAXLENGTH*SIZE,&pos);
+                utils::pack<int>(&msgEncode,1,msg,api::MAXLENGTH*SIZE,&pos);
+                utils::pack<char>((char*)content.c_str(),content.size()+1,
+                                 msg,api::MAXLENGTH*SIZE,&pos);
+                return (api::message_type*)msg;
                 break;
         }
 
         return NULL;
     }
 
+
     void sendMsg(int destination, int msgType,
               string content, bool broadcast)  {
-        api::debugSendMsg(destination,pack(msgType,content),3,broadcast);
+
+        api::message_type* msg = pack(msgType,content);
+        size_t msgSizeInBytes = ((size_t)msg[0])*SIZE;
+        
+        api::debugSendMsg(destination,msg,msgSizeInBytes,broadcast);
+
     }
 
     void receiveMsg(void){
         
-        api::message_type* msg;
+        utils::byte *msg;
         int instruction;
-        string specification;
+        char specification[api::MAXLENGTH*SIZE];
+        int pos = 0;
+        int size;
+        int debugFlag;
 
         /*load the message queue with messages*/
         api::debugGetMsgs();
 
         /*process each message until empty*/
         while(!messageQueue->empty()){
-            //msg = messageQueue->pop();
-            instruction = getInstruction((uint64_t*)msg);
-            specification = getContent((uint64_t*)msg);
-            debugController(*getState(),instruction,specification);
+            msg = (utils::byte*)messageQueue->front();
+            messageQueue->pop();
+            utils::unpack<size_t>(msg,api::MAXLENGTH*SIZE,&pos,&size,1);
+            utils::unpack<int>(msg,api::MAXLENGTH*SIZE,&pos,&debugFlag,1);
+            utils::unpack<int>(msg,api::MAXLENGTH*SIZE,&pos,&instruction,1);
+            utils::unpack<char>(msg,api::MAXLENGTH*SIZE,&pos,
+                                &specification,1);
+            string spec(specification);
+            debugController(*getState(),instruction,spec);
+            memset(specification,0,api::MAXLENGTH*SIZE);
+            memset(msg,0,api::MAXLENGTH*SIZE);
+            delete msg;
+            pos = 0;
         }
     }
 
