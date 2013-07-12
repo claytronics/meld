@@ -28,6 +28,7 @@ namespace debugger {
 
     /****************************************************************/
 
+    std::queue<api::message_type*> *messageQueue;
 
     /*global variables to controll main thread*/
     static bool isSystemPaused = true;
@@ -56,8 +57,13 @@ namespace debugger {
     /*setup MPI debugging mode*/
     void initMpiDebug(void){
         setupFactList();
+<<<<<<< HEAD
         std::queue<api::message_type*> messageQueue =
             *(new std::queue<api::message_type*>());
+=======
+        std::queue<api::message_type*> *messageQueue = 
+            new std::queue<api::message_type*>();
+>>>>>>> refs/remotes/origin/debug
     }
 
     /*extract the pointer to the system state*/
@@ -285,6 +291,9 @@ namespace debugger {
             cout << msg;
         else if (isInSimDebuggingMode())
             return;
+        else if (isInMpiDebuggingMode()){
+            sendMsg(MASTER,type,msg);
+        }
     }
 
 
@@ -307,7 +316,7 @@ namespace debugger {
             MSG << "Breakpoint-->";
             MSG << type << ":" << name << "@" << nodeID << endl;
             MSG <<  msg;
-            display(MSG.str(),BREAKPOINT);
+            display(MSG.str(),BREAKFOUND);
             pauseIt();
         }
     }
@@ -315,9 +324,15 @@ namespace debugger {
 
     /*pause the VM until further notice*/
     void pauseIt(){
+        
         isSystemPaused = true;
-        while(isSystemPaused == true)
-            sleep(1);
+        while(isSystemPaused){
+            if (isInMpiDebuggingMode()){
+                receiveMsg();
+            } else {
+                sleep(1);
+            }
+        }
     }
 
 
@@ -372,17 +387,13 @@ namespace debugger {
 
     /*returns the specification out of a message
      *sent from the simulator*/
-    string getSpec(uint64_t* msg, int instruction){
-        if (instruction == BREAKPOINT){
-            int type = (int)msg[3];
-            char* spec = (char*)msg[4];
-            string str(spec);
-            return typeInt2String(type) + ":" +  str;
-        } else if (instruction == DUMP){
-            return "all";
-        } else {
-            return "";
-        }
+    string getContent(uint64_t* msg){
+        
+        char* content = (char*)&msg[3];
+        std::string str(content);
+        return str;
+        
+
     }
 
 
@@ -391,6 +402,7 @@ namespace debugger {
         return (int)msg[2];
     }
 
+<<<<<<< HEAD
 
     /*to be called when a debug message is recieved
      *from the simulator*/
@@ -400,6 +412,8 @@ namespace debugger {
         debugController(st,instruction,specification);
     }
 
+=======
+>>>>>>> refs/remotes/origin/debug
     /*execute instruction based on encoding and specification
       call from the debug_prompt*/
     void debugController(state& currentState,
@@ -492,13 +506,33 @@ namespace debugger {
         return NULL;
     }
 
-    void send(int destination, int msgType,
-              string content, bool broadcast = false)  {
-        //api::debugSendMsg(destination,pack(msgType,content),broadcast);
+    void sendMsg(int destination, int msgType,
+              string content, bool broadcast)  {
+        api::debugSendMsg(destination,pack(msgType,content),3,broadcast);
     }
 
+<<<<<<< HEAD
     void getMsg(int numberExpected){
         //api::debugGetMsgs();
+=======
+    void receiveMsg(void){
+        
+        api::message_type* msg;
+        int instruction;
+        string specification;
+
+        /*load the message queue with messages*/
+        api::debugGetMsgs();
+
+        /*process each message until empty*/
+        while(!messageQueue->empty()){
+            //msg = messageQueue->pop();
+            instruction = getInstruction((uint64_t*)msg);
+            specification = getContent((uint64_t*)msg);
+            debugController(*getState(),instruction,specification);
+        }
+    }
+>>>>>>> refs/remotes/origin/debug
 
     }
 }
