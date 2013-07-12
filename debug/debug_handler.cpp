@@ -285,6 +285,9 @@ namespace debugger {
             cout << msg;
         else if (isInSimDebuggingMode())
             return;
+        else if (isInMpiDebuggingMode()){
+            sendMsg(MASTER,type,msg);
+        }
     }
 
 
@@ -307,7 +310,7 @@ namespace debugger {
             MSG << "Breakpoint-->";
             MSG << type << ":" << name << "@" << nodeID << endl;
             MSG <<  msg;
-            display(MSG.str(),BREAKPOINT);
+            display(MSG.str(),BREAKFOUND);
             pauseIt();
         }
     }
@@ -315,9 +318,15 @@ namespace debugger {
 
     /*pause the VM until further notice*/
     void pauseIt(){
+        
         isSystemPaused = true;
-        while(isSystemPaused == true)
-            sleep(1);
+        while(isSystemPaused){
+            if (isInMpiDebuggingMode()){
+                receiveMsg();
+            } else {
+                sleep(1);
+            }
+        }
     }
 
 
@@ -372,17 +381,13 @@ namespace debugger {
 
     /*returns the specification out of a message
      *sent from the simulator*/
-    string getSpec(uint64_t* msg, int instruction){
-        if (instruction == BREAKPOINT){
-            int type = (int)msg[3];
-            char* spec = (char*)msg[4];
-            string str(spec);
-            return typeInt2String(type) + ":" +  str;
-        } else if (instruction == DUMP){
-            return "all";
-        } else {
-            return "";
-        }
+    string getContent(uint64_t* msg){
+        
+        char* content = (char*)&msg[3];
+        std::string str(content);
+        return str;
+        
+
     }
 
 
@@ -390,17 +395,6 @@ namespace debugger {
     int getInstruction(uint64_t* msg){
         return (int)msg[2];
     }
-
-
-    /*to be called when a debug message is recieved
-     *from the simulator*/
-    void handleDebugMessage(uint64_t *msg, state& st){
-        int instruction = getInstruction(msg);
-        string specification = getSpec(msg,instruction);
-        debugController(st,instruction,specification);
-    }
-
-
 
     /*execute instruction based on encoding and specification
       call from the debug_prompt*/
@@ -493,14 +487,27 @@ namespace debugger {
         return NULL;
     }
 
-    void send(int destination, int msgType,
-              string content, bool broadcast = false)  {
-        //api::debugSendMsg(destination,pack(msgType,content),broadcast);
+    void sendMsg(int destination, int msgType,
+              string content, bool broadcast)  {
+        api::debugSendMsg(destination,pack(msgType,content),3,broadcast);
     }
 
-    void getMsg(int numberExpected){
-        //api::debugGetMsgs();
+    void receiveMsg(void){
         
+        api::message_type* msg;
+        int instruction;
+        string specification;
+
+        /*load the message queue with messages*/
+        api::debugGetMsgs();
+
+        /*process each message until empty*/
+        while(!messageQueue.empty()){
+            //msg = messageQueue.pop();
+            instruction = getInstruction((uint64_t*)msg);
+            specification = getContent((uint64_t*)msg);
+            debugController(*getState(),instruction,specification);
+        }
     }
 
 }

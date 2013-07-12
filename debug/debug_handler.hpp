@@ -28,6 +28,8 @@ const int DEBUGMPI = 0;
 namespace debugger {
 
     extern std::queue<api::message_type*> messageQueue;
+    
+    const int MASTER = 0;
 
     void activateBreakPoint(std::string specification);
     void runBreakPoint(char* type, std::string msg, char* name, int nodeID);
@@ -58,6 +60,9 @@ namespace debugger {
     void setState(vm::state& st);
     void setMpiDebuggingMode(bool setting);
     vm::state *getState(void);
+    void receiveMsg(void);
+    void sendMsg(int destination, int msgType,
+                 std::string content, bool broadcast = false);
 }
 
 #endif
