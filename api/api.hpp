@@ -28,8 +28,6 @@ namespace api {
     extern void send_message(const db::node* from, const db::node::node_id to,
                              db::simple_tuple* stpl);
 
-    extern message_type *create_message(const db::simple_tuple *tuple);
-
     /* Check for any pending messages waiting to be received and add all of
      * the pending messages to the scheduler queue
      */
@@ -41,8 +39,6 @@ namespace api {
     extern void init(int argc, char **argv, sched::base*);
     extern void end(void);
 
-    void init(sched::base *schedular);
-
     /* Return whether or not the node with id `id` belongs to the current
      * process
      */
@@ -51,6 +47,13 @@ namespace api {
     /* Return the process id that's responsible for the node id
      */
     extern int get_process_id(const db::node::node_id id);
+
+    extern void set_color(db::node *n, const int r, const int g, const int b);
+
+    /* === Debugger Functions === */
+
+    /* initialize the debugger through the api */
+    extern void debugInit(void);
 
     /*
      * send a massage to a specified node, if broadcast specified, send to all
@@ -62,8 +65,6 @@ namespace api {
 
     /*populate a debugger queue with incomming messages*/
     extern void debugGetMsgs(void);
-
-    extern void set_color(db::node *n, const int r, const int g, const int b);
 
 } // namespace api
 #endif

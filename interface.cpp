@@ -118,10 +118,8 @@ run_program(int argc, char **argv, const char *program, const vm::machine_argume
 
         //api::init(argc, argv, mac.get_all()->ALL_THREADS[0]);
 
-        //force process zero to be the debugging master process
-        if (debugger::isInMpiDebuggingMode() &&
-            	world->rank() == debugger::MASTER)
-            debugger::run(NULL);
+        if (debugger::isInMpiDebuggingMode())
+            api::debugInit();
         else
             mac.start();
 

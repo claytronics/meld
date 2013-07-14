@@ -3,10 +3,10 @@
   =========================
   @author: Xing Zhou
   @email: xingz@andrew.cmu.edu
-  @date: 12 July 2013
+  @date: 13 July 2013
 
   This is the MPI implementation of the API interface (api/api.hpp) using
-  boost::mpi (v.1.53.0). Each process with id `x` is responsible for handling
+  boost::mpi (v.1.54.0). Each process with id `x` is responsible for handling
   the nodes with ids `i % n == x`, where n is the size of the MPI world.
 
   There is a barrier after machine invocation (db/database.cpp) to synchronize
@@ -18,21 +18,22 @@
   The most difficult issue with the MPI implemention is termination detection,
   in order to safely terminate each process.  The current functional
   implementation uses Safra's termination algorithm for a token ring. While this
-  works, we feel that the algorithm is still too communication intensive, and a
-  more lightweight algorithm would be good.
+  works, we feel that the algorithm is still too costly due to excessive message
+  passing, and a more lightweight algorithm would be good.
 */
 
-#include "api/api.hpp"
+#include <vector>
+#include <utility>
+#include <boost/mpi/collectives.hpp>
 #include "utils/types.hpp"
-#include "utils/serialization.hpp"
 #include "db/database.hpp"
 #include "vm/predicate.hpp"
 #include "process/work.hpp"
 #include "process/machine.hpp"
-#include <vector>
-#include <utility>
 #include "debug/debug_handler.hpp"
 #include "debug/debug_prompt.hpp"
+#include "utils/serialization.hpp"
+#include "api/api.hpp"
 
 using namespace std;
 namespace mpi = boost::mpi;
@@ -40,13 +41,12 @@ namespace mpi = boost::mpi;
 namespace api {
 //#define DEBUG_MPI
 //#define DEBUG_MPI_TERM
+#define INIT 0
 
     const int MASTER = 0;
 
     // Function Prototypes
     static void freeSendMsgs(void);
-    static void freeDebugMsgs(void);
-
     static void processRecvMsgs(sched::base *sched, vm::all *all);
     static bool detectTerm(sched::base *sched);
 
@@ -56,7 +56,8 @@ namespace api {
            BLACK,
            WHITE,
            DONE,
-           TUPLE};
+           TUPLE
+    };
 
     // Global MPI variables
     mpi::environment *env;
@@ -65,7 +66,7 @@ namespace api {
     // Vectors to hold created messages in order to free them after the
     // asynchronous MPI calls are complete
     vector<pair<mpi::request, message_type *> > sendMsgs;
-    vector<pair<mpi::request, pair<mpi::status, message_type *> > > recv_q;
+    vector<pair<mpi::request, pair<mpi::status, message_type *> > > recvQ;
     vector<pair<mpi::request, message_type *> > debugMsgs;
     vector<pair<mpi::request, message_type *> > debugRecvMsgs;
 
@@ -166,10 +167,10 @@ namespace api {
             mpi::request req = world->irecv(mpi::any_source, TUPLE,
                                             msg, MAXLENGTH);
 
-            recv_q.push_back(make_pair(req, make_pair(status, msg)));
+            recvQ.push_back(make_pair(req, make_pair(status, msg)));
         }
 
-        if (recv_q.empty()) {
+        if (recvQ.empty()) {
             if (world->rank() == MASTER && !token_sent) {
                 /* Safra's Algorithm: Begin Token Collection, when MASTER is idle */
                 world->isend(get_process_id(world->rank() + 1), WHITE, 0);
@@ -195,8 +196,8 @@ namespace api {
         // request is complete.  If it is, the message is unpacked and
         // processed, and then freed.
         for (vector<pair<mpi::request, pair<mpi::status, message_type *> > >::iterator
-                 it=recv_q.begin();
-             it != recv_q.end(); ) {
+                 it=recvQ.begin();
+             it != recvQ.end(); ) {
 
             mpi::request req = it->first;
 
@@ -239,7 +240,7 @@ namespace api {
 
                 // Free the messages
                 delete[] msg;
-                it = recv_q.erase(it);
+                it = recvQ.erase(it);
             } else
                 ++it;
         }
@@ -289,7 +290,7 @@ namespace api {
 
                 assert(!sched->get_work());
                 assert(sendMsgs.empty());
-                assert(recv_q.empty());
+                assert(recvQ.empty());
 #endif
                 world->isend(dest, DONE);
                 return false;
@@ -333,6 +334,10 @@ namespace api {
     }
 
     int get_process_id(const db::node::node_id id) {
+        /* POLICY SPECIFIC according to the value of debugger::MASTER */
+        if (debugger::isInMpiDebuggingMode())
+            return (id % (world->size() - 1)) + 1;
+
         return id % world->size();
     }
 
@@ -348,6 +353,20 @@ namespace api {
         delete world;
     }
 
+    void debugInit(void) {
+        /* Use MPI gather to make sure that all VMs are initiated before the
+         * debugger is run
+         */
+        if (world->rank() == debugger::MASTER) {
+            std::vector<int> allVMs;
+            mpi::gather(*world, INIT, allVMs, debugger::MASTER);
+
+            debugger::run(NULL);
+        } else {
+            mpi::gather(*world, INIT, debugger::MASTER);
+        }
+    }
+
     void debugSendMsg(const db::node::node_id dest, message_type *msg,
                       size_t msgSize, bool bcast) {
         /* Send the message through MPI and place the message and status into
@@ -356,8 +375,9 @@ namespace api {
         int pid = get_process_id(dest); mpi::request req = world->isend(pid,
         DEBUG, msg, msgSize);
 
-        debugMsgs.push_back(make_pair(req, msg));
-        freeDebugMsgs();
+        sendMsgs.push_back(make_pair(req, msg));
+
+        freeSendMsgs();
     }
 
     void debugGetMsgs(void) {
@@ -383,8 +403,6 @@ namespace api {
             }
         }
     }
-
-    void freeDebugMsgs(void) {}
 
 /*
  * Unimplemented functions in MPI
