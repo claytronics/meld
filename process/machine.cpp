@@ -110,7 +110,7 @@ machine::route(const node* from, sched::base *sched_caller, const node::node_id 
 {
    assert(sched_caller != NULL);
 
-   if (api::on_current_process(id)){
+   if (api::onLocalVM(id)){
        /* Belongs to the same process, does not require MPI */
       node *node(this->all->DATABASE->find_node(id));
 

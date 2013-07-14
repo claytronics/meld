@@ -4,13 +4,16 @@
 /*
  * Header file for API
  */
+#include <boost/mpi.hpp>
+#include <boost/serialization/binary_object.hpp>
+#include <boost/asio.hpp>
+#include <iostream>
+
+#include "db/database.hpp"
 #include "db/tuple.hpp"
 #include "db/node.hpp"
 #include "sched/base.hpp"
-#include <boost/mpi.hpp>
-#include <boost/serialization/binary_object.hpp>
 #include "vm/all.hpp"
-#include <boost/asio.hpp>
 #include "utils/types.hpp"
 #include "queue/safe_general_pqueue.hpp"
 
@@ -54,6 +57,10 @@ namespace api {
     /* Serialize the execution of the system */
     extern void serializeBeginExec(void);
     extern void serializeEndExec(void);
+
+    /* Output the database in a synchronized manner */
+    extern void dumpDB(std::ostream &out, const db::database::map_nodes &nodes);
+    extern void printDB(std::ostream &out, const db::database::map_nodes &nodes);
 
     /* === Debugger Functions === */
 

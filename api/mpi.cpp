@@ -25,10 +25,10 @@
 #include <vector>
 #include <utility>
 #include <boost/mpi/collectives.hpp>
+#include <sstream>
+
 #include "utils/types.hpp"
-#include "db/database.hpp"
 #include "vm/predicate.hpp"
-#include "process/work.hpp"
 #include "process/machine.hpp"
 #include "debug/debug_handler.hpp"
 #include "debug/debug_prompt.hpp"
@@ -71,7 +71,9 @@ namespace api {
         DONE,
         TUPLE,
         EXEC,
-        INIT
+        INIT,
+        PRINT,
+        PRINT_DONE
     };
 
     // Global MPI variables
@@ -143,7 +145,7 @@ namespace api {
                (ostringstream() << *stpl).str())
 #endif
 
-        mpi::request req = world->isend(dest, TUPLE, msg, MAXLENGTH);
+            mpi::request req = world->isend(dest, TUPLE, msg, MAXLENGTH);
 
         // Store the message and request in order to free later
         sendMsgs.push_back(make_pair(req, msg));
@@ -421,6 +423,112 @@ namespace api {
         return id % world->size();
     }
 
+
+    /* === Synced Database Output Functions === */
+
+    void dumpDB(std::ostream &out, const db::database::map_nodes &nodes) {
+        world->barrier();
+
+        int source = prevProcess();
+        int dest = nextProcess();
+
+        if (world->rank() == MASTER) {
+            for (db::database::map_nodes::const_iterator it(nodes.begin());
+                 it != nodes.end(); ++it) {
+
+                db::node::node_id id = it->first;
+
+                if (onLocalVM(id)) {
+                    it->second->dump(out);
+                } else {
+                    world->send(getVMId(id), PRINT, id);
+
+                    string result;
+                    world->recv(getVMId(id), PRINT, result);
+
+                    out << result;
+                }
+                out.flush();
+            }
+
+            // Finished printing, singal done
+            world->isend(dest, PRINT_DONE);
+        } else {
+            while(true) {
+                mpi::status status = world->probe(mpi::any_source,
+                                                  mpi::any_tag);
+
+                if (status.tag() == PRINT_DONE) {
+                    // Done tag received, terminated
+                    world->irecv(source, PRINT_DONE);
+                    world->isend(dest, PRINT_DONE);
+                    break;
+                }
+
+                db::node::node_id id;
+                world->recv(0, PRINT, id);
+
+                assert(onLocalVM(id));
+
+                std::ostringstream stream;
+                nodes.at(id)->dump(stream);
+                api::world->send(0, PRINT, stream.str());
+            }
+        }
+    }
+
+    void printDB(std::ostream& out, const db::database::map_nodes &nodes) {
+        world->barrier();
+
+        int source = prevProcess();
+        int dest = nextProcess();
+
+        if (world->rank() == MASTER) {
+            for (db::database::map_nodes::const_iterator it(nodes.begin());
+                 it != nodes.end(); ++it) {
+
+                db::node::node_id id = it->first;
+
+                if (onLocalVM(id)) {
+                    out << "[PID " << world->rank() << "] "
+                         << *(it->second);
+                } else {
+                    world->send(getVMId(id), PRINT, id);
+
+                    string result;
+                    world->recv(getVMId(id), PRINT, result);
+
+                    out << result;
+                }
+                out << endl;
+                out.flush();
+            }
+
+            // Finished printing, singal done
+            world->isend(dest, PRINT_DONE);
+        } else {
+            while(true) {
+                mpi::status status = world->probe(mpi::any_source,
+                                                  mpi::any_tag);
+
+                if (status.tag() == PRINT_DONE) {
+                    // Done tag received, terminated
+                    world->irecv(source, PRINT_DONE);
+                    world->isend(dest, PRINT_DONE);
+                    break;
+                }
+
+                db::node::node_id id;
+                world->recv(0, PRINT, id);
+
+                assert(onLocalVM(id));
+
+                std::ostringstream stream;
+                stream << "[PID " << world->rank() << "] " << *(nodes.at(id));
+                world->send(0, PRINT, stream.str());
+            }
+        }
+    }
 
     /* === Debugger Functions === */
 
