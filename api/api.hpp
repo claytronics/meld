@@ -41,16 +41,17 @@ namespace api {
     extern bool ensembleFinished(sched::base *sched);
 
     /* Return whether or not the node with id `id` belongs to the current
-     * process
+     * VM
      */
-    extern bool on_current_process(const db::node::node_id id);
+    extern bool onLocalVM(const db::node::node_id id);
 
-    /* Return the process id that's responsible for the node id
+    /* Return the VM id that's responsible for the node id
      */
-    extern int get_process_id(const db::node::node_id id);
+    extern int getVMId(const db::node::node_id id);
 
     extern void set_color(db::node *n, const int r, const int g, const int b);
 
+    /* Serialize the execution of the system */
     extern void serializeBeginExec(void);
     extern void serializeEndExec(void);
 

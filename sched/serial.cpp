@@ -103,7 +103,7 @@ return NULL;
 	serial_node *cur_node(dynamic_cast<serial_node*>(it->second));
 	/* MPI init_node only if the node belongs to the current process
 	 * */
-	if (api::on_current_process(cur_node->get_id())) {
+	if (api::onLocalVM(cur_node->get_id())) {
           init_node(cur_node);
 
           assert(cur_node->in_queue());

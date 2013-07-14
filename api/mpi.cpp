@@ -126,7 +126,7 @@ namespace api {
            ================================================================
         */
 
-        int dest = get_process_id(to);
+        int dest = getVMId(to);
 
         message_type *msg = new message_type[MAXLENGTH];
         size_t msg_length = MAXLENGTH * sizeof(message_type);
@@ -257,7 +257,7 @@ namespace api {
                        (ostringstream() << *stpl).str());
 #endif
 
-                assert(on_current_process(id));
+                assert(onLocalVM(id));
 
                 // Let machine handle received tuple
                 all->MACHINE->route(NULL, sched, id, stpl, 0);
@@ -409,11 +409,11 @@ namespace api {
         }
     }
 
-    bool on_current_process(const db::node::node_id id) {
-        return get_process_id(id) == world->rank();
+    bool onLocalVM(const db::node::node_id id) {
+        return getVMId(id) == world->rank();
     }
 
-    int get_process_id(const db::node::node_id id) {
+    int getVMId(const db::node::node_id id) {
         /* POLICY SPECIFIC according to the value of debugger::MASTER */
         if (debugger::isInMpiDebuggingMode())
             return (id % (world->size() - 1)) + 1;
@@ -448,7 +448,7 @@ namespace api {
         /* Send the message through MPI and place the message and status into
            the sendMsgs vector to be freed when the request completes */
 
-        int pid = get_process_id(dest);
+        int pid = getVMId(dest);
         mpi::request req = world->isend(pid, DEBUG, msg, msgSize);
 
         sendMsgs.push_back(make_pair(req, msg));
