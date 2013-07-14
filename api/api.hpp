@@ -38,6 +38,7 @@ namespace api {
      */
     extern void init(int argc, char **argv, sched::base*);
     extern void end(void);
+    extern bool ensembleFinished(sched::base *sched);
 
     /* Return whether or not the node with id `id` belongs to the current
      * process
@@ -49,6 +50,9 @@ namespace api {
     extern int get_process_id(const db::node::node_id id);
 
     extern void set_color(db::node *n, const int r, const int g, const int b);
+
+    extern void serializeBeginExec(void);
+    extern void serializeEndExec(void);
 
     /* === Debugger Functions === */
 
