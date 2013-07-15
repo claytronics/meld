@@ -27,7 +27,7 @@ const int DEBUGMPI = 0;
 
 namespace debugger {
 
-  extern std::queue<api::message_type*> *messageQueue;
+  extern std::queue<api::message_type*> messageQueue;
 
   void activateBreakPoint(std::string specification);
   void runBreakPoint(char* type, std::string msg, char* name, int nodeID);
