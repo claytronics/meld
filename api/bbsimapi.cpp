@@ -10,10 +10,13 @@
 #include "api/api.hpp"
 #include "sched/serial.hpp"
 #include "msg/msg.hpp"
+#include "debug/debug_handler.hpp"
 
 using namespace db;
 using namespace vm;
+using namespace utils;
 using namespace process;
+using namespace debugger;
 using boost::asio::ip::tcp;
 using sched::serial_node;
 using sched::base;
@@ -21,6 +24,7 @@ using namespace sched;
 using namespace msg;
 
 #define SETID 1
+#define DEBUG 3
 #define STOP 4
 #define ADD_NEIGHBOR 5
 #define REMOVE_NEIGHBOR 6
@@ -62,7 +66,7 @@ namespace api
   static message_type *tcp_poll();
   static void init_tcp();
   static void send_message_tcp(message_type *msg);
-  static bool  ensembleFinished();
+  static void handleDebugMessage(utils::byte* reply, size_t totalSize);
   //static void send_message_tcp(message *m);
 
   static bool ready(false);
@@ -80,15 +84,16 @@ namespace api
 
   using namespace std;
 
-/*To initialize the connection to the simulator*/	
+/*To initialize the connection to the simulator*/ 
   void 
   init(int argc, char **argv, sched::base* schedular)
-  {	
+  { 
     if (schedular == NULL) return;
 
     for (int i=0; i<16; i++) 
     msgcmd2str[i] = NULL;
     msgcmd2str[SETID] = "SETID";
+    msgcmd2str[DEBUG] = "DEBUG";
     msgcmd2str[STOP] = "STOP";
     msgcmd2str[ADD_NEIGHBOR] = "ADD_NEIGHBOR";
     msgcmd2str[REMOVE_NEIGHBOR] = "REMOVE_NEIGHBOR";
@@ -100,7 +105,7 @@ namespace api
     msgcmd2str[SHAKE] = "SHAKE";
 
     try{
-   	/* Calling the connect*/
+    /* Calling the connect*/
       init_tcp();
       check_pre(schedular);
       while(!isReady())
@@ -109,14 +114,21 @@ namespace api
       throw machine_error("can't connect to simulator");
     }
   }
+
+void debugInit(vm::all *all)
+{
+  /*Initilize the debugger*/
+}
+
+
 /*Checks the predicates to be used during execution*/
   void 
   check_pre(sched::base *schedular){
 
    sched_state=schedular;
 
-   cout<<"Setting the predicates"<<endl;	
-	// find neighbor predicate
+   cout<<"Setting the predicates"<<endl;  
+  // find neighbor predicate
    neighbor_pred = (schedular->state).all->PROGRAM->get_predicate_by_name("neighbor");
    if(neighbor_pred) {
      assert(neighbor_pred->num_fields() == 2);
@@ -160,14 +172,11 @@ namespace api
    }
  }
 
-bool on_current_process(const db::node::node_id id){
+bool 
+onLocalVM(const db::node::node_id id){
   return false;
 }
-void
-end(void)
-{
 
-}
 
 /*Polls the socket for any message and processes the message*/
  bool 
@@ -177,7 +186,7 @@ end(void)
 
   /*Change the name of the poll function here*/
   if((reply =(message_type*)tcp_poll()) == NULL) {
-    if(ensembleFinished())
+    if(ensembleFinished(sched_state))
       return false;
     else
       return true;
@@ -185,6 +194,7 @@ end(void)
   process_message(reply);
   return true;
 }
+
 
 /*API function to send the set_color command to the simulator*/
 void 
@@ -200,7 +210,7 @@ set_color(db::node *n, const int r, const int g, const int b)
   data[i++] = (message_type)r; // R
   data[i++] = (message_type)g; // G
   data[i++] = (message_type)b; // B
-    data[i++] = 0; // intensity
+  data[i++] = 0; // intensity
 
     send_message_tcp(data);
     delete []data;
@@ -209,10 +219,34 @@ set_color(db::node *n, const int r, const int g, const int b)
 
 /*returns the node id for bbsimAPI*/
   int 
-  get_process_id(const db::node::node_id id)
+  getVMId(const db::node::node_id id)
   {
     return id;
   }
+
+ void 
+ serializeBeginExec(void)
+ {
+    return;
+ }
+  
+  void serializeEndExec(void)
+ {
+
+ }
+
+    /* Output the database in a synchronized manner */
+ void 
+ dumpDB(std::ostream &out, const db::database::map_nodes &nodes)
+ {
+
+ }
+ 
+ void 
+ printDB(std::ostream &out, const db::database::map_nodes &nodes)
+ {
+
+ }
 
 /*Sends the "SEND_MESSAGE" command*/
  /* void 
@@ -223,15 +257,15 @@ set_color(db::node *n, const int r, const int g, const int b)
    const size_t stpl_size(stpl->storage_size());
    const size_t msg_size = 5 * sizeof(message_type) + stpl_size;
 
-	//Something to represent destination node.
+  //Something to represent destination node.
    size_t i = 0;
    msg->size = (message_type)msg_size;
    msg->command = SEND_MESSAGE;
-	 msg->timestamp = 0;//(message_type)ts;
-	 msg->node = from->get_id();
-	 msg->data.send_message.face= 0; //(dynamic_cast<serial_node*>(from))->get_face(to);
-	 msg->data.send_message.dest_nodeID = to;
-	 cout << from->get_id() << " Send " << *stpl << "to "<< to<< endl;
+   msg->timestamp = 0;//(message_type)ts;
+   msg->node = from->get_id();
+   msg->data.send_message.face= 0; //(dynamic_cast<serial_node*>(from))->get_face(to);
+   msg->data.send_message.dest_nodeID = to;
+   cout << from->get_id() << " Send " << *stpl << "to "<< to<< endl;
   int pos = 6 * sizeof(message_type);
   stpl->pack((utils::byte*)msg, msg_size + sizeof(message_type), &pos);
 
@@ -243,7 +277,7 @@ set_color(db::node *n, const int r, const int g, const int b)
 }*/
 
 /*Sends the "SEND_MESSAGE" command*/
-  void send_message(const db::node* from,const db::node::node_id to,  db::simple_tuple* stpl)
+  void sendMessage(const db::node* from, db::node::node_id to,  db::simple_tuple* stpl)
   {
     message_type reply[MAXLENGTH];
 
@@ -277,6 +311,38 @@ isReady()
  return ready;
 }
 
+void 
+end(void)
+{
+  return;
+}
+
+void 
+debugGetMsgs(void)
+{
+  return;
+}
+
+void 
+debugSendMsg(const db::node::node_id destination,
+                             message_type* msg, size_t messageSize,
+                             bool broadcast)
+{
+  size_t datasize=messageSize+4;
+  message_type *data=new message_type[datasize];
+  size_t i(0);
+  
+  data[i++] = datasize - sizeof(message_type);
+  data[i++] = DEBUG;
+  data[i++] = 0;
+  data[i++] = (message_type)destination;
+  int pos=i * sizeof(message_type);
+  utils::pack<message_type>((void*)msg, messageSize, (utils::byte*)data, datasize, &pos);
+  send_message_tcp(data);
+  delete []data;
+  delete[] msg;
+
+}
 
 
 /*tcp helper functions begin*/
@@ -286,7 +352,7 @@ init_tcp()
   try {
     boost::asio::io_service io_service;
     tcp::resolver resolver(io_service);
-	/*Change the arguments from hard-coded to variables*/
+  /*Change the arguments from hard-coded to variables*/
     tcp::resolver::query query(tcp::v4(), "127.0.0.1", "5000");
     tcp::resolver::iterator iterator = resolver.resolve(query);
 
@@ -308,7 +374,7 @@ tcp_poll()
       cout<<"getting message of length "<< length<<endl;
       length = my_tcp_socket->read_some(boost::asio::buffer(msg + 1,  msg[0]));
       cout<<"Returning message of length "<< msg[0]<<endl;
-      return msg;		
+      return msg;   
     }
   } catch(std::exception &e) {
     cout<<"Could not recieve!"<<endl;
@@ -377,6 +443,9 @@ tcp_poll()
       handle_shake((deterministic_timestamp)reply[2], (db::node::node_id)reply[3],
        (int)reply[4], (int)reply[5], (int)reply[6]);
       break;
+      case DEBUG:
+       handleDebugMessage((utils::byte*)reply, (size_t)reply[0]);
+       break;
       case STOP:
       stop_all = true;
       sleep(1);
@@ -388,7 +457,7 @@ tcp_poll()
   }
 
   bool
-  ensembleFinished()
+  ensembleFinished(sched::base *sched)
   {
    return stop_all;
  }
@@ -403,7 +472,6 @@ tcp_poll()
  sched_state->new_work(no, new_work);
 
 }
-
 
 static void 
 add_neighbor(const size_t ts, serial_node *no, const node_val out, const face_t face, const int count)
@@ -456,7 +524,7 @@ static void
 handle_setid(deterministic_timestamp ts, db::node::node_id node_id)
 {
 #ifdef DEBUG
-  cout << "Create node with " << start_id << endl;
+  cout << "Create node with " << node_id << endl;
 #endif
   /*similar to create_n_nodes*/
   db::node *no((sched_state)->state.all->DATABASE->create_node_id(node_id));
@@ -496,11 +564,22 @@ static void handle_receive_message(const deterministic_timestamp ts,
 
     work new_work(target, stpl);
     sched_state->new_work(target, new_work);
+ }
 
+static void
+handleDebugMessage(utils::byte* reply, size_t totalSize)
+{
+  size_t msgSize=totalSize/sizeof(message_type)-3;
 
-  }
+  message_type* msg= new message_type[msgSize];
+  int position=4*sizeof(message_type);
 
-  static void 
+  utils::unpack<message_type>(reply, totalSize+sizeof(message_type), &position, msg, msgSize);
+  //messageQueue->push(msg);
+  
+}
+
+ static void 
   handle_add_neighbor(const deterministic_timestamp ts, const db::node::node_id in,
     const db::node::node_id out, const face_t face)
   {
@@ -568,6 +647,9 @@ handle_remove_neighbor(const deterministic_timestamp ts,
 
  *neighbor = serial_node::NO_NEIGHBOR;
 }
+
+
+
 
 static void 
 handle_tap(const deterministic_timestamp ts, const db::node::node_id node)
