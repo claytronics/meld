@@ -2,7 +2,7 @@
 WHAT="$1"
 EXCEPT_LIST="non_deterministic.exclude" #"$2"
 
-if [ "$WHAT" == "sl" ]; then
+if [ "$WHAT" == "sl" ] ; then
    EXCEPT_LIST=""
 fi
 
