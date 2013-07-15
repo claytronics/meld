@@ -141,21 +141,10 @@ database::print_db(ostream& cout) const
 
 
 void
-database::print_db_debug(ostream& cout, unsigned int nodeNumber) const
+database::print_db_debug(ostream& cout, const node::node_id real_id) const
 {
-   for(map_nodes::const_iterator it(nodes.begin());
-      it != nodes.end();
-      ++it)
-   {
-     if ((nodeNumber == it->second->get_translated_id())){
-      cout << *(it->second) << endl;
-      return;
-     }
-   }
-   cout << "NODE SPECIFIED NOT IN DATABASE" << endl;
+    cout << *(nodes.at(translate_real_to_fake_id(real_id))) << endl;
 }
-
-
 
 void
 database::dump_db(ostream& cout) const

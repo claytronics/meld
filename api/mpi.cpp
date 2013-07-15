@@ -443,6 +443,7 @@ namespace api {
             mpi::request req(it->first);
             if (req.test()) {
                 debugger::messageQueue->push(it->second);
+
             }
         }
     }
