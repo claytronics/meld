@@ -459,20 +459,19 @@ namespace api {
                                                   mpi::any_tag);
 
                 if (status.tag() == PRINT_DONE) {
-                    // Done tag received, terminated
                     world->irecv(source, PRINT_DONE);
                     world->isend(dest, PRINT_DONE);
                     break;
                 }
 
                 db::node::node_id id;
-                world->recv(0, PRINT, id);
+                world->recv(MASTER, PRINT, id);
 
                 assert(onLocalVM(id));
 
                 std::ostringstream stream;
                 nodes.at(id)->dump(stream);
-                api::world->send(0, PRINT, stream.str());
+                api::world->send(MASTER, PRINT, stream.str());
             }
         }
     }
@@ -512,20 +511,19 @@ namespace api {
                                                   mpi::any_tag);
 
                 if (status.tag() == PRINT_DONE) {
-                    // Done tag received, terminated
                     world->irecv(source, PRINT_DONE);
                     world->isend(dest, PRINT_DONE);
                     break;
                 }
 
                 db::node::node_id id;
-                world->recv(0, PRINT, id);
+                world->recv(MASTER, PRINT, id);
 
                 assert(onLocalVM(id));
 
                 std::ostringstream stream;
                 stream << "[PID " << world->rank() << "] " << *(nodes.at(id));
-                world->send(0, PRINT, stream.str());
+                world->send(MASTER, PRINT, stream.str());
             }
         }
     }
