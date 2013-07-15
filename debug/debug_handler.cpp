@@ -109,7 +109,6 @@ namespace debugger {
         return isSimDebug;
     }
 
-
     /*returns if system is in VM debugging mode*/
     bool isInDebuggingMode(void){
         return isDebug;
@@ -305,6 +304,8 @@ namespace debugger {
 
         ostringstream MSG;
 
+        //receiveMsg();
+
         if (!isInDebuggingMode()&&!isInSimDebuggingMode())
             return;
 
@@ -496,6 +497,7 @@ namespace debugger {
     }
 
 
+    //desination is process
     void sendMsg(int destination, int msgType,
               string content, bool broadcast)  {
 

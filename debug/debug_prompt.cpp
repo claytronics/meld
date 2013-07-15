@@ -36,7 +36,7 @@ namespace debugger {
   void *run(void * curState){
 
     string inpt;
-    vm::state st = *(getState());
+    vm::state st = *getState();
     debugList factBreaks = getFactList();
 
     while(true){
@@ -172,5 +172,4 @@ namespace debugger {
     cout << endl;
     cout << "*******************************************************************" << endl;
   }
-
 }
