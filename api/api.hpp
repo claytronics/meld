@@ -62,8 +62,6 @@ namespace api {
     extern void dumpDB(std::ostream &out, const db::database::map_nodes &nodes);
     extern void printDB(std::ostream &out, const db::database::map_nodes &nodes);
 
-    /* === Debugger Functions === */
-
     /* initialize the debugger through the api */
     extern void debugInit(vm::all *all);
 
@@ -72,8 +70,9 @@ namespace api {
      * nodes---msg is to be freed
      */
     extern void debugSendMsg(const db::node::node_id destination,
-                             message_type* msg, size_t messageSize,
-                             bool broadcast = false);
+                             message_type* msg, size_t messageSize);
+
+    extern void debugBroadcastMsg(message_type *msg, size_t messageSize);
 
     /*populate a debugger queue with incomming messages*/
     extern void debugGetMsgs(void);

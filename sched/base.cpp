@@ -143,14 +143,10 @@ base::do_loop(void)
       }
 
       bool hasWork = api::pollAndProcess(this, state.all);
-
       bool ensembleFinished = false;
-
       if (!hasWork)
           ensembleFinished = api::ensembleFinished(this);
-
       api::serializeEndExec();
-
       if (ensembleFinished)
           break;
   }

@@ -448,8 +448,16 @@ namespace api {
         }
     }
 
+    void debugBroadcastMsg(message_type *msg, size_t msgSize) {
+        for (int i = 0; i < world->size(); ++i) {
+            mpi::request req = world->isend(i, DEBUG, msg, msgSize);
+            sendMsgs.push_back(make_pair(req, msg));
+        }
+        freeSendMsgs();
+    }
+
     void debugSendMsg(const db::node::node_id dest, message_type *msg,
-                      size_t msgSize, bool bcast) {
+                      size_t msgSize) {
         /* Send the message through MPI and place the message and status into
            the sendMsgs vector to be freed when the request completes */
         int pid = getVMId(dest);
