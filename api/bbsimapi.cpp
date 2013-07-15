@@ -163,7 +163,11 @@ namespace api
 bool on_current_process(const db::node::node_id id){
   return false;
 }
+void
+end(void)
+{
 
+}
 
 /*Polls the socket for any message and processes the message*/
  bool 
