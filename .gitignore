@@ -11,3 +11,5 @@ simulator
 *~
 \#
 *.out
+*.swo
+*.swp
