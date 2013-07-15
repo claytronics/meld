@@ -20,71 +20,79 @@
 namespace db
 {
 
-class database
-{
-public:
-   
-   typedef std::tr1::unordered_map<node::node_id, node::node_id,
-           std::tr1::hash<node::node_id>,
-           std::equal_to<node::node_id>,
-           mem::allocator< std::pair<const node::node_id, node::node_id> > > map_translate;
-   typedef std::map<node::node_id, node*,
-           std::less<node::node_id>,
-           mem::allocator< std::pair<const node::node_id, node*> > > map_nodes;
-   typedef boost::function3<node*, node::node_id, node::node_id, vm::all *> create_node_fn;
+    class database
+    {
+    public:
 
-private:
+        typedef std::tr1::unordered_map<node::node_id, node::node_id,
+                                        std::tr1::hash<node::node_id>,
+                                        std::equal_to<node::node_id>,
+                                        mem::allocator<
+                                            std::pair<const node::node_id,
+                                                      node::node_id> > > map_translate;
+        typedef std::map<node::node_id, node*,
+                         std::less<node::node_id>,
+                         mem::allocator< std::pair<const node::node_id,
+                                                   node*> > > map_nodes;
+        typedef boost::function3<node*, node::node_id, node::node_id,
+                                 vm::all *> create_node_fn;
 
-   vm::all *all;
-   create_node_fn create_fn;
-   
-   map_nodes nodes;
-   map_translate translation;
-   node::node_id original_max_node_id;
-   node::node_id max_node_id;
-   node::node_id max_translated_id;
+    private:
 
-	utils::spinlock mtx;
-   
-public:
+        vm::all *all;
+        create_node_fn create_fn;
 
-   BOOST_STATIC_ASSERT(sizeof(node::node_id) == 4);
+        map_nodes nodes;
+        map_translate translation;
+        map_translate reverse_translation;
+        node::node_id original_max_node_id;
+        node::node_id max_node_id;
+        node::node_id max_translated_id;
 
-   static const size_t node_size = sizeof(node::node_id) * 2;
-   size_t nodes_total;
-   
-   map_nodes::const_iterator nodes_begin(void) const { return nodes.begin(); }
-   map_nodes::const_iterator nodes_end(void) const { return nodes.end(); }
-   map_nodes::iterator get_node_iterator(const node::node_id id) { return nodes.find(id); }
-   
-   size_t num_nodes(void) const { return nodes.size(); }
-   node::node_id max_id(void) const { return max_node_id; }
-   node::node_id static_max_id(void) const { return original_max_node_id; }
-   
-   node* find_node(const node::node_id) const;
-   node* create_node(void);
-   node* create_node_id(const node::node_id);
-   
-   void print_db(std::ostream&) const;
-  void print_db_debug(std::ostream&, unsigned int nodeNumber) const;
-   void dump_db(std::ostream&) const;
-   
-   void print(std::ostream&) const;
-   
-   explicit database(const std::string&, create_node_fn, vm::all *);
-   
-   ~database(void);
-};
+        utils::spinlock mtx;
 
-std::ostream& operator<<(std::ostream&, const database&);
+    public:
 
-class database_error : public std::runtime_error {
- public:
-    explicit database_error(const std::string& msg) :
-         std::runtime_error(msg)
-    {}
-};
-   
+        BOOST_STATIC_ASSERT(sizeof(node::node_id) == 4);
+
+        static const size_t node_size = sizeof(node::node_id) * 2;
+        size_t nodes_total;
+
+        map_nodes::const_iterator nodes_begin(void) const { return nodes.begin(); }
+        map_nodes::const_iterator nodes_end(void) const { return nodes.end(); }
+        map_nodes::iterator get_node_iterator(const node::node_id id) { return nodes.find(id); }
+
+        size_t num_nodes(void) const { return nodes.size(); }
+        node::node_id max_id(void) const { return max_node_id; }
+        node::node_id static_max_id(void) const { return original_max_node_id; }
+
+        node* find_node(const node::node_id) const;
+        node* create_node(void);
+        node* create_node_id(const node::node_id);
+
+        node::node_id translate_real_to_fake_id(const node::node_id real_id);
+        node::node_id translate_fake_to_real_id(const node::node_id fake_id);
+
+        void print_db(std::ostream&) const;
+        void print_db_debug(std::ostream&, unsigned int nodeNumber) const;
+        void dump_db(std::ostream&) const;
+
+        void print(std::ostream&) const;
+
+        explicit database(const std::string&, create_node_fn, vm::all *);
+
+        ~database(void);
+    };
+
+    std::ostream& operator<<(std::ostream&, const database&);
+
+    class database_error : public std::runtime_error {
+    public:
+        explicit database_error(const std::string& msg) :
+            std::runtime_error(msg)
+        {}
+    };
+
 }
 
 #endif
