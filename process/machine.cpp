@@ -134,7 +134,7 @@ machine::route(const node* from, sched::base *sched_caller, const node::node_id 
       }
    } else {
      /* Send to the correct process */
-       api::send_message(from,id,stpl);
+       api::sendMessage(from,id,stpl);
    }
 }
 

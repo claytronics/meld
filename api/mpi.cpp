@@ -121,7 +121,7 @@ namespace api {
         delete world;
     }
 
-    void send_message(const db::node* from, const db::node::node_id to,
+    void sendMessage(const db::node* from, const db::node::node_id to,
                       db::simple_tuple* stpl) {
         /* Given a node id and tuple, figure out the process id to send the
            tuple and id to be processed

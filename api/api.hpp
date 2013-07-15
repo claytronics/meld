@@ -28,7 +28,7 @@ namespace api {
     /* Given a node destination, compute the process id that the node
      * belongs to, serialize the data for MPI and send the data
      */
-    extern void send_message(const db::node* from, const db::node::node_id to,
+    extern void sendMessage(const db::node* from, const db::node::node_id to,
                              db::simple_tuple* stpl);
 
     /* Check for any pending messages waiting to be received and add all of
