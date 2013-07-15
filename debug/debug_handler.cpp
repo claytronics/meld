@@ -504,7 +504,7 @@ namespace debugger {
         api::message_type* msg = pack(msgType,content);
         size_t msgSizeInBytes = ((size_t)msg[0])*SIZE;
 
-        api::debugSendMsg(destination,msg,msgSizeInBytes,broadcast);
+        api::debugSendMsg(destination,msg,msgSizeInBytes);
 
     }
 

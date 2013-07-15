@@ -69,7 +69,7 @@ namespace api {
      * send a massage to a specified node, if broadcast specified, send to all
      * nodes---msg is to be freed
      */
-    extern void debugSendMsg(const db::node::node_id destination,
+    extern void debugSendMsg(const int dest,
                              message_type* msg, size_t messageSize);
 
     extern void debugBroadcastMsg(message_type *msg, size_t messageSize);

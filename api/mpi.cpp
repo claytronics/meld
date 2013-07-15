@@ -79,10 +79,8 @@ namespace api {
 
     // Vectors to hold created messages in order to free them after the
     // asynchronous MPI calls are complete
-    vector<pair<mpi::request, message_type *> > sendMsgs, debugMsgs, debugRecvMsgs;
-
-    // recvQ stores the `status` only for DEBUGGING purposes.
-    vector<pair<mpi::request, pair<mpi::status, message_type *> > > recvQ;
+    vector<pair<mpi::request, message_type *> > sendMsgs, recvMsgs,
+        debugMsgs, debugRecvMsgs;
 
     // Dijkstra and Safra's token ring termination detection algorithm
     // Default states
@@ -107,9 +105,6 @@ namespace api {
     }
 
     void end(void) {
-#ifdef DEBUG_MPI
-        printf("%d MPI END\n", world->rank());
-#endif
         delete env;
         delete world;
     }
@@ -128,10 +123,7 @@ namespace api {
         utils::pack<message_type>((void *) &to, 1, (utils::byte *) msg,
                                   msg_length, &p);
         stpl->pack((utils::byte *) msg, msg_length - sizeof(message_type), &p);
-#ifdef DEBUG_MPI
-        printf("[%d==>%d] @%d %s\n", world->rank(), dest, to,
-               (ostringstream() << *stpl).str());
-#endif
+
         mpi::request req = world->isend(dest, TUPLE, msg, MAXLENGTH);
         sendMsgs.push_back(make_pair(req, msg));
         freeSendMsgs();
@@ -189,7 +181,7 @@ namespace api {
             message_type *msg = new message_type[MAXLENGTH];
             mpi::request req = world->irecv(mpi::any_source, TUPLE,
                                             msg, MAXLENGTH);
-            recvQ.push_back(make_pair(req, make_pair(status, msg)));
+            recvMsgs.push_back(make_pair(req, msg));
             newMessage = true;
         }
 
@@ -201,13 +193,12 @@ namespace api {
         /*
           Process the receive message queue and free the messages appropriatedly
         */
-        for (vector<pair<mpi::request, pair<mpi::status, message_type *> > >::iterator
-                 it=recvQ.begin();
-             it != recvQ.end(); ) {
+        for (vector<pair<mpi::request, message_type *> > ::iterator
+                 it=recvMsgs.begin(); it != recvMsgs.end(); ) {
             mpi::request req = it->first;
             if (req.test()) {
                 // Communication is complete, can safely extract tuple
-                message_type *msg = (it->second).second;
+                message_type *msg = it->second;
                 size_t msg_length = MAXLENGTH * sizeof(message_type);
                 int pos = 0;
                 message_type nodeID;
@@ -219,12 +210,7 @@ namespace api {
                 db::simple_tuple *stpl = db::simple_tuple::unpack(
                     (utils::byte *) msg, msg_length - sizeof(message_type),
                     &pos, all->PROGRAM);
-#ifdef DEBUG_MPI
-                mpi::status status = (it->second).first;
-                printf("{%d<==%d} @%d %s\n", world->rank(), status.source(), id,
-                       (ostringstream() << *stpl).str());
-#endif
-                assert(onLocalVM(id));
+
                 all->MACHINE->route(NULL, sched, id, stpl, 0);
 
                 // Safra's Algorithm for RECEIVE MESSAGE
@@ -233,7 +219,7 @@ namespace api {
 
                 // Free the messages
                 delete[] msg;
-                it = recvQ.erase(it);
+                it = recvMsgs.erase(it);
             } else
                 ++it;
         }
@@ -251,9 +237,6 @@ namespace api {
             /* Safra's Algorithm: Begin Token Collection  */
             world->isend(dest, WHITE, 0);
             token_sent = true;
-#ifdef DEBUG_MPI_TERM
-            printf("Safra's\n");
-#endif
             return false;
         }
 
@@ -274,36 +257,17 @@ namespace api {
             // No token in progress
             return false;
         }
-#ifdef DEBUG_MPI_TERM
-        if (!done)
-            assert(tokenColor == WHITE || tokenColor == BLACK);
-
-        printf("%d [%d] %s\n", world->rank(), acc,
-               (tokenColor == WHITE ? "WHITE" : "BLACK"));
-#endif
         if (world->rank() == MASTER) {
             if (tokenColor == WHITE && color == WHITE && acc + counter == 0) {
                 // System Termination detected, notify other processes
-#ifdef DEBUG_MPI_TERM
-                assert(!sched->get_work());
-                assert(sendMsgs.empty());
-                assert(recvQ.empty());
-                printf("%d TERMINATED\n", world->rank());
-#endif
                 world->isend(dest, DONE);
                 return true;
             }
             /* Safra's Algorithm: RETRANSMIT TOKEN */
             world->isend(dest, WHITE, 0);
-#ifdef DEBUG_MPI_TERM
-            printf("%d RETRANSMIT\n", world->rank());
-#endif
             color = WHITE;
         } else {
             if (done) {
-#ifdef DEBUG_MPI_TERM
-                printf("%d TERMINATED\n", world->rank());
-#endif
                 world->isend(dest, DONE);
                 return true;
             }
@@ -313,10 +277,6 @@ namespace api {
                 tokenColor = BLACK;
             color = WHITE;
             world->isend(dest, tokenColor, acc + counter);
-#ifdef DEBUG_MPI_TERM
-            printf("%d > %d %s\n", world->rank(), dest,
-                   (tokenColor == WHITE ? " WHITE" : " BLACK"));
-#endif
         }
         return false;
     }
@@ -384,7 +344,7 @@ namespace api {
     string _printNode(const db::node::node_id id,
                       const db::database::map_nodes &nodes) {
         ostringstream os;
-        os << "[VM_ID: " << world->rank() << " ]" << *(nodes.at(id));
+        os << "[VM_ID: " << world->rank() << "]" << *(nodes.at(id));
         return os.str();
     }
 
@@ -442,9 +402,10 @@ namespace api {
         if (world->rank() == debugger::MASTER) {
             std::vector<tokens> allVMs;
             mpi::gather(*world, INIT, allVMs, debugger::MASTER);
-            debugger::run(NULL);
+            debugger::run(all);
         } else {
             mpi::gather(*world, INIT, debugger::MASTER);
+            debugger::pauseIt();
         }
     }
 
@@ -456,12 +417,11 @@ namespace api {
         freeSendMsgs();
     }
 
-    void debugSendMsg(const db::node::node_id dest, message_type *msg,
+    void debugSendMsg(const int dest, message_type *msg,
                       size_t msgSize) {
         /* Send the message through MPI and place the message and status into
            the sendMsgs vector to be freed when the request completes */
-        int pid = getVMId(dest);
-        mpi::request req = world->isend(pid, DEBUG, msg, msgSize);
+        mpi::request req = world->isend(dest, DEBUG, msg, msgSize);
         sendMsgs.push_back(make_pair(req, msg));
         freeSendMsgs();
     }
@@ -469,6 +429,7 @@ namespace api {
     void debugGetMsgs(void) {
         /* Poll the MPI to find any debug messages and populate the debug
          * message queue */
+
         while(world->iprobe(mpi::any_source, DEBUG)) {
             message_type *msg = new message_type[MAXLENGTH];
             mpi::request req = world->irecv(mpi::any_source, DEBUG, msg, MAXLENGTH);
