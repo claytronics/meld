@@ -278,6 +278,7 @@ namespace debugger {
         if (nodeID!="")
             msg <<  "\tNode: " << nodeID << endl;
 
+
         display(msg.str(),PRINTCONTENT);
 
     }
@@ -297,7 +298,6 @@ namespace debugger {
         /*if is in MPI debugging mode, send to master to display/handle
          *the message*/
         else if (isInMpiDebuggingMode()){
-            cout << "child sending mesage" << endl;
             sendMsg(MASTER,type,msg);
         }
     }
@@ -527,12 +527,12 @@ namespace debugger {
 
         /*print the output and then tell all other VMs to pause*/
         if (instruction == BREAKFOUND){
-            cout << specification;
+            printf("%d: Spec: %s\n", api::world->rank(), specification.c_str());
             sendMsg(-1,PAUSE,"",BROADCAST);
 
         /*print content from a VM*/
         } else if (instruction == PRINTCONTENT){
-            cout << specification;
+            printf("%d: Spec: %s\n", api::world->rank(), specification.c_str());
         }
     }
 
@@ -556,44 +556,43 @@ namespace debugger {
      *a sendable messeage*/
     api::message_type* pack(int msgEncode, string content){
 
-        utils::byte* msg = new utils::byte[api::MAXLENGTH*SIZE];
+        utils::byte* msg = (utils::byte*)new api::message_type[api::MAXLENGTH];
         int pos = 0;
         int debugFlag =  DEBUG;
-        int size;
+        size_t size = content.length() + 1;
+        size_t bufSize = api::MAXLENGTH*SIZE;
+
 
         switch(msgEncode){
 
-
-            case DUMP:
             case UNPAUSE:
             case PAUSE:
-                size = 3;
 
                 /*pack the size of the array*/
-                utils::pack<size_t>(&size,1,msg,api::MAXLENGTH*SIZE,&pos);
+                utils::pack<size_t>(&size,1,msg,bufSize,&pos);
 
                 /*pack the debug indicator*/
-                utils::pack<int>(&debugFlag,1,msg,api::MAXLENGTH*SIZE,&pos);
+                utils::pack<int>(&debugFlag,1,msg,bufSize,&pos);
 
                 /*pack the message encoding*/
-                utils::pack<int>(&msgEncode,1,msg,api::MAXLENGTH*SIZE,&pos);
+                utils::pack<int>(&msgEncode,1,msg,bufSize,&pos);
 
                 return (api::message_type*)msg;
                 break;
 
+            case DUMP:
             case PRINTCONTENT:
             case BREAKFOUND:
             case BREAKPOINT:
-                size = getSize(content);
 
                 /*same as above for first three fields*/
-                utils::pack<size_t>(&size,1,msg,api::MAXLENGTH*SIZE,&pos);
-                utils::pack<int>(&debugFlag,1,msg,api::MAXLENGTH*SIZE,&pos);
-                utils::pack<int>(&msgEncode,1,msg,api::MAXLENGTH*SIZE,&pos);
+                utils::pack<size_t>(&size,1,msg,bufSize,&pos);
+                utils::pack<int>(&debugFlag,1,msg,bufSize,&pos);
+                utils::pack<int>(&msgEncode,1,msg,bufSize,&pos);
 
                 /*add the content into the buffer*/
                 utils::pack<char>((char*)content.c_str(),content.size()+1,
-                                 msg,api::MAXLENGTH*SIZE,&pos);
+                                 msg,bufSize,&pos);
                 return (api::message_type*)msg;
                 break;
         }
@@ -609,18 +608,33 @@ namespace debugger {
     void sendMsg(int destination, int msgType,
               string content, bool broadcast)  {
 
+        printf("%d: sendMsg: %s\n", api::world->rank(), content.c_str());
+
         /*pack the message*/
         api::message_type* msg = pack(msgType,content);
 
-        /*extract the size in bytes*/
-        size_t msgSizeInBytes = ((size_t)msg[0])*SIZE;
+        size_t msgSize = api::MAXLENGTH;
 
         if (broadcast)
-            api::debugBroadcastMsg(msg,msgSizeInBytes);
-        else {
-            int desinationNodeId = TranslateUserIdToNodeId(destination);
-            api::debugSendMsg(msg,msgSizeInBytes);
 
+            api::debugBroadcastMsg(msg,msgSize);
+
+        else {
+
+            /*send to the master debugging process*/
+            if (destination == MASTER){
+                api::debugSendMsg(MASTER,msg,
+                                  msgSize);
+                return;
+            }
+
+            /*convert user input id to system internal id*/
+            int destinationNodeId =
+                (int)all->DATABASE->translate_real_to_fake_id((db::node::node_id) destination);
+
+            /*get the process id (getVMId) and send the message*/
+            api::debugSendMsg(api::getVMId(destinationNodeId),msg,
+                              msgSize);
         }
 
     }
@@ -640,43 +654,37 @@ namespace debugger {
         /*load the message queue with messages*/
         api::debugGetMsgs();
 
-        if (api::world->rank() == MASTER){
-            cout << "master" << endl;
-        } else {
-            cout << "child" << endl;
-        }
-
         /*process each message until empty*/
         while(!messageQueue->empty()){
             /*extract the message*/
             msg = (utils::byte*)messageQueue->front();
-            cout << "sup" << endl;
 
             /*unpack the message into readable form*/
             utils::unpack<size_t>(msg,api::MAXLENGTH*SIZE,&pos,&size,1);
             utils::unpack<int>(msg,api::MAXLENGTH*SIZE,&pos,&debugFlag,1);
             utils::unpack<int>(msg,api::MAXLENGTH*SIZE,&pos,&instruction,1);
             utils::unpack<char>(msg,api::MAXLENGTH*SIZE,&pos,
-                                &specification,1);
+                                &specification,size);
             string spec(specification);
+
+            printf("%d: Received: %s\n", api::world->rank(), specification);
+            //cout << spec;
 
             /*if the controlling process is recieving a message*/
             if (api::world->rank()==MASTER){
-                cout << "slave" << endl;
+
                 debugMasterController(instruction,spec);
                 numberExpected--;
 
                 /*if a slave process (any vm) is receiving the message*/
             } else {
-                cout << "master" << endl;
                 debugController(instruction,spec);
             }
 
             /*set up the variables and buffers for next message*/
             memset(specification,0,api::MAXLENGTH*SIZE);
-            memset(msg,0,api::MAXLENGTH*SIZE);
-            cout << "hello" << endl;
             messageQueue->pop();
+            memset(msg,0,api::MAXLENGTH*SIZE);
             pos = 0;
         }
     }

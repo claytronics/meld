@@ -49,8 +49,6 @@ namespace debugger {
         parseline(inpt,factBreaks);
       }
       receiveMsg();
-      cout << "trying again" << endl;
-      exit(0);
     }
     return NULL;
   }

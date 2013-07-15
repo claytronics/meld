@@ -44,6 +44,8 @@ database::database(const string& filename, create_node_fn _create_fn, vm::all *_
       node *node(create_fn(fake_id, real_id, all));
 
       translation[fake_id] = real_id;
+      reverse_translation[real_id] = fake_id;
+
       nodes[fake_id] = node;
 
       if(fake_id > max_node_id)
@@ -93,6 +95,7 @@ database::create_node_id(const db::node::node_id id)
 
    node *ret(create_fn(max_node_id, max_translated_id, all));
    translation[max_node_id] = max_translated_id;
+   reverse_translation[max_translated_id] = max_node_id;
    nodes[max_node_id] = ret;
 
    return ret;
@@ -114,9 +117,20 @@ database::create_node(void)
    node *ret(create_fn(max_node_id, max_translated_id, all));
 
    translation[max_node_id] = max_translated_id;
+   reverse_translation[max_translated_id] = max_node_id;
    nodes[max_node_id] = ret;
 
    return ret;
+}
+
+node::node_id
+database::translate_real_to_fake_id(const node::node_id real_id) {
+    return reverse_translation[real_id];
+}
+
+node::node_id
+database::translate_fake_to_real_id(const node::node_id fake_id) {
+    return translation[fake_id];
 }
 
 void

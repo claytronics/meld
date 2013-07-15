@@ -7,6 +7,7 @@
 #include <queue>
 #include "api/api.hpp"
 #include "vm/all.hpp"
+#include "db/node.hpp"
 
 const int DUMP = 1;
 const int CONTINUE = 7;
