@@ -212,16 +212,6 @@ machine::execute_const_code(void)
 	// no node or tuple whatsoever
 	st.setup(NULL, NULL, 0);
 
-    debugger::setState(st);
-	if (debugger::isInDebuggingMode()) {
-        debugger::debug(st);
-        debugger::pauseIt();
-	} else if (debugger::isInSimDebuggingMode()){
-        debugger::initSimDebug();
-	} else if (debugger::isInMpiDebuggingMode()){
-        debugger::pauseIt();
-    }
-
 
 	execute_bytecode(all->PROGRAM->get_const_bytecode(), st);
 }

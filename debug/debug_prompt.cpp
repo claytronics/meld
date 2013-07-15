@@ -20,32 +20,37 @@ namespace debugger {
 
   /*spawn the debbugging prompt as a separate thread to
     controll the main one*/
-  void debug(vm::state& st){
+  void debug(vm::all* debugAll){
 
     //start the list of break points to be used
     setupFactList();
 
     pthread_t tid;
-    pthread_create(&tid,NULL,run, &st);
+    pthread_create(&tid,NULL,run, debugAll);
 
   }
 
 
   //continuously attend command line prompt for debugger
   //when the system is not paused
-  void *run(void * curState){
+  void *run(void* debugAll){
 
     string inpt;
-    vm::state st = *getState();
+
+    all = (vm::all*)debugAll;
+
     debugList factBreaks = getFactList();
 
     while(true){
-      if (isTheSystemPaused()){
+      if (isTheSystemPaused()&&numberExpected==0){
         cout << ">";
         getline(cin,inpt);
         //react to the input
-        parseline(inpt,st,factBreaks);
+        parseline(inpt,factBreaks);
       }
+      receiveMsg();
+      cout << "trying again" << endl;
+      exit(0);
     }
     return NULL;
   }
@@ -53,7 +58,7 @@ namespace debugger {
 
 
   /*parses the command line and run the debugger*/
-  void parseline(string line, vm::state& st, debugList& factBreaks){
+  void parseline(string line, debugList& factBreaks){
 
     string build = "";
     int wordCount = 1;
@@ -63,7 +68,7 @@ namespace debugger {
     /*empty input*/
     if (line == ""){
       //enterlast stored command
-      debugController(st,lastInstruction, lastBuild);
+      debugController(lastInstruction, lastBuild);
       return;
     }
 
@@ -90,7 +95,7 @@ namespace debugger {
 
       if (command != BREAKPOINT && command!=DUMP
           && command != REMOVE){
-        debugController(st,command, build);
+        debugController(command, build);
         lastInstruction = command;
         lastBuild = build;
         return;
@@ -107,9 +112,9 @@ namespace debugger {
     /*handle breakpointsand dumps*/
     if (wordCount == 2){
       if (command == BREAKPOINT||command == DUMP||command == REMOVE)
-        debugController(st,command,build);
+        debugController(command,build);
       else
-        debugController(st,command,"");
+        debugController(command,"");
       lastInstruction = command;
       lastBuild = build;
     }

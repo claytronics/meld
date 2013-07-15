@@ -34,7 +34,7 @@ namespace api {
 //#define DEBUG_MPI_TERM
 //#define DEBUG_MPI_SERIAL
 
-    const int MASTER = 0;
+    const int MASTER = 1;
 
     // Function Prototypes
     static void freeSendMsgs(void);
@@ -439,12 +439,14 @@ namespace api {
         if (world->size() == 1) {
             throw "Debug must be run with at least 2 MPI processes.";
         }
+        debugger::initMpiDebug();
         if (world->rank() == debugger::MASTER) {
             std::vector<tokens> allVMs;
             mpi::gather(*world, INIT, allVMs, debugger::MASTER);
             debugger::run(NULL);
         } else {
             mpi::gather(*world, INIT, debugger::MASTER);
+            debugger::pauseIt();
         }
     }
 
@@ -464,6 +466,10 @@ namespace api {
         mpi::request req = world->isend(pid, DEBUG, msg, msgSize);
         sendMsgs.push_back(make_pair(req, msg));
         freeSendMsgs();
+    }
+
+    void debugWaitMsg(void) {
+        world->probe(mpi::any_source, DEBUG);
     }
 
     void debugGetMsgs(void) {

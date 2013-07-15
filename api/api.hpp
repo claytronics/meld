@@ -74,6 +74,8 @@ namespace api {
 
     extern void debugBroadcastMsg(message_type *msg, size_t messageSize);
 
+    extern void debugWaitMsg(void);
+
     /*populate a debugger queue with incomming messages*/
     extern void debugGetMsgs(void);
 

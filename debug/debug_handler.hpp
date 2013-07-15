@@ -6,6 +6,7 @@
 #include "debug/debug_list.hpp"
 #include <queue>
 #include "api/api.hpp"
+#include "vm/all.hpp"
 
 const int DUMP = 1;
 const int CONTINUE = 7;
@@ -28,16 +29,17 @@ const int DEBUGMPI = 0;
 namespace debugger {
 
     extern std::queue<api::message_type*> *messageQueue;
+    extern int numberExpected;
+    extern vm::all *all;
 
     const int MASTER = 0;
 
     void activateBreakPoint(std::string specification);
     void runBreakPoint(char* type, std::string msg, char* name, int nodeID);
     void pauseIt(void);
-    void dumpSystemState(vm::state& st);
+    void dumpSystemState(int nodeNumber);
     void continueExecution(void);
-    void debugController(vm::state& currentState,
-                         int instruction, std::string specification);
+    void debugController(int instruction, std::string specification);
     bool isTheSystemPaused(void);
     void setDebuggingMode(bool setting);
     bool isInDebuggingMode(void);
@@ -46,7 +48,7 @@ namespace debugger {
     debugList getFactList(void);
     void initSimDebug(void);
     void setSimDebuggingMode(bool setting);
-    void handleDebugMessage(uint64_t *msg, vm::state& st);
+    void handleDebugMessage(uint64_t *msg);
     void display(std::string msg,int type);
     api::message_type getInstruction(api::message_type* msg);
     std::string getSpec(api::message_type* msg, int instruction);
