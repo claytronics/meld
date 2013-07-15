@@ -49,6 +49,14 @@ namespace api {
     static void freeSendMsgs(void);
     static void processRecvMsgs(sched::base *sched, vm::all *all);
 
+    static string _printNode(const db::node::node_id, const db::database::map_nodes&);
+    static string _dumpNode(const db::node::node_id, const db::database::map_nodes&);
+    static void serialDBOutput(std::ostream &out, const db::database::map_nodes &nodes,
+                               string (*format)(
+                                   const db::node::node_id,
+                                   const db::database::map_nodes&
+                                   ));
+
     /* Functions to calculate adjacent process ids in a ring structure */
     inline int prevProcess(void) {
         if (world->rank() == 0) {
@@ -379,7 +387,7 @@ namespace api {
 
     void serializeBeginExec(void) {
         /*
-          Use a token ring algorithm to serializeExecution from process to
+          Use a token ring algorithm to serialize execution from process to
           process
 
           There should be only 1 EXEC token passed around the ring. Only the
@@ -423,60 +431,37 @@ namespace api {
         return id % world->size();
     }
 
-
     /* === Synced Database Output Functions === */
 
     void dumpDB(std::ostream &out, const db::database::map_nodes &nodes) {
-        world->barrier();
-
-        int source = prevProcess();
-        int dest = nextProcess();
-
-        if (world->rank() == MASTER) {
-            for (db::database::map_nodes::const_iterator it(nodes.begin());
-                 it != nodes.end(); ++it) {
-
-                db::node::node_id id = it->first;
-
-                if (onLocalVM(id)) {
-                    it->second->dump(out);
-                } else {
-                    world->send(getVMId(id), PRINT, id);
-
-                    string result;
-                    world->recv(getVMId(id), PRINT, result);
-
-                    out << result;
-                }
-                out.flush();
-            }
-
-            // Finished printing, singal done
-            world->isend(dest, PRINT_DONE);
-        } else {
-            while(true) {
-                mpi::status status = world->probe(mpi::any_source,
-                                                  mpi::any_tag);
-
-                if (status.tag() == PRINT_DONE) {
-                    world->irecv(source, PRINT_DONE);
-                    world->isend(dest, PRINT_DONE);
-                    break;
-                }
-
-                db::node::node_id id;
-                world->recv(MASTER, PRINT, id);
-
-                assert(onLocalVM(id));
-
-                std::ostringstream stream;
-                nodes.at(id)->dump(stream);
-                api::world->send(MASTER, PRINT, stream.str());
-            }
-        }
+        serialDBOutput(out, nodes, &_dumpNode);
     }
 
     void printDB(std::ostream& out, const db::database::map_nodes &nodes) {
+        serialDBOutput(out, nodes, &_printNode);
+    }
+
+    string _dumpNode(const db::node::node_id id,
+                      const db::database::map_nodes &nodes) {
+        ostringstream os;
+        nodes.at(id)->dump(os);
+        return os.str();
+    }
+
+    string _printNode(const db::node::node_id id,
+                      const db::database::map_nodes &nodes) {
+        ostringstream os;
+        os << "[VM_ID: " << world->rank() << " ]" << *(nodes.at(id));
+        return os.str();
+    }
+
+    void serialDBOutput(std::ostream &out, const db::database::map_nodes &nodes,
+                        string (*format)(const db::node::node_id,
+                                         const db::database::map_nodes&)) {
+
+        /* Serialize the database output for increasing internal node id.  How
+         * it is output is determined by the format function */
+
         world->barrier();
 
         int source = prevProcess();
@@ -489,8 +474,7 @@ namespace api {
                 db::node::node_id id = it->first;
 
                 if (onLocalVM(id)) {
-                    out << "[PID " << world->rank() << "] "
-                         << *(it->second);
+                    out << format(id, nodes);
                 } else {
                     world->send(getVMId(id), PRINT, id);
 
@@ -499,7 +483,6 @@ namespace api {
 
                     out << result;
                 }
-                out << endl;
                 out.flush();
             }
 
@@ -518,19 +501,15 @@ namespace api {
 
                 db::node::node_id id;
                 world->recv(MASTER, PRINT, id);
-
-                assert(onLocalVM(id));
-
-                std::ostringstream stream;
-                stream << "[PID " << world->rank() << "] " << *(nodes.at(id));
-                world->send(MASTER, PRINT, stream.str());
+                world->send(MASTER, PRINT, format(id, nodes));
             }
         }
+
     }
 
     /* === Debugger Functions === */
 
-    void debugInit(void) {
+    void debugInit(vm::all *all) {
         /* Use MPI gather to make sure that all VMs are initiated before the
          * debugger is run
          */

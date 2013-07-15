@@ -119,7 +119,7 @@ run_program(int argc, char **argv, const char *program, const vm::machine_argume
         //api::init(argc, argv, mac.get_all()->ALL_THREADS[0]);
 
         if (debugger::isInMpiDebuggingMode())
-            api::debugInit();
+            api::debugInit(mac.get_all());
         else
             mac.start();
 

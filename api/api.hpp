@@ -65,7 +65,7 @@ namespace api {
     /* === Debugger Functions === */
 
     /* initialize the debugger through the api */
-    extern void debugInit(void);
+    extern void debugInit(vm::all *all);
 
     /*
      * send a massage to a specified node, if broadcast specified, send to all

@@ -24,7 +24,6 @@ using namespace sched;
 using namespace mem;
 using namespace utils;
 using namespace statistics;
-using namespace api;
 
 namespace process
 {
