@@ -28,7 +28,7 @@ const int DEBUGMPI = 0;
 namespace debugger {
 
     extern std::queue<api::message_type*> *messageQueue;
-    
+
     const int MASTER = 0;
 
     void activateBreakPoint(std::string specification);
@@ -36,7 +36,7 @@ namespace debugger {
     void pauseIt(void);
     void dumpSystemState(vm::state& st);
     void continueExecution(void);
-    void debugController(vm::state& currentState, 
+    void debugController(vm::state& currentState,
                          int instruction, std::string specification);
     bool isTheSystemPaused(void);
     void setDebuggingMode(bool setting);

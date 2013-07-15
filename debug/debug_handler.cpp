@@ -61,7 +61,7 @@ namespace debugger {
 
         setupFactList();
 
-        std::queue<api::message_type*> *messageQueue = 
+        std::queue<api::message_type*> *messageQueue =
             new std::queue<api::message_type*>();
 
     }
@@ -108,7 +108,6 @@ namespace debugger {
     bool isInSimDebuggingMode(void){
         return isSimDebug;
     }
-
 
     /*returns if system is in VM debugging mode*/
     bool isInDebuggingMode(void){
@@ -305,6 +304,8 @@ namespace debugger {
 
         ostringstream MSG;
 
+        //receiveMsg();
+
         if (!isInDebuggingMode()&&!isInSimDebuggingMode())
             return;
 
@@ -324,7 +325,7 @@ namespace debugger {
 
     /*pause the VM until further notice*/
     void pauseIt(){
-        
+
         isSystemPaused = true;
         while(isSystemPaused){
             if (isInMpiDebuggingMode()){
@@ -388,11 +389,11 @@ namespace debugger {
     /*returns the specification out of a message
      *sent from the simulator*/
     string getContent(api::message_type* msg){
-        
+
         char* content = (char*)&msg[3];
         std::string str(content);
         return str;
-        
+
 
     }
 
@@ -411,7 +412,7 @@ namespace debugger {
         string type;
         string name;
         string node;
-        
+
         systemState = &currentState;
 
         switch(instruction){
@@ -460,7 +461,7 @@ namespace debugger {
     }
 
     api::message_type* pack(int msgEncode, string content){
-        
+
         utils::byte* msg = new utils::byte[api::MAXLENGTH*SIZE];
         int pos = 0;
         int debugFlag =  DEBUG;
@@ -496,18 +497,19 @@ namespace debugger {
     }
 
 
+    //desination is process
     void sendMsg(int destination, int msgType,
               string content, bool broadcast)  {
 
         api::message_type* msg = pack(msgType,content);
         size_t msgSizeInBytes = ((size_t)msg[0])*SIZE;
-        
+
         api::debugSendMsg(destination,msg,msgSizeInBytes,broadcast);
 
     }
 
     void receiveMsg(void){
-        
+
         utils::byte *msg;
         int instruction;
         char specification[api::MAXLENGTH*SIZE];

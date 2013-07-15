@@ -21,7 +21,7 @@ namespace debugger {
   /*spawn the debbugging prompt as a separate thread to
     controll the main one*/
   void debug(vm::state& st){
-  
+
     //start the list of break points to be used
     setupFactList();
 
@@ -34,9 +34,9 @@ namespace debugger {
   //continuously attend command line prompt for debugger
   //when the system is not paused
   void *run(void * curState){
- 
+
     string inpt;
-    vm::state st = *(getState());
+    vm::state st = *getState();
     debugList factBreaks = getFactList();
 
     while(true){
@@ -57,7 +57,7 @@ namespace debugger {
 
     string build = "";
     int wordCount = 1;
-  
+
     int command = NOTHING;
 
     /*empty input*/
@@ -69,7 +69,7 @@ namespace debugger {
 
     /*loop through input line*/
     for (unsigned int i = 0; i < line.length(); i++){
-    
+
 
       /*parse line for words*/
       if (line[i]!=' '){
@@ -82,13 +82,13 @@ namespace debugger {
         build = "";
       }
     }
-    
+
 
     /*no whitespace at all-single word commands*/
     if (wordCount == 1){
       command = handle_command(build,factBreaks);
-    
-      if (command != BREAKPOINT && command!=DUMP 
+
+      if (command != BREAKPOINT && command!=DUMP
           && command != REMOVE){
         debugController(st,command, build);
         lastInstruction = command;
@@ -96,9 +96,9 @@ namespace debugger {
         return;
       }
     }
-  
+
     /*if not enough info - these  types must have a specification*/
-    if ((command == BREAKPOINT||command == DUMP||command == REMOVE)&& 
+    if ((command == BREAKPOINT||command == DUMP||command == REMOVE)&&
         wordCount == 1){
       cout << "Please specify- type help for options" << endl;
       return;
@@ -108,7 +108,7 @@ namespace debugger {
     if (wordCount == 2){
       if (command == BREAKPOINT||command == DUMP||command == REMOVE)
         debugController(st,command,build);
-      else 
+      else
         debugController(st,command,"");
       lastInstruction = command;
       lastBuild = build;
@@ -172,10 +172,10 @@ namespace debugger {
     cout << endl;
     cout << "*******************************************************************" << endl;
   }
-  
+
 }
 
-  
-    
 
-  
+
+
+
