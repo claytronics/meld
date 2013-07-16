@@ -257,10 +257,10 @@ namespace api {
         if (world->rank() == RING_ORIGIN) {
             if (tokenColor == WHITE && color == WHITE && acc + counter == 0) {
                 // System Termination detected, notify other processes
-                if (nextProcess() < world->rank() && debugger::isInMpiDebuggingMode()) {
+                if (nextProcess() <= world->rank() && debugger::isInMpiDebuggingMode()) {
                     // end of the ring
                     debugger::sendMsg(debugger::MASTER, debugger::TERMINATE, "");
-                    while(!sendMsgs.empyt()) {
+                    while(!sendMsgs.empty()) {
                         freeSendMsgs();
                     }
                 } else {
