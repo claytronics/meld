@@ -30,11 +30,6 @@ using namespace std;
 namespace mpi = boost::mpi;
 
 namespace api {
-//#define DEBUG_MPI
-//#define DEBUG_MPI_TERM
-//#define DEBUG_MPI_SERIAL
-
-    const int MASTER = 1;
 
     // Function Prototypes
     static void freeSendMsgs(void);
@@ -113,7 +108,6 @@ namespace api {
                       db::simple_tuple* stpl) {
         /* Given a node id and tuple, figure out the process id to send the
            tuple and id to be processed
-           ================================================================
         */
         int dest = getVMId(to);
         message_type *msg = new message_type[MAXLENGTH];
@@ -170,14 +164,12 @@ namespace api {
         freeSendMsgs();
 
         bool newMessage = false;
-        boost::optional<mpi::status> statusOpt;
 
-        while ((statusOpt = world->iprobe(mpi::any_source, TUPLE))) {
+        while (world->iprobe(mpi::any_source, TUPLE)) {
             /* a meld message that needs to be processed by scheduler
                Since the MPI is asynchronous, the messages are queued and
                then processed outside of the loop.
             */
-            mpi::status status = statusOpt.get();
             message_type *msg = new message_type[MAXLENGTH];
             mpi::request req = world->irecv(mpi::any_source, TUPLE,
                                             msg, MAXLENGTH);
@@ -294,19 +286,12 @@ namespace api {
             // Block process from continuing until token is received
             world->recv(source, EXEC);
             hasToken = true;
-#ifdef DEBUG_MPI_SERIAL
-            printf("[%d] processing ...\n", world->rank());
-#endif
         }
     }
 
     void serializeEndExec(void) {
         int dest = nextProcess();
         if (hasToken) {
-#ifdef DEBUG_MPI_SERIAL
-            printf("[%d] end\n", world->rank());
-            fflush(stdout);
-#endif
             hasToken = false;
             world->send(dest, EXEC);
         }
@@ -396,7 +381,8 @@ namespace api {
 
     void debugInit(vm::all *all) {
         /* Use MPI gather to make sure that all VMs are initiated before the
-         * debugger is run
+         * debugger is run. Debugger MASTER is the debugger process, while MPI
+         * MASTER is the initial process in a ring structure.
          */
         if (world->size() == 1) {
             throw "Debug must be run with at least 2 MPI processes.";

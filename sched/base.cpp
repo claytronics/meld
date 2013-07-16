@@ -136,7 +136,7 @@ base::do_loop(void)
   while(true) {
 //      api::serializeBeginExec();
       while ((node = get_work())) {
-          // Current processor has local work, process work
+          // Current VM has local work, process work
           do_work(node);
           finish_work(node);
       }
