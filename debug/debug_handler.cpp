@@ -409,8 +409,6 @@ namespace debugger {
         char* content = (char*)&msg[3];
         std::string str(content);
         return str;
-
-
     }
 
 
@@ -542,12 +540,14 @@ namespace debugger {
 
         /*print the output and then tell all other VMs to pause*/
         if (instruction == BREAKFOUND){
-            printf("Process %d:\n%s\n", api::world->rank(), specification.c_str());
+            printf("Process %d:\n%s\n",
+                   api::world->rank(), specification.c_str());
             sendMsg(-1,PAUSE,"",BROADCAST);
 
         /*print content from a VM*/
         } else if (instruction == PRINTCONTENT){
-            printf("Process %d:\n%s\n", api::world->rank(), specification.c_str());
+            printf("Process %d:\n%s\n",
+                   api::world->rank(), specification.c_str());
         }
     }
 
@@ -631,7 +631,7 @@ namespace debugger {
 
         if (broadcast){
 
-            api::debugSendMsg(1,msg,msgSize);
+            api::debugBroadcastMsg(msg,msgSize);
 
         } else {
             /*send to the master debugging process*/
@@ -639,6 +639,9 @@ namespace debugger {
                 api::debugSendMsg(MASTER,msg,
                                   msgSize);
                 return;
+
+                /*send to api-master -- see dumping DB in api/mpi
+                 *with passing a token*/
             } else if (destination == APIMASTER) {
                 api::debugSendMsg(api::MASTER,msg,
                                   msgSize);
