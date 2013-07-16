@@ -41,6 +41,102 @@ using namespace msg;
 namespace api
 {
 
+
+  enum face_t {
+   INVALID_FACE = -1,
+   BOTTOM = 0,
+   NORTH = 1,
+   EAST = 2,
+   WEST = 3,
+   SOUTH = 4,
+   TOP = 5
+};
+
+
+
+   vm::node_val top;
+   vm::node_val bottom;
+   vm::node_val east;
+   vm::node_val west;
+   vm::node_val north;
+   vm::node_val south;
+
+   bool instantiated_flag(false);
+   size_t neighbor_count;
+inline face_t& operator++(face_t &f)
+{
+   f = static_cast<face_t>(f + 1);
+   return f;
+}
+
+inline face_t operator++(face_t& f, int) {
+   ++f;
+   return f;
+}
+
+
+
+
+   /*Making compatible with simulator*/
+   static const vm::node_val NO_NEIGHBOR = (vm::node_val)-1;
+
+   static const face_t INITIAL_FACE = BOTTOM;
+   static const face_t FINAL_FACE = TOP;
+// returns a pointer to a certain face, allowing modification
+
+   static vm::node_val 
+   *get_node_at_face(const face_t face)
+    {
+      switch(face) {
+         case BOTTOM: return &bottom;
+         case NORTH: return &north;
+         case EAST: return &east;
+         case WEST: return &west;
+         case SOUTH: return &south;
+         case TOP: return &top;
+         default: assert(false);
+      }
+   }
+
+   static face_t 
+   get_face(const vm::node_val node) 
+   {
+      if(node == bottom) return BOTTOM;
+      if(node == north) return NORTH;
+      if(node == east) return EAST;
+      if(node == west) return WEST;
+      if(node == south) return SOUTH;
+      if(node == top) return TOP;
+      return INVALID_FACE;
+   }
+
+   static inline bool 
+   has_been_instantiated(void)
+   {
+      return instantiated_flag;
+   }
+
+   static inline void 
+   inc_neighbor_count(void)
+   {
+      ++neighbor_count;
+   }
+
+   static inline void 
+   dec_neighbor_count(void)
+   {
+      --neighbor_count;
+   }
+
+   static inline size_t 
+   get_neighbor_count(void)
+   {
+      return neighbor_count;
+   }
+
+
+
+
   boost::mpi::communicator *world = NULL;
   static const char* msgcmd2str[16];
   static boost::asio::ip::tcp::socket *my_tcp_socket;
@@ -531,11 +627,20 @@ handle_setid(deterministic_timestamp ts, db::node::node_id node_id)
   sched_state->init_node(no);
   cout<<"Node id is "<<no->get_id()<<endl;
   serial_node *no_in((serial_node *)no);
-  no_in->set_instantiated(true);
-  for(face_t face = serial_node::INITIAL_FACE; face <= serial_node::FINAL_FACE; ++face) {
+    top=NO_NEIGHBOR;
+    bottom=NO_NEIGHBOR;
+    east=NO_NEIGHBOR;
+    west=NO_NEIGHBOR;
+    north=NO_NEIGHBOR;
+    south=NO_NEIGHBOR;
+    neighbor_count=0;
+
+  instantiated_flag=true;
+  for(face_t face = INITIAL_FACE; face <= FINAL_FACE; ++face) {
     add_vacant(ts, no_in, face, 1);
   }
-  add_neighbor_count(ts, no_in, 0, 1);
+
+    add_neighbor_count(ts, no_in, 0, 1);
 }
 
 static void handle_receive_message(const deterministic_timestamp ts,
@@ -588,30 +693,30 @@ handleDebugMessage(utils::byte* reply, size_t totalSize)
 #endif
    
    serial_node *no_in(dynamic_cast<serial_node*>((sched_state->state).all->DATABASE->find_node(in)));
-   node_val *neighbor(no_in->get_node_at_face(face));
+   node_val *neighbor(get_node_at_face(face));
 
-   if(*neighbor == serial_node::NO_NEIGHBOR) {
+   if(*neighbor == NO_NEIGHBOR) {
       // remove vacant first, add 1 to neighbor count
-    if(no_in->has_been_instantiated()) {
+    if(has_been_instantiated()) {
      add_vacant(ts, no_in, face, -1);
-     add_neighbor_count(ts, no_in, no_in->get_neighbor_count(), -1);
+     add_neighbor_count(ts, no_in, get_neighbor_count(), -1);
    }
-   no_in->inc_neighbor_count();
+  inc_neighbor_count();
 #ifdef DEBUG
-   cout << in << " neighbor count went up to " << no_in->get_neighbor_count() << endl;
+   cout << in << " neighbor count went up to " << get_neighbor_count() << endl;
 #endif
-   if(no_in->has_been_instantiated())
-     add_neighbor_count(ts, no_in, no_in->get_neighbor_count(), 1);
+   if(has_been_instantiated())
+     add_neighbor_count(ts, no_in, get_neighbor_count(), 1);
    *neighbor = out;
-   if(no_in->has_been_instantiated())
+   if(has_been_instantiated())
      add_neighbor(ts, no_in, out, face, 1);
  } else {
   if(*neighbor != out) {
          // remove old node
-   if(no_in->has_been_instantiated())
+   if(has_been_instantiated())
     add_neighbor(ts, no_in, *neighbor, face, -1);
   *neighbor = out;
-  if(no_in->has_been_instantiated())
+  if(has_been_instantiated())
     add_neighbor(ts, no_in, out, face, 1);
 }
 }
@@ -627,25 +732,25 @@ handle_remove_neighbor(const deterministic_timestamp ts,
 #endif
 
   serial_node *no_in(dynamic_cast<serial_node*>((sched_state->state).all->DATABASE->find_node(in)));
-  node_val *neighbor(no_in->get_node_at_face(face));
+  node_val *neighbor(get_node_at_face(face));
 
-  if(*neighbor == serial_node::NO_NEIGHBOR) {
+  if(*neighbor == NO_NEIGHBOR) {
       // remove vacant first, add 1 to neighbor count
     cerr << "Current face is vacant, cannot remove node!" << endl;
     assert(false);
   } else {
       // remove old node
-    if(no_in->has_been_instantiated())
-     add_neighbor_count(ts, no_in, no_in->get_neighbor_count(), -1);
-   no_in->dec_neighbor_count();
+    if(has_been_instantiated())
+     add_neighbor_count(ts, no_in, get_neighbor_count(), -1);
+   dec_neighbor_count();
    add_vacant(ts, no_in, face, 1);
-   if(no_in->has_been_instantiated())
-     add_neighbor_count(ts, no_in, no_in->get_neighbor_count(), 1);
+   if(has_been_instantiated())
+     add_neighbor_count(ts, no_in, get_neighbor_count(), 1);
  }
 
  add_neighbor(ts, no_in, *neighbor, face, -1);
 
- *neighbor = serial_node::NO_NEIGHBOR;
+ *neighbor = NO_NEIGHBOR;
 }
 
 
