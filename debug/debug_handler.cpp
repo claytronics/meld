@@ -542,6 +542,9 @@ namespace debugger {
         } else if (instruction == PRINTCONTENT){
             printf("Process %d:\n%s\n",
                    api::world->rank(), specification.c_str());
+        } else if (instruction == TERMINATE){
+            printf("CHILD TERMINATED\n");
+            exit(0);
         }
     }
 
