@@ -19,6 +19,10 @@ using namespace std;
 using namespace vm;
 using namespace debugger;
 
+namespace api {
+    const int MASTER = 1;
+}
+
 namespace debugger {
 
 #define SIZE (sizeof(api::message_type))
@@ -43,9 +47,13 @@ namespace debugger {
     /*pointer to the system state class*/
     static state *systemState;
 
+    /*number of messages the Master expects to recieve*/
     int numberExpected = 0;
 
+    /*used to store the state of the system to dump/print system*/
     vm::all* all;
+
+    const int APIMASTER = -1;
 
     /******************************************************************/
 
@@ -299,6 +307,7 @@ namespace debugger {
         /*if is in MPI debugging mode, send to master to display/handle
          *the message*/
         else if (isInMpiDebuggingMode()){
+            cout << "sending message" << endl;
             sendMsg(MASTER,type,msg);
         }
     }
@@ -405,21 +414,29 @@ namespace debugger {
     }
 
 
-    /*exrtact the intruction encoding from a message*/
+    /*extract the intruction encoding from a message*/
     api::message_type getInstruction(api::message_type* msg){
         return msg[2];
     }
 
 
+    /*DEBUG CONTROLLER -- main controller of pausing/unpausing/dumping VMs*/
     /*execute instruction based on encoding and specification
-      call from the debug_prompt*/
+     *call from the debug_prompt -- There are two different sides to
+     *this function:  There is one side that handles sending messages to
+     *processes in which these process will recieve that message
+     *The other side pertains to the processes that are controlled by the
+     *the master process.  They will change their system state and give
+     *feed back to the master process (see debugger::display())
+     *When the master sends a message, it will expect to see a certain
+     *amount of messages sent back*/
     void debugController(int instruction, string specification){
 
         string type;
         string name;
         string node;
 
-        /*for numberExpected see debug_prompt.cpp, run()*/
+        /*for use of numberExpected see debug_prompt.cpp, run()*/
 
         /*if MPI debugging and the master process:
          *send a  message instead of changing the system state
@@ -438,10 +455,10 @@ namespace debugger {
                 /*broadcast the message to all VMs*/
                 if (specification == "all"){
 
-                    sendMsg(-1,DUMP,specification,BROADCAST);
+                    sendMsg(APIMASTER,DUMP,specification);
                     /*wait for all VMs to receive (not counting the debugger
                      *itself*/
-                    numberExpected = (int)api::world->size()-1;
+                    numberExpected = 1;
 
                 } else {
 
@@ -525,12 +542,12 @@ namespace debugger {
 
         /*print the output and then tell all other VMs to pause*/
         if (instruction == BREAKFOUND){
-            printf("Process %d: %s\n", api::world->rank(), specification.c_str());
+            printf("Process %d:\n%s\n", api::world->rank(), specification.c_str());
             sendMsg(-1,PAUSE,"",BROADCAST);
 
         /*print content from a VM*/
         } else if (instruction == PRINTCONTENT){
-            printf("Process %d:  %s\n", api::world->rank(), specification.c_str());
+            printf("Process %d:\n%s\n", api::world->rank(), specification.c_str());
         }
     }
 
@@ -607,28 +624,31 @@ namespace debugger {
               string content, bool broadcast)  {
 
 
-
         /*pack the message*/
         api::message_type* msg = pack(msgType,content);
 
         size_t msgSize = api::MAXLENGTH;
 
-        if (broadcast)
+        if (broadcast){
 
-            api::debugBroadcastMsg(msg,msgSize);
+            api::debugSendMsg(1,msg,msgSize);
 
-        else {
-
+        } else {
             /*send to the master debugging process*/
             if (destination == MASTER){
                 api::debugSendMsg(MASTER,msg,
+                                  msgSize);
+                return;
+            } else if (destination == APIMASTER) {
+                api::debugSendMsg(api::MASTER,msg,
                                   msgSize);
                 return;
             }
 
             /*convert user input id to system internal id*/
             int destinationNodeId =
-                (int)all->DATABASE->translate_real_to_fake_id((db::node::node_id) destination);
+                (int)all->DATABASE->
+                translate_real_to_fake_id((db::node::node_id) destination);
 
             /*get the process id (getVMId) and send the message*/
             api::debugSendMsg(api::getVMId(destinationNodeId),msg,
@@ -674,6 +694,7 @@ namespace debugger {
 
                 /*if a slave process (any vm) is receiving the message*/
             } else {
+                cout << spec << endl;
                 debugController(instruction,spec);
             }
 
