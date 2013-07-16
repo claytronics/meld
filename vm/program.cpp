@@ -662,13 +662,7 @@ program::print_predicate_dependency(){
 
     size_t i;
 
-    for(i = 0; i < num_rules; i++){
 
-
-    }
-
-
-/*
     for(i = 0 ; i < num_predicates(); i++){
 
         cout<<predicates[i]->name;
@@ -678,7 +672,7 @@ program::print_predicate_dependency(){
         }
         cout<<endl;
     
-    }*/
+    }
 }
 
 }
