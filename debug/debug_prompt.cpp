@@ -42,12 +42,13 @@ namespace debugger {
     debugList factBreaks = getFactList();
 
     while(true){
-      if (isTheSystemPaused()&&numberExpected==0){
+      if (isTheSystemPaused()){
         cout << ">";
         getline(cin,inpt);
         //react to the input
         parseline(inpt,factBreaks);
       }
+      api::debugWaitMsg();
       receiveMsg();
     }
     return NULL;

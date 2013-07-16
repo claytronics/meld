@@ -442,7 +442,6 @@ namespace debugger {
 
                 /*continue a paused system by broadcasting an UNPAUSE signal*/
                 sendMsg(-1,CONTINUE,"",BROADCAST);
-                numberExpected = 1;
 
             } else if (instruction == DUMP) {
 
@@ -452,7 +451,6 @@ namespace debugger {
                     sendMsg(APIMASTER,DUMP,specification);
                     /*wait for all VMs to receive (not counting the debugger
                      *itself*/
-                    numberExpected = 1;
 
                 } else {
 
@@ -476,7 +474,7 @@ namespace debugger {
 
                     /*send break/remove to a specific node */
                     sendMsg(atoi(node.c_str()),instruction,specification);
-                    numberExpected = 1;
+
                 }
 
 
@@ -484,7 +482,7 @@ namespace debugger {
 
                 /*broadcast  a pause message*/
                 sendMsg(-1,PAUSE,"",BROADCAST);
-                numberExpected = 0;
+
             }
 
 
@@ -647,6 +645,9 @@ namespace debugger {
 
         /*load the message queue with messages*/
         api::debugGetMsgs();
+
+        if (api::world->rank()!=MASTER)
+            cout << "recieving messages" << endl;
 
         /*process each message until empty*/
         while(!messageQueue->empty()){
