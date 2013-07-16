@@ -257,15 +257,14 @@ namespace api {
         if (world->rank() == RING_ORIGIN) {
             if (tokenColor == WHITE && color == WHITE && acc + counter == 0) {
                 // System Termination detected, notify other processes
-                if (nextProcess() <= world->rank() && debugger::isInMpiDebuggingMode()) {
+                if (debugger::isInMpiDebuggingMode()) {
                     // end of the ring
                     debugger::sendMsg(debugger::MASTER, debugger::TERMINATE, "");
                     while(!sendMsgs.empty()) {
                         freeSendMsgs();
                     }
-                } else {
-                    world->isend(dest, DONE);
                 }
+                world->isend(dest, DONE);
                 return true;
             }
             /* Safra's Algorithm: RETRANSMIT TOKEN */
