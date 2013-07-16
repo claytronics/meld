@@ -70,20 +70,21 @@ namespace api {
     };
 
     // Global MPI variables
-    mpi::environment *env;
     mpi::communicator *world;
+    static mpi::environment *env;
+    static int RING_ORIGIN = 0;
 
     // Vectors to hold created messages in order to free them after the
     // asynchronous MPI calls are complete
-    vector<pair<mpi::request, message_type *> > sendMsgs, recvMsgs,
+    static vector<pair<mpi::request, message_type *> > sendMsgs, recvMsgs,
         debugMsgs, debugRecvMsgs;
 
     // Dijkstra and Safra's token ring termination detection algorithm
     // Default states
-    int counter = 0;
-    int color = WHITE;
-    bool token_sent = false;
-    bool hasToken = false;
+    static int counter = 0;
+    static int color = WHITE;
+    static bool tokenSent = false;
+    static bool hasToken = false;
 
     void init(int argc, char **argv, sched::base *sched) {
         /* Initialize the MPI.
@@ -95,7 +96,10 @@ namespace api {
         if (sched == NULL) {
             env = new mpi::environment(argc, argv);
             world = new mpi::communicator();
-            if (world->rank() == MASTER)
+            if (debugger::isInMpiDebuggingMode()) {
+                RING_ORIGIN = api::MASTER;
+            }
+            if (world->rank() == RING_ORIGIN)
                 hasToken = true;
         }
     }
@@ -226,10 +230,10 @@ namespace api {
         */
         uint dest = nextProcess();
 
-        if (world->rank() == MASTER && !token_sent) {
+        if (world->rank() == RING_ORIGIN && !tokenSent) {
             /* Safra's Algorithm: Begin Token Collection  */
             world->isend(dest, WHITE, 0);
-            token_sent = true;
+            tokenSent = true;
             return false;
         }
 
@@ -250,7 +254,7 @@ namespace api {
             // No token in progress
             return false;
         }
-        if (world->rank() == MASTER) {
+        if (world->rank() == RING_ORIGIN) {
             if (tokenColor == WHITE && color == WHITE && acc + counter == 0) {
                 // System Termination detected, notify other processes
                 world->isend(dest, DONE);
@@ -347,7 +351,7 @@ namespace api {
         int source = prevProcess();
         int dest = nextProcess();
 
-        if (world->rank() == MASTER) {
+        if (world->rank() == RING_ORIGIN) {
             for (db::database::map_nodes::const_iterator it(nodes.begin());
                  it != nodes.end(); ++it) {
                 db::node::node_id id = it->first;
@@ -372,8 +376,8 @@ namespace api {
                     break;
                 }
                 db::node::node_id id;
-                world->recv(MASTER, PRINT, id);
-                world->send(MASTER, PRINT, format(id, nodes));
+                world->recv(RING_ORIGIN, PRINT, id);
+                world->send(RING_ORIGIN, PRINT, format(id, nodes));
             }
         }
     }
@@ -383,7 +387,7 @@ namespace api {
     void debugInit(vm::all *all) {
         /* Use MPI gather to make sure that all VMs are initiated before the
          * debugger is run. Debugger MASTER is the debugger process, while MPI
-         * MASTER is the initial process in a ring structure.
+         * RING_ORIGIN is the initial process in a ring structure.
          */
         if (world->size() == 1) {
             throw "Debug must be run with at least 2 MPI processes.";

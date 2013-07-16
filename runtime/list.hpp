@@ -61,6 +61,13 @@ public:
          destroy();
    }
 
+   static inline bool has_refs(list_ptr ls)
+   {
+      if(is_null(ls))
+         return true;
+      return ls->refs > 0;
+   }
+
    inline bool zero_refs(void) const { return refs == 0; }
 
    inline void destroy(void)
