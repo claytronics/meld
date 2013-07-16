@@ -27,6 +27,10 @@ const int BLOCK = 6;
 const int DEBUG = 16;
 const int DEBUGMPI = 0;
 
+namespace api {
+    const int MASTER = 1;
+}
+
 namespace debugger {
 
     extern std::queue<api::message_type*> *messageQueue;

@@ -19,9 +19,6 @@ using namespace std;
 using namespace vm;
 using namespace debugger;
 
-namespace api {
-    const int MASTER = 1;
-}
 
 namespace debugger {
 
@@ -307,7 +304,6 @@ namespace debugger {
         /*if is in MPI debugging mode, send to master to display/handle
          *the message*/
         else if (isInMpiDebuggingMode()){
-            cout << "sending message" << endl;
             sendMsg(MASTER,type,msg);
         }
     }
@@ -578,41 +574,17 @@ namespace debugger {
         size_t bufSize = api::MAXLENGTH*SIZE;
 
 
-        switch(msgEncode){
 
-            case UNPAUSE:
-            case PAUSE:
+        /*same as above for first three fields*/
+        utils::pack<size_t>(&size,1,msg,bufSize,&pos);
+        utils::pack<int>(&debugFlag,1,msg,bufSize,&pos);
+        utils::pack<int>(&msgEncode,1,msg,bufSize,&pos);
 
-                /*pack the size of the array*/
-                utils::pack<size_t>(&size,1,msg,bufSize,&pos);
-
-                /*pack the debug indicator*/
-                utils::pack<int>(&debugFlag,1,msg,bufSize,&pos);
-
-                /*pack the message encoding*/
-                utils::pack<int>(&msgEncode,1,msg,bufSize,&pos);
-
-                return (api::message_type*)msg;
-                break;
-
-            case DUMP:
-            case PRINTCONTENT:
-            case BREAKFOUND:
-            case BREAKPOINT:
-
-                /*same as above for first three fields*/
-                utils::pack<size_t>(&size,1,msg,bufSize,&pos);
-                utils::pack<int>(&debugFlag,1,msg,bufSize,&pos);
-                utils::pack<int>(&msgEncode,1,msg,bufSize,&pos);
-
-                /*add the content into the buffer*/
-                utils::pack<char>((char*)content.c_str(),content.size()+1,
+        /*add the content into the buffer*/
+        utils::pack<char>((char*)content.c_str(),content.size()+1,
                                  msg,bufSize,&pos);
-                return (api::message_type*)msg;
-                break;
-        }
+        return (api::message_type*)msg;
 
-        return NULL;
     }
 
 
@@ -631,6 +603,7 @@ namespace debugger {
 
         if (broadcast){
 
+            cout << "MASTER:broadcasting message"<<endl;
             api::debugBroadcastMsg(msg,msgSize);
 
         } else {
@@ -697,7 +670,8 @@ namespace debugger {
 
                 /*if a slave process (any vm) is receiving the message*/
             } else {
-                cout << spec << endl;
+
+                cout << "SLAVE: recieved message"<<endl;
                 debugController(instruction,spec);
             }
 
