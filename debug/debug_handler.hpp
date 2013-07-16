@@ -58,7 +58,7 @@ namespace debugger {
     std::string getName(std::string specification);
     std::string getType(std::string specification);
     int characterInStringIndex(std::string str, char character);
-    void initMpiDebug(void);
+    void initMpiDebug(vm::all *debugAll);
     bool isInMpiDebuggingMode(void);
     void setState(vm::state& st);
     void setMpiDebuggingMode(bool setting);

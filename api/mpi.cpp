@@ -399,7 +399,7 @@ namespace api {
         if (world->size() == 1) {
             throw "Debug must be run with at least 2 MPI processes.";
         }
-        debugger::initMpiDebug();
+        debugger::initMpiDebug(all);
         if (world->rank() == debugger::MASTER) {
             std::vector<tokens> allVMs;
             mpi::gather(*world, INIT, allVMs, debugger::MASTER);

@@ -60,9 +60,10 @@ namespace debugger {
     }
 
     /*setup MPI debugging mode*/
-    void initMpiDebug(void){
+    void initMpiDebug(vm::all *debugAll){
         setupFactList();
         messageQueue = new std::queue<api::message_type*>();
+        all = debugAll;
     }
 
     /*extract the pointer to the system state*/
@@ -363,8 +364,6 @@ namespace debugger {
 
         ostringstream msg;
 
-        msg << "Memory Dump:" << endl;
-        msg << endl;
         msg << endl;
 
         //if a node is not specified by the dump command
@@ -372,9 +371,8 @@ namespace debugger {
             all->DATABASE->print_db(msg);
         else
             //print out only the given node
-            all->DATABASE->print_db_debug(msg,(unsigned int)nodeNumber);
+            all->DATABASE->print_db_debug(msg,nodeNumber);
         msg  << endl;
-        msg << endl;
 
         display(msg.str(),PRINTCONTENT);
     }
@@ -440,7 +438,7 @@ namespace debugger {
                 /*broadcast the message to all VMs*/
                 if (specification == "all"){
 
-                    sendMsg(-1,DUMP,"",BROADCAST);
+                    sendMsg(-1,DUMP,specification,BROADCAST);
                     /*wait for all VMs to receive (not counting the debugger
                      *itself*/
                     numberExpected = (int)api::world->size()-1;
@@ -448,7 +446,7 @@ namespace debugger {
                 } else {
 
                     /*send to a specific VM to dump content*/
-                    sendMsg(atoi(specification.c_str()),DUMP,"");
+                    sendMsg(atoi(specification.c_str()),DUMP,specification);
                     numberExpected = 1;
                 }
 
@@ -527,12 +525,12 @@ namespace debugger {
 
         /*print the output and then tell all other VMs to pause*/
         if (instruction == BREAKFOUND){
-            printf("%d: Spec: %s\n", api::world->rank(), specification.c_str());
+            printf("Process %d: %s\n", api::world->rank(), specification.c_str());
             sendMsg(-1,PAUSE,"",BROADCAST);
 
         /*print content from a VM*/
         } else if (instruction == PRINTCONTENT){
-            printf("%d: Spec: %s\n", api::world->rank(), specification.c_str());
+            printf("Process %d:  %s\n", api::world->rank(), specification.c_str());
         }
     }
 
@@ -608,7 +606,7 @@ namespace debugger {
     void sendMsg(int destination, int msgType,
               string content, bool broadcast)  {
 
-        printf("%d: sendMsg: %s\n", api::world->rank(), content.c_str());
+
 
         /*pack the message*/
         api::message_type* msg = pack(msgType,content);
@@ -667,8 +665,6 @@ namespace debugger {
                                 &specification,size);
             string spec(specification);
 
-            printf("%d: Received: %s\n", api::world->rank(), specification);
-            //cout << spec;
 
             /*if the controlling process is recieving a message*/
             if (api::world->rank()==MASTER){

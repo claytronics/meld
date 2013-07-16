@@ -74,7 +74,7 @@ namespace db
         node::node_id translate_fake_to_real_id(const node::node_id fake_id);
 
         void print_db(std::ostream&) const;
-        void print_db_debug(std::ostream&, unsigned int nodeNumber) const;
+        void print_db_debug(std::ostream&, unsigned int nodeNumber);
         void dump_db(std::ostream&) const;
 
         void print(std::ostream&) const;
