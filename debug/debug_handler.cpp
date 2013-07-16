@@ -665,7 +665,6 @@ namespace debugger {
                                 &specification,size);
             string spec(specification);
 
-
             /*if the controlling process is recieving a message*/
             if (api::world->rank()==MASTER){
 

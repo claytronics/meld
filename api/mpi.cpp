@@ -52,11 +52,11 @@ namespace api {
         if (world->rank() == 0) {
             return world->size() - 1;
         } else {
-            return (world->rank() - 1) % world->size();
+            return getVMId(world->rank() - 1);
         }
     }
     inline int nextProcess(void) {
-        return (world->rank() + 1) % world->size();
+        return getVMId(world->rank() + 1);
     }
 
 	// token tags to tag messages in MPI
@@ -353,7 +353,10 @@ namespace api {
                                          const db::database::map_nodes&)) {
         /* Serialize the database output for increasing internal node id.  How
          * it is output is determined by the format function */
-        world->barrier();
+
+        if (!debugger::isInMpiDebuggingMode()) {
+            world->barrier();
+        }
 
         int source = prevProcess();
         int dest = nextProcess();
@@ -370,7 +373,6 @@ namespace api {
                     world->recv(getVMId(id), PRINT, result);
                     out << result;
                 }
-                out.flush();
             }
             // Finished printing, singal done
             world->isend(dest, PRINT_DONE);
@@ -411,8 +413,8 @@ namespace api {
     }
 
     void debugBroadcastMsg(message_type *msg, size_t msgSize) {
-        for (int i = 0; i < world->size(); ++i) {
-            mpi::request req = world->isend(i, DEBUG, msg, msgSize);
+        for (int dest = 1; dest < world->size(); ++dest) {
+            mpi::request req = world->isend(dest, DEBUG, msg, msgSize);
             sendMsgs.push_back(make_pair(req, msg));
         }
         freeSendMsgs();
