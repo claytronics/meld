@@ -25,6 +25,7 @@
 #include "debug/debug_prompt.hpp"
 #include "utils/serialization.hpp"
 #include "api/api.hpp"
+#include "debug/debug_handler.hpp"
 
 using namespace std;
 namespace mpi = boost::mpi;

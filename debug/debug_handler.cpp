@@ -19,10 +19,6 @@ using namespace std;
 using namespace vm;
 using namespace debugger;
 
-namespace api {
-    const int MASTER = 1;
-}
-
 namespace debugger {
 
 #define SIZE (sizeof(api::message_type))
