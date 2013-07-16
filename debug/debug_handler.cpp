@@ -19,6 +19,7 @@ using namespace std;
 using namespace vm;
 using namespace debugger;
 
+
 namespace debugger {
 
 #define SIZE (sizeof(api::message_type))
@@ -303,7 +304,6 @@ namespace debugger {
         /*if is in MPI debugging mode, send to master to display/handle
          *the message*/
         else if (isInMpiDebuggingMode()){
-            cout << "sending message" << endl;
             sendMsg(MASTER,type,msg);
         }
     }
@@ -405,8 +405,6 @@ namespace debugger {
         char* content = (char*)&msg[3];
         std::string str(content);
         return str;
-
-
     }
 
 
@@ -538,12 +536,14 @@ namespace debugger {
 
         /*print the output and then tell all other VMs to pause*/
         if (instruction == BREAKFOUND){
-            printf("Process %d:\n%s\n", api::world->rank(), specification.c_str());
+            printf("Process %d:\n%s\n",
+                   api::world->rank(), specification.c_str());
             sendMsg(-1,PAUSE,"",BROADCAST);
 
         /*print content from a VM*/
         } else if (instruction == PRINTCONTENT){
-            printf("Process %d:\n%s\n", api::world->rank(), specification.c_str());
+            printf("Process %d:\n%s\n",
+                   api::world->rank(), specification.c_str());
         }
     }
 
@@ -574,41 +574,17 @@ namespace debugger {
         size_t bufSize = api::MAXLENGTH*SIZE;
 
 
-        switch(msgEncode){
 
-            case UNPAUSE:
-            case PAUSE:
+        /*same as above for first three fields*/
+        utils::pack<size_t>(&size,1,msg,bufSize,&pos);
+        utils::pack<int>(&debugFlag,1,msg,bufSize,&pos);
+        utils::pack<int>(&msgEncode,1,msg,bufSize,&pos);
 
-                /*pack the size of the array*/
-                utils::pack<size_t>(&size,1,msg,bufSize,&pos);
-
-                /*pack the debug indicator*/
-                utils::pack<int>(&debugFlag,1,msg,bufSize,&pos);
-
-                /*pack the message encoding*/
-                utils::pack<int>(&msgEncode,1,msg,bufSize,&pos);
-
-                return (api::message_type*)msg;
-                break;
-
-            case DUMP:
-            case PRINTCONTENT:
-            case BREAKFOUND:
-            case BREAKPOINT:
-
-                /*same as above for first three fields*/
-                utils::pack<size_t>(&size,1,msg,bufSize,&pos);
-                utils::pack<int>(&debugFlag,1,msg,bufSize,&pos);
-                utils::pack<int>(&msgEncode,1,msg,bufSize,&pos);
-
-                /*add the content into the buffer*/
-                utils::pack<char>((char*)content.c_str(),content.size()+1,
+        /*add the content into the buffer*/
+        utils::pack<char>((char*)content.c_str(),content.size()+1,
                                  msg,bufSize,&pos);
-                return (api::message_type*)msg;
-                break;
-        }
+        return (api::message_type*)msg;
 
-        return NULL;
     }
 
 
@@ -627,7 +603,8 @@ namespace debugger {
 
         if (broadcast){
 
-            api::debugSendMsg(1,msg,msgSize);
+            cout << "MASTER:broadcasting message"<<endl;
+            api::debugBroadcastMsg(msg,msgSize);
 
         } else {
             /*send to the master debugging process*/
@@ -635,6 +612,9 @@ namespace debugger {
                 api::debugSendMsg(MASTER,msg,
                                   msgSize);
                 return;
+
+                /*send to api-master -- see dumping DB in api/mpi
+                 *with passing a token*/
             } else if (destination == APIMASTER) {
                 api::debugSendMsg(api::MASTER,msg,
                                   msgSize);
@@ -681,6 +661,7 @@ namespace debugger {
                                 &specification,size);
             string spec(specification);
 
+
             /*if the controlling process is recieving a message*/
             if (api::world->rank()==MASTER){
 
@@ -689,7 +670,8 @@ namespace debugger {
 
                 /*if a slave process (any vm) is receiving the message*/
             } else {
-                cout << spec << endl;
+
+                cout << "SLAVE: recieved message"<<endl;
                 debugController(instruction,spec);
             }
 

@@ -6,13 +6,12 @@
 #include <boost/interprocess/sync/scoped_lock.hpp>
 #include <boost/smart_ptr/detail/spinlock.hpp>
 
+
 namespace utils
 {
 
-class spinlock
-{
+class spinlock {
 private:
-
    volatile unsigned int data;
 
     boost::detail::spinlock *s;
@@ -53,6 +52,7 @@ public:
    }
 
     ~spinlock(void) {delete s;}
+
 };
 
 }
