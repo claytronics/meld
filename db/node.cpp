@@ -247,7 +247,8 @@ node::print(ostream& cout) const
 
 	ordered_tries.sort(trie_comparer);
 
-	if( !debugger::isInDebuggingMode()&&!debugger::isInSimDebuggingMode()){
+	if( !debugger::isInDebuggingMode()&&!debugger::isInSimDebuggingMode()&&
+        !debugger::isInMpiDebuggingMode()){
 	  cout << "--> node " << get_translated_id() << "/(id " << get_id()
         << ") (" << this << ") <--" << endl;
 	} else {

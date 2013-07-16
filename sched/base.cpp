@@ -134,17 +134,20 @@ base::do_loop(void)
   db::node *node(NULL);
 
   while(true) {
-   while ((node = get_work())) {
-	    // Current processor has local work, process work
-     do_work(node);
-     finish_work(node);
-   }
-
-   if (!api::pollAndProcess(this, state.all))
-     break;
- }
-    // cout << "Process " << api::world->rank() << " terminated!!!" << endl;
-
+//      api::serializeBeginExec();
+      while ((node = get_work())) {
+          // Current processor has local work, process work
+          do_work(node);
+          finish_work(node);
+      }
+      bool hasWork = api::pollAndProcess(this, state.all);
+      bool ensembleFinished = false;
+      if (!hasWork)
+          ensembleFinished = api::ensembleFinished(this);
+//      api::serializeEndExec();
+      if (ensembleFinished)
+          break;
+  }
 }
 
 void

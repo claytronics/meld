@@ -3,14 +3,15 @@
 
 #include "vm/state.hpp"
 #include "debug/debug_list.hpp"
+#include "vm/all.hpp"
 
 namespace debugger {
 
-void debug(vm::state& st);
-void *run_debugger(void * curState);
-void parseline(std::string line, vm::state& st, debugList& factBreaks);
-int handle_command(std::string command, debugList& factList);
-void help();
+    void debug(vm::all* debugAll);
+    void *run(void *debugAll);
+    void parseline(std::string line, debugList& factBreaks);
+    int handle_command(std::string command, debugList& factList);
+    void help();
 
 }
 

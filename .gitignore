@@ -8,5 +8,8 @@ Makefile.externs
 predicates
 server
 simulator
-tests/test.out
 *~
+\#
+*.out
+*.swo
+*.swp

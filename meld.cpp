@@ -32,8 +32,7 @@ help(void)
 	cerr << "\t-s \t\tshows database" << endl;
    cerr << "\t-d \t\tdump database (debug option)" << endl;
    cerr << "\t-h \t\tshow this screen" << endl;
-   cerr << "\t-D \t\tgo into debugging mode" << endl;
-   cerr << "\t-S \t\tused to go into debugging mode called from simulator" << endl;
+   cerr << "\t-D MPI|VM|SIM \t\tgo into debugging mode" << endl;
 
 
    exit(EXIT_SUCCESS);
@@ -106,7 +105,7 @@ read_arguments(int argc, char **argv)
 	     cout << "DEBUGGING MODE -- type 'help' for options" << endl;
 	     debugger::setDebuggingMode(true);
 	   } else if (string(argv[1]) == "MPI"){
-	     //setMpiDebuggingMode(true);
+         debugger::setMpiDebuggingMode(true);
 	   } else if (string(argv[1]) == "SIM"){
 	     debugger::setSimDebuggingMode(true);
 	   } else {

@@ -28,8 +28,9 @@ namespace api {
     /* Given a node destination, compute the process id that the node
      * belongs to, serialize the data for MPI and send the data
      */
+
     extern void sendMessage(const db::node* from, db::node::node_id to,
-                             db::simple_tuple* stpl);
+
 
     /* Check for any pending messages waiting to be received and add all of
      * the pending messages to the scheduler queue
@@ -62,8 +63,11 @@ namespace api {
     extern void dumpDB(std::ostream &out, const db::database::map_nodes &nodes);
     extern void printDB(std::ostream &out, const db::database::map_nodes &nodes);
 
+<<<<<<< HEAD
     /* === Debugger Functions === */
 
+=======
+>>>>>>> boostmpi
     /* initialize the debugger through the api */
     extern void debugInit(vm::all *all);
 
@@ -71,15 +75,21 @@ namespace api {
      * send a massage to a specified node, if broadcast specified, send to all
      * nodes---msg is to be freed
      */
-    extern void debugSendMsg(const db::node::node_id destination,
-                             message_type* msg, size_t messageSize,
-                             bool broadcast = false);
+    extern void debugSendMsg(const int dest,
+                             message_type* msg, size_t messageSize);
+
+    extern void debugBroadcastMsg(message_type *msg, size_t messageSize);
+
+    extern void debugWaitMsg(void);
 
     /*populate a debugger queue with incomming messages*/
     extern void debugGetMsgs(void);
+<<<<<<< HEAD
     
     extern void set_color(db::node *n, const int r, const int g, const int b);
 
+=======
+>>>>>>> boostmpi
 
 } // namespace api
 #endif

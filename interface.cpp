@@ -11,6 +11,8 @@
 #include "utils/fs.hpp"
 #include "process/machine.hpp"
 #include "api/api.hpp"
+#include "debug/debug_handler.hpp"
+#include "debug/debug_prompt.hpp"
 
 using namespace process;
 using namespace sched;
@@ -114,18 +116,27 @@ run_program(int argc, char **argv, const char *program, const vm::machine_argume
 
         machine mac(program, num_threads, sched_type, margs, data_file == NULL ? string("") : string(data_file));
 
-        
+
+
+        if (debugger::isInDebuggingMode()) {
+            debugger::debug(mac.get_all());
+            debugger::pauseIt();
+        } else if (debugger::isInSimDebuggingMode()){
+            debugger::initSimDebug();
+        }
+
         api::init(argc, argv, mac.get_all()->ALL_THREADS[0]);
+        if (debugger::isInMpiDebuggingMode()){
+            api::debugInit(mac.get_all());
+        }
 
         mac.start();
 
         if(time_execution) {
-            {
-                tm.stop();
-                size_t ms = tm.milliseconds();
+            tm.stop();
+            size_t ms = tm.milliseconds();
 
-                cout << "Time: " << ms << " ms" << endl;
-            }
+            cout << "Time: " << ms << " ms" << endl;
         }
 
     } catch(machine_error& err) {

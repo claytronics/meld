@@ -44,6 +44,8 @@ database::database(const string& filename, create_node_fn _create_fn, vm::all *_
       node *node(create_fn(fake_id, real_id, all));
 
       translation[fake_id] = real_id;
+      reverse_translation[real_id] = fake_id;
+
       nodes[fake_id] = node;
 
       if(fake_id > max_node_id)
@@ -93,6 +95,7 @@ database::create_node_id(const db::node::node_id id)
 
    node *ret(create_fn(max_node_id, max_translated_id, all));
    translation[max_node_id] = max_translated_id;
+   reverse_translation[max_translated_id] = max_node_id;
    nodes[max_node_id] = ret;
 
    return ret;
@@ -114,10 +117,23 @@ database::create_node(void)
    node *ret(create_fn(max_node_id, max_translated_id, all));
 
    translation[max_node_id] = max_translated_id;
+   reverse_translation[max_translated_id] = max_node_id;
    nodes[max_node_id] = ret;
 
    return ret;
 }
+
+<<<<<<< HEAD
+void
+database::print_db(ostream& cout) const
+{
+ api::printDB(cout, nodes);
+node::node_id
+database::translate_fake_to_real_id(const node::node_id fake_id) {
+    return translation[fake_id];
+
+}
+
 
 void
 database::print_db(ostream& cout) const
@@ -127,21 +143,10 @@ database::print_db(ostream& cout) const
 
 
 void
-database::print_db_debug(ostream& cout, unsigned int nodeNumber) const
+database::print_db_debug(ostream& cout, const node::node_id real_id)
 {
-   for(map_nodes::const_iterator it(nodes.begin());
-      it != nodes.end();
-      ++it)
-   {
-     if ((nodeNumber == it->second->get_translated_id())){
-      cout << *(it->second) << endl;
-      return;
-     }
-   }
-   cout << "NODE SPECIFIED NOT IN DATABASE" << endl;
+    cout << *(nodes.at(translate_real_to_fake_id(real_id))) << endl;
 }
-
-
 
 void
 database::dump_db(ostream& cout) const

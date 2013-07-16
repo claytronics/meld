@@ -1,4 +1,3 @@
-
 OS = $(shell uname -s)
 
 INCLUDE_DIRS = -I.

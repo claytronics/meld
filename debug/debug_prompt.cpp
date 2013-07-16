@@ -20,32 +20,35 @@ namespace debugger {
 
   /*spawn the debbugging prompt as a separate thread to
     controll the main one*/
-  void debug(vm::state& st){
-  
+  void debug(vm::all* debugAll){
+
     //start the list of break points to be used
     setupFactList();
 
     pthread_t tid;
-    pthread_create(&tid,NULL,run_debugger, &st);
+    pthread_create(&tid,NULL,run, debugAll);
 
   }
 
 
   //continuously attend command line prompt for debugger
   //when the system is not paused
-  void *run_debugger(void * curState){
- 
+  void *run(void* debugAll){
+
     string inpt;
-    vm::state st = *(vm::state *)curState;
+
+    all = (vm::all*)debugAll;
+
     debugList factBreaks = getFactList();
 
     while(true){
-      if (isTheSystemPaused()){
+      if (isTheSystemPaused()&&numberExpected==0){
         cout << ">";
         getline(cin,inpt);
         //react to the input
-        parseline(inpt,st,factBreaks);
+        parseline(inpt,factBreaks);
       }
+      receiveMsg();
     }
     return NULL;
   }
@@ -53,23 +56,23 @@ namespace debugger {
 
 
   /*parses the command line and run the debugger*/
-  void parseline(string line, vm::state& st, debugList& factBreaks){
+  void parseline(string line, debugList& factBreaks){
 
     string build = "";
     int wordCount = 1;
-  
+
     int command = NOTHING;
 
     /*empty input*/
     if (line == ""){
       //enterlast stored command
-      debugController(st,lastInstruction, lastBuild);
+      debugController(lastInstruction, lastBuild);
       return;
     }
 
     /*loop through input line*/
     for (unsigned int i = 0; i < line.length(); i++){
-    
+
 
       /*parse line for words*/
       if (line[i]!=' '){
@@ -82,23 +85,23 @@ namespace debugger {
         build = "";
       }
     }
-    
+
 
     /*no whitespace at all-single word commands*/
     if (wordCount == 1){
       command = handle_command(build,factBreaks);
-    
-      if (command != BREAKPOINT && command!=DUMP 
+
+      if (command != BREAKPOINT && command!=DUMP
           && command != REMOVE){
-        debugController(st,command, build);
+        debugController(command, build);
         lastInstruction = command;
         lastBuild = build;
         return;
       }
     }
-  
+
     /*if not enough info - these  types must have a specification*/
-    if ((command == BREAKPOINT||command == DUMP||command == REMOVE)&& 
+    if ((command == BREAKPOINT||command == DUMP||command == REMOVE)&&
         wordCount == 1){
       cout << "Please specify- type help for options" << endl;
       return;
@@ -107,9 +110,9 @@ namespace debugger {
     /*handle breakpointsand dumps*/
     if (wordCount == 2){
       if (command == BREAKPOINT||command == DUMP||command == REMOVE)
-        debugController(st,command,build);
-      else 
-        debugController(st,command,"");
+        debugController(command,build);
+      else
+        debugController(command,"");
       lastInstruction = command;
       lastBuild = build;
     }
@@ -172,10 +175,4 @@ namespace debugger {
     cout << endl;
     cout << "*******************************************************************" << endl;
   }
-  
 }
-
-  
-    
-
-  
