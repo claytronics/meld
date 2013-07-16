@@ -544,6 +544,7 @@ namespace debugger {
                    api::world->rank(), specification.c_str());
         } else if (instruction == TERMINATE){
             printf("CHILD TERMINATED\n");
+            api::end();
             exit(0);
         }
     }
