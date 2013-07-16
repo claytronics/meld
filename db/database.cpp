@@ -106,13 +106,13 @@ database::create_node(void)
 {
    utils::spinlock::scoped_lock l(mtx);
 
-	if(nodes.empty()) {
-		max_node_id = 0;
-		max_translated_id = 0;
-	} else {
-   	++max_node_id;
-   	++max_translated_id;
-	}
+  if(nodes.empty()) {
+    max_node_id = 0;
+    max_translated_id = 0;
+  } else {
+    ++max_node_id;
+    ++max_translated_id;
+  }
 
    node *ret(create_fn(max_node_id, max_translated_id, all));
 
@@ -123,17 +123,15 @@ database::create_node(void)
    return ret;
 }
 
-<<<<<<< HEAD
-void
-database::print_db(ostream& cout) const
-{
- api::printDB(cout, nodes);
+node::node_id
+database::translate_real_to_fake_id(const node::node_id real_id) {
+    return reverse_translation[real_id];
+}
+
 node::node_id
 database::translate_fake_to_real_id(const node::node_id fake_id) {
     return translation[fake_id];
-
 }
-
 
 void
 database::print_db(ostream& cout) const

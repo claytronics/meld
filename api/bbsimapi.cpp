@@ -420,9 +420,16 @@ debugGetMsgs(void)
 }
 
 void 
-debugSendMsg(const db::node::node_id destination,
-                             message_type* msg, size_t messageSize,
-                             bool broadcast)
+debugBroadcastMsg(message_type *msg, size_t messageSize)
+{}
+
+void 
+debugWaitMsg(void)
+{}
+
+void 
+debugSendMsg(int destination,
+                             message_type* msg, size_t messageSize)
 {
   size_t datasize=messageSize+4;
   message_type *data=new message_type[datasize];
