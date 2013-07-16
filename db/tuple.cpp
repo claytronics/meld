@@ -41,7 +41,6 @@ simple_tuple::print(ostream& cout) const
 {
 	cout << *data;
 	
-	
 	if(count > 1)
 		cout << "@" << count;
    if(count < 0)

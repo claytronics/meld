@@ -1,9 +1,10 @@
 
-#include <iostream>
 #include "vm/state.hpp"
 #include "process/machine.hpp"
 #include "vm/exec.hpp"
-#include "debug/debug_handler.hpp"
+#ifdef USE_SIM
+#include "sched/nodes/sim.hpp"
+#endif
 
 using namespace vm;
 using namespace db;
@@ -16,6 +17,13 @@ using namespace runtime;
 namespace vm
 {
 
+#ifdef USE_UI
+bool state::UI = false;
+#endif
+#ifdef USE_SIM
+bool state::SIM = false;
+#endif
+
 bool
 state::linear_tuple_can_be_used(db::tuple_trie_leaf *leaf) const
 {
@@ -26,11 +34,11 @@ state::linear_tuple_can_be_used(db::tuple_trie_leaf *leaf) const
       it++)
    {
       const pair_linear& p(*it);
-
+      
       if(p.first == leaf)
          return p.second > 0;
    }
-
+   
    return true; // not found, first time
 }
 
@@ -42,14 +50,14 @@ state::using_new_linear_tuple(db::tuple_trie_leaf *leaf)
       it++)
    {
       pair_linear& p(*it);
-
+      
       if(p.first == leaf) {
          assert(p.second > 0);
          p.second--;
          return;
       }
    }
-
+   
    // first time, get the count
    used_linear_tuples.push_front(pair_linear(leaf, leaf->get_count() - 1));
 }
@@ -62,13 +70,13 @@ state::no_longer_using_linear_tuple(db::tuple_trie_leaf *leaf)
       it++)
    {
       pair_linear &p(*it);
-
+      
       if(p.first == leaf) {
          p.second++; // a free count
          return;
       }
    }
-
+   
    assert(false);
 }
 
@@ -90,9 +98,9 @@ state::purge_runtime_objects(void)
    PURGE_LIST(int);
    PURGE_LIST(node);
 #undef PURGE_LIST
-
+	
 	PURGE_OBJ(rstring);
-
+	
 #undef PURGE_OBJ
 }
 
@@ -201,7 +209,7 @@ state::check_if_rule_predicate_activated(vm::rule *rule)
 		if(predicates[pred->get_id()])
 			return true;
 	}
-
+	
 	return false;
 }
 #endif
@@ -227,7 +235,7 @@ state::mark_active_rules(void)
 			}
 		}
 	}
-
+	
 	for(rule_matcher::rule_iterator it(node->matcher.begin_dropped_rules()),
 		end(node->matcher.end_dropped_rules());
 		it != end;
@@ -333,13 +341,24 @@ state::search_for_negative_tuple_full_agg(db::simple_tuple *stpl)
    return NULL;
 }
 
+#ifdef USE_SIM
+bool
+state::check_instruction_limit(void) const
+{
+   return sim_instr_use && sim_instr_counter >= sim_instr_limit;
+}
+#endif
 
 bool
 state::do_persistent_tuples(void)
 {
    // we grab the stratification level here
    while(!generated_persistent_tuples.empty()) {
-
+#ifdef USE_SIM
+      if(check_instruction_limit()) {
+         return false;
+      }
+#endif
       db::simple_tuple *stpl(generated_persistent_tuples.front());
       vm::tuple *tpl(stpl->get_tuple());
 
@@ -402,12 +421,12 @@ state::do_persistent_tuples(void)
       pair<vm::predicate*, db::tuple_trie_leaf*> p(leaves_for_deletion.front());
 		vm::predicate* pred(p.first);
 		db::tuple_trie_leaf *leaf(p.second);
-
+		
 		leaves_for_deletion.pop_front();
-
+		
 		node->delete_by_leaf(pred, leaf);
 	}
-
+	
 	assert(leaves_for_deletion.empty());
 
    return true;
@@ -475,39 +494,6 @@ state::process_consumed_local_tuples(void)
 	}
 }
 
-
-void
-state::print_local_tuples(ostream& cout){
-
-  if (generated_tuples.empty())
-    cout << "(empty)" << endl;
-
-  for(db::simple_tuple_list::iterator it(local_tuples.begin());
-      it != local_tuples.end();
-      ++it)
-    {
-      simple_tuple *stpl(*it);
-      cout << *stpl << endl;
-    }
-}
-
-
-void
-state::print_generated_tuples(ostream& cout){
-
-  if (generated_tuples.empty())
-    cout << "(empty)" << endl;
-
-  for(db::simple_tuple_list::iterator it(generated_tuples.begin());
-      it != generated_tuples.end();
-      ++it)
-    {
-      simple_tuple *stpl(*it);
-      cout << *stpl << endl;
-    }
-}
-
-
 void
 state::add_to_aggregate(db::simple_tuple *stpl)
 {
@@ -523,7 +509,6 @@ state::add_to_aggregate(db::simple_tuple *stpl)
    }
 
    simple_tuple_list list;
-
 
    agg->generate(pred->get_aggregate_type(), pred->get_aggregate_field(), list);
 
@@ -577,18 +562,9 @@ state::process_persistent_tuple(db::simple_tuple *stpl, vm::tuple *tpl)
          	use_local_tuples = false;
          	execute_bytecode(all->PROGRAM->get_predicate_bytecode(tuple->get_predicate_id()), *this);
          	deleter();
-		debugger::runBreakPoint("factRet",
-			      "Fact has been removed from database",
-			      (char*)tpl->pred_name().c_str(),
-			      (int)node->get_translated_id());
-      	} else{
-	  debugger::runBreakPoint("factRet","Fact has been retracted",
-			(char*)tpl->pred_name().c_str(),
-			(int)node->get_translated_id());
+      	} else
          	delete tpl;
-	}
 		}
-
    }
 }
 
@@ -615,21 +591,19 @@ state::start_matching(void)
 	fill_n(predicates, all->PROGRAM->num_predicates(), false);
 }
 
-// Reads the fact and check which rules can be applied and execute the rules
 void
 state::run_node(db::node *no)
 {
    bool aborted(false);
 
 	this->node = no;
-
+	
 #ifdef DEBUG_RULES
    cout << "Node " << node->get_id() << endl;
 #endif
 
    assert(local_tuples.empty());
-   // Gather_next_tuples is implementation specific
-   sched->gather_next_tuples(node, local_tuples);
+	sched->gather_next_tuples(node, local_tuples);
    start_matching();
 	current_level = mark_rules_using_local_tuples(local_tuples);
 #ifdef DEBUG_RULES
@@ -643,9 +617,14 @@ state::run_node(db::node *no)
       aborted = true;
 
 	while(!rule_queue.empty() && !aborted) {
+#ifdef USE_SIM
+      if(check_instruction_limit()) {
+         break;
+      }
+#endif
 
 		rule_id rule(rule_queue.pop());
-
+		
 #ifdef DEBUG_RULES
 		cout << "Run rule " << all->PROGRAM->get_rule(rule)->get_string() << endl;
 #endif
@@ -656,13 +635,22 @@ state::run_node(db::node *no)
 		node->matcher.clear_dropped_rules();
 #endif
       start_matching();
-
+		
 		setup(NULL, node, 1);
 		use_local_tuples = true;
       persistent_only = false;
 		execute_rule(rule, *this);
 
 		process_consumed_local_tuples();
+#ifdef USE_SIM
+      if(sim_instr_use && !check_instruction_limit()) {
+         // gather new tuples
+         db::simple_tuple_list new_tuples;
+         sched::sim_node *snode(dynamic_cast<sched::sim_node*>(node));
+         snode->get_tuples_until_timestamp(new_tuples, sim_instr_limit);
+         local_tuples.splice(local_tuples.end(), new_tuples);
+      }
+#endif
       /* move from generated tuples to local_tuples */
       local_tuples.splice(local_tuples.end(), generated_tuples);
       if(!do_persistent_tuples()) {
@@ -679,10 +667,15 @@ state::run_node(db::node *no)
 	{
 		simple_tuple *stpl(*it);
 		vm::tuple *tpl(stpl->get_tuple());
-
+		
 		if(stpl->can_be_consumed()) {
          if(aborted) {
+#ifdef USE_SIM
+            sched::sim_node *snode(dynamic_cast<sched::sim_node*>(node));
+            snode->pending.push(stpl);
+#else
             assert(false);
+#endif
          } else {
             add_fact_to_node(tpl);
             delete stpl;
@@ -698,7 +691,24 @@ state::run_node(db::node *no)
    // push other level tuples
    process_others();
 
+#ifdef USE_SIM
+   // store any remaining persistent tuples
+   sched::sim_node *snode(dynamic_cast<sched::sim_node*>(node));
+   for(simple_tuple_list::iterator it(generated_persistent_tuples.begin()), end(generated_persistent_tuples.end());
+         it != end;
+         ++it)
+   {
+      assert(aborted);
+      db::simple_tuple *stpl(*it);
+      snode->pending.push(stpl);
+   }
+#endif
+	
    generated_persistent_tuples.clear();
+#ifdef USE_SIM
+   if(sim_instr_use && sim_instr_counter < sim_instr_limit)
+      ++sim_instr_counter;
+#endif
 }
 
 #ifdef CORE_STATISTICS
@@ -742,6 +752,9 @@ state::state(sched::base *_sched, vm::all *_all):
 	predicates = new bool[all->PROGRAM->num_predicates()];
 	fill_n(predicates, all->PROGRAM->num_predicates(), false);
 	rule_queue.set_type(HEAP_INT_ASC);
+#ifdef USE_SIM
+   sim_instr_use = false;
+#endif
 }
 
 state::state(vm::all *_all):
@@ -754,6 +767,9 @@ state::state(vm::all *_all):
 {
 #ifdef CORE_STATISTICS
    init_core_statistics();
+#endif
+#ifdef USE_SIM
+   sim_instr_use = false;
 #endif
 }
 

@@ -64,6 +64,14 @@ public:
    
 external_function_id register_external_function(external_function *);
 external_function* lookup_external_function(const external_function_id);
+external_function* external0(external_function_ptr ptr, const field_type ret);
+external_function* external1(external_function_ptr ptr, const field_type ret,
+const field_type arg1);
+external_function* external2(external_function_ptr ptr, const field_type ret,
+const field_type arg1, const field_type arg2);
+external_function* external3(external_function_ptr ptr, const field_type ret,
+const field_type arg1,const field_type arg2, const field_type arg3);
+bool init_external_functions(void);
 
 }
 

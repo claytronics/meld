@@ -9,6 +9,9 @@
 #include <stdexcept>
 #include <ostream>
 
+#include "vm/external.hpp"
+#include "vm/types.hpp"
+#include "utils/types.hpp"    
 #include "vm/predicate.hpp"
 #include "vm/defs.hpp"
 #include "vm/tuple.hpp"
@@ -16,6 +19,13 @@
 #include "vm/function.hpp"
 #include "runtime/string.hpp"
 #include "queue/heap_implementation.hpp"
+#ifdef USE_UI
+#include <json_spirit.h>
+#endif
+
+namespace process {
+   class router;
+}
 
 namespace vm {
 
@@ -76,7 +86,7 @@ private:
    
 public:
 
-    strat_level MAX_STRAT_LEVEL;
+   strat_level MAX_STRAT_LEVEL;
 
    inline size_t num_rules(void) const { return number_rules; }
 	inline size_t num_args_needed(void) const { return num_args; }
@@ -109,6 +119,9 @@ public:
    void print_bytecode(std::ostream&) const;
    void print_predicates(std::ostream&) const;
    void print_bytecode_by_predicate(std::ostream&, const std::string&) const;
+#ifdef USE_UI
+	json_spirit::Value dump_json(void) const;
+#endif
    
    predicate* get_predicate(const predicate_id&) const;
    predicate* get_route_predicate(const size_t&) const;
@@ -135,6 +148,13 @@ public:
    inline bool is_data(void) const { return is_data_file; }
 
    bool add_data_file(vm::program&);
+
+   //function to print predicate dependencies
+    void print_predicate_dependency(); 
+    
+    void add_external_function(external_function_ptr ptr,size_t num_args,field_type ret_type,field_type *arg_type);
+
+    ptr_val get_function_pointer(char *lib_path,char* func_name);
    
    explicit program(const std::string&);
    

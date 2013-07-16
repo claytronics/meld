@@ -10,10 +10,14 @@
 
 ;; Use your operating system facilities to install such packages.
 
+to avoid bad substituition error
+;; sudo ln -sf /bin/bash /bin/sh
+
 ;; on my (seth's) ubuntu (64-bit) system:
 ;;  sudo apt-get install mpi-default-dev
 ;;  sudo apt-get install libboost-all-dev
-;; 
+;;  sudo apt-get install libreadline6-dev 
+
 ;; Now, we'll download the virtual machine source code:
 $ git clone https://github.com/flavioc/meld.git
 
@@ -23,6 +27,7 @@ $ make
 
 ;; To run a program
 $ ./meld -f <byte code file> -c sched
+$ ./meld -c sl -f tests/code/visit.m -s
 
 ;; Where sched is either sl, th or thp
 ;; Both tl and tlp need the number of threads, thus to use 4 threads with tl you do:
@@ -45,6 +50,14 @@ $ sbcl
 
 (require 'asdf)
 (require 'asdf-install)
+
+Go to link http://www.cliki.net/TRIVIAL-GRAY-STREAMS
+Download gitorious tarball
+
+cd to  ~/.sbcl/site folder
+tar -xvf ~/Downloads/trivial-gray-streams-trivial-gray-streams-master.tar.gz
+ln -sf trivial-gray-streams-trivial-gray-streams/trivial-gray-streams.asd $HOME/.sbcl/systems
+
 (asdf-install:install :cl-ppcre)
 (asdf-install:install :cl-yacc)
 (asdf-install:install :cl-lex)

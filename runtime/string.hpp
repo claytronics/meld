@@ -7,6 +7,9 @@
 #include <iostream>
 #include <string>
 #include <stack>
+#ifdef COMPILE_MPI
+#include <boost/mpi.hpp>
+#endif
 #include "utils/types.hpp"
 #include "utils/atomic.hpp"
 #include "mem/base.hpp"

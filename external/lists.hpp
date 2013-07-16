@@ -19,7 +19,6 @@ argument intlistsub(const argument, const argument, const argument);
 argument intlistappend(const argument, const argument);
 argument intlistsort(const argument);
 argument intlistremoveduplicates(const argument);
-argument intlistequal(const argument, const argument);
 argument str2intlist(const argument);
 
 argument nodelistremove(const argument, const argument);

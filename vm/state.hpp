@@ -3,7 +3,6 @@
 #define VM_STATE_HPP
 
 #include <list>
-#include <iostream>
 
 #include "conf.hpp"
 #include "vm/tuple.hpp"
@@ -87,6 +86,15 @@ public:
 	vm::strat_level current_level;
    bool persistent_only; // we are running one persistent tuple (not a rule)
    vm::all *all;
+#ifdef USE_UI
+   static bool UI;
+#endif
+#ifdef USE_SIM
+   static bool SIM;
+   deterministic_timestamp sim_instr_counter;
+   deterministic_timestamp sim_instr_limit;
+   bool sim_instr_use;
+#endif
 
 #ifdef CORE_STATISTICS
    size_t stat_rules_ok;
@@ -171,18 +179,18 @@ public:
 	bool check_if_rule_predicate_activated(vm::rule *);
 #endif
 	
-   void mark_predicate_to_run(const vm::predicate *);
-   void mark_active_rules(void);
+	void mark_predicate_to_run(const vm::predicate *);
+	void mark_active_rules(void);
    void add_to_aggregate(db::simple_tuple *);
    bool do_persistent_tuples(void);
    void process_persistent_tuple(db::simple_tuple *, vm::tuple *);
-   void process_consumed_local_tuples(void);
-   void print_local_tuples(std::ostream& cout);
-   void print_generated_tuples(std::ostream& cout);
-
-   void process_others(void);
+	void process_consumed_local_tuples(void);
+#ifdef USE_SIM
+   bool check_instruction_limit(void) const;
+#endif
+	void process_others(void);
    vm::strat_level mark_rules_using_local_tuples(db::simple_tuple_list&);
-   void run_node(db::node *);
+	void run_node(db::node *);
    void setup(vm::tuple*, db::node*, const ref_count);
    void cleanup(void);
    bool linear_tuple_can_be_used(db::tuple_trie_leaf *) const;

@@ -30,18 +30,18 @@ run_diff ()
 	fi
 	DIFF=`diff -u ${FILE} test.out`
 	if [ ! -z "${DIFF}" ]; then
+		echo "DIFFERENCES!!!"
 		diff -u ${FILE} test.out
-		echo "!!!!!! DIFFERENCES IN FILE ${TEST} ($TO_RUN)"
+		exit 1
 	fi
 	rm test.out
 }
 
-echo $TEST
 do_serial ()
 {
 	SCHED=${1}
-    echo $SCHED
 	TO_RUN="${EXEC} -f ${TEST} -c ${SCHED}"
+	
 	run_diff "${TO_RUN}"
 }
 
@@ -64,20 +64,6 @@ run_serial_n ()
 		do_serial ${SCHED}
 	done
    echo " OK!"
-}
-
-run_mpi () {
-    ITER=1
-    while [ $ITER -lt 6 ]; do
-        SCHED="sl"
-        TO_RUN="mpiexec -n ${ITER} ${EXEC} -f ${TEST} -c ${SCHED}"
-
-        echo -n "Running ${TEST} with MPI on [${ITER}] processes ..."
-        run_diff "${TO_RUN}"
-        echo " DONE!"
-
-        let ITER=$ITER+1
-    done
 }
 
 run_test_n ()
@@ -138,9 +124,4 @@ fi
 if [ "${TYPE}" = "tl" ]; then
 	loop_sched tl
 	exit 0
-fi
-
-if [ "${TYPE}" = "mpi" ]; then
-    run_mpi
-    exit 0
 fi

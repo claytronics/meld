@@ -5,6 +5,7 @@
 #include "vm/program.hpp"
 
 using namespace vm;
+using namespace process;
 using namespace std;
 
 int

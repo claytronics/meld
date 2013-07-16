@@ -5,6 +5,7 @@
 #include "vm/program.hpp"
 
 using namespace vm;
+using namespace process;
 using namespace std;
 
 int
@@ -16,10 +17,13 @@ main(int argc, char **argv)
    }
    
    const string file(argv[1]);
-   
+   int i;    
+
    program prog(file);
    
    prog.print_predicates(cout);
+
+   prog.print_predicate_dependency(); 
    
    return EXIT_SUCCESS;
 }

@@ -1,12 +1,13 @@
+
 #include <iostream>
 #include <vector>
 
 #include "process/machine.hpp"
 #include "utils/utils.hpp"
 #include "utils/fs.hpp"
+#include "process/router.hpp"
 #include "vm/state.hpp"
-#include "debug/debug_handler.hpp"
-#include "debug/debug_prompt.hpp"
+
 #include "interface.hpp"
 
 using namespace utils;
@@ -32,8 +33,6 @@ help(void)
 	cerr << "\t-s \t\tshows database" << endl;
    cerr << "\t-d \t\tdump database (debug option)" << endl;
    cerr << "\t-h \t\tshow this screen" << endl;
-   cerr << "\t-D MPI|VM|SIM \t\tgo into debugging mode" << endl;
-
 
    exit(EXIT_SUCCESS);
 }
@@ -48,7 +47,7 @@ read_arguments(int argc, char **argv)
 
    while (argc > 0 && (argv[0][0] == '-')) {
       switch(argv[0][1]) {
-		 case 'f': {
+         case 'f': {
             if (program != NULL || argc < 2)
                help();
 
@@ -100,21 +99,6 @@ read_arguments(int argc, char **argv)
          case 'h':
             help();
             break;
-         case 'D':
-	   if (string(argv[1]) == "VM"){
-	     cout << "DEBUGGING MODE -- type 'help' for options" << endl;
-	     debugger::setDebuggingMode(true);
-	   } else if (string(argv[1]) == "MPI"){
-         debugger::setMpiDebuggingMode(true);
-	   } else if (string(argv[1]) == "SIM"){
-	     debugger::setSimDebuggingMode(true);
-	   } else {
-	     cout << "Unknow debug option" << endl;
-	     exit(0);
-	   }
-	   break;
-	   
-	   
 			case '-':
 				
 				for(--argc, ++argv ; argc > 0; --argc, ++argv)
@@ -141,8 +125,14 @@ main(int argc, char **argv)
       num_threads = 1;
    }
 
-   if(program == NULL && sched_type != SCHED_UNKNOWN) {
+   if(program == NULL && sched_type == SCHED_UNKNOWN) {
+      cerr << "Error: please provide scheduler type and a program to run" << endl;
+      return EXIT_FAILURE;
+   } else if(program == NULL && sched_type != SCHED_UNKNOWN) {
 		cerr << "Error: please provide a program to run" << endl;
+      return EXIT_FAILURE;
+   } else if(program != NULL && sched_type == SCHED_UNKNOWN) {
+		cerr << "Error: please pick a scheduler to use" << endl;
       return EXIT_FAILURE;
    }
    

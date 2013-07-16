@@ -7,8 +7,10 @@
 #include <vector>
 #include <ostream>
 #include <list>
-#include <boost/archive/text_oarchive.hpp>
-#include <boost/archive/text_iarchive.hpp>
+
+#ifdef COMPILE_MPI
+#include <boost/mpi.hpp>
+#endif
 
 #include "vm/defs.hpp"
 #include "vm/predicate.hpp"
@@ -23,14 +25,6 @@ namespace db
 class simple_tuple: public mem::base
 {
 private:
-
-  friend class boost::serialization::access;
-
-  template<class Archive>
-  void serialize(Archive & ar, const unsigned int version) {
-    ar & data;
-  }
-
    vm::tuple *data;
    vm::ref_count count;
    // tuple is dead and must be deleted at the end of rule execution

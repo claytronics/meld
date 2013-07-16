@@ -2,10 +2,6 @@
 WHAT="$1"
 EXCEPT_LIST="non_deterministic.exclude" #"$2"
 
-if [ "$WHAT" == "sl" ] ; then
-   EXCEPT_LIST=""
-fi
-
 run_test () {
    ./test.sh $1 $WHAT || (echo "TEST FAILED" && exit 1)
 }
@@ -16,7 +12,7 @@ not_excluded () {
 
 if [ -z "$EXCEPT_LIST" ]; then
    for file in `ls code/*.m`; do
-      run_test $file || exit 1
+      run_test $file
    done
 else
    for file in `ls code/*.m`; do

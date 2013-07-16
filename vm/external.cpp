@@ -2,6 +2,7 @@
 #include <tr1/unordered_map>
 #include <assert.h>
 #include <stdlib.h>
+#include<iostream>
 
 #include "vm/external.hpp"
 #include "external/math.hpp"
@@ -18,13 +19,14 @@ namespace vm
 {
    
 using namespace external;
+using namespace std;
 
 typedef unordered_map<external_function_id, external_function*> hash_external_type;
 
-static bool init_external_functions(void);
+//static bool init_external_functions(void);
 static external_function_id external_counter(0);   
 static hash_external_type hash_external;
-static bool dummy(init_external_functions());
+//static bool dummy(init_external_functions());
 
 void
 external_function::set_arg_type(const size_t arg, const field_type typ)
@@ -52,6 +54,7 @@ external_function::~external_function(void)
 external_function_id
 register_external_function(external_function *ex)
 {
+   cout<<"register_external_function : external_counter : "<<external_counter<<" obj : "<<ex<<endl;  
    hash_external[external_counter] = ex;
    return external_counter++;
 }
@@ -60,19 +63,19 @@ external_function*
 lookup_external_function(const external_function_id id)
 {
    external_function *ret(hash_external[id]);
-   
+   cout<<"lookupt_external_function : id : "<<id<<endl; 
    assert(ret != NULL);
    
    return ret;
 }
 
-static inline external_function*
+external_function*
 external0(external_function_ptr ptr, const field_type ret)
 {
    return new external_function(ptr, 0, ret);
 }
 
-static inline external_function*
+external_function*
 external1(external_function_ptr ptr, const field_type ret, const field_type arg1)
 {
    external_function *f(new external_function(ptr, 1, ret));
@@ -82,7 +85,7 @@ external1(external_function_ptr ptr, const field_type ret, const field_type arg1
    return f;
 }
 
-static inline external_function*
+external_function*
 external2(external_function_ptr ptr, const field_type ret, const field_type arg1, const field_type arg2)
 {
    external_function *f(new external_function(ptr, 2, ret));
@@ -93,7 +96,7 @@ external2(external_function_ptr ptr, const field_type ret, const field_type arg1
    return f;
 }
 
-static inline external_function*
+external_function*
 external3(external_function_ptr ptr, const field_type ret, const field_type arg1,
    const field_type arg2, const field_type arg3)
 {
@@ -113,7 +116,7 @@ cleanup_externals(void)
       delete it->second;
 }
 
-static bool
+bool
 init_external_functions(void)
 {
 #define EXTERN(NAME) (external_function_ptr) external :: NAME
@@ -158,9 +161,6 @@ init_external_functions(void)
    register_external_function(EXTERNAL2(intpower, FIELD_INT, FIELD_INT, FIELD_INT));
    register_external_function(EXTERNAL1(intlistsort, FIELD_LIST_INT, FIELD_LIST_INT));
    register_external_function(EXTERNAL1(intlistremoveduplicates, FIELD_LIST_INT, FIELD_LIST_INT));
-   register_external_function(EXTERNAL2(degeneratevector, FIELD_LIST_INT, FIELD_INT, FIELD_INT));
-   register_external_function(EXTERNAL2(demergemessages, FIELD_LIST_INT, FIELD_LIST_INT, FIELD_LIST_INT));
-   register_external_function(EXTERNAL2(intlistequal, FIELD_INT, FIELD_LIST_INT, FIELD_LIST_INT));
 
    atexit(cleanup_externals);
    
