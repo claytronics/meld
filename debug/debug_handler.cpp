@@ -524,6 +524,10 @@ namespace debugger {
                     activateBreakPoint(specification);
                     instruction = NOTHING;
                     break;
+                case TERMINATE:
+                    api::end();
+                    exit(0);
+                    break;
             }
         }
     }
@@ -542,7 +546,7 @@ namespace debugger {
         } else if (instruction == PRINTCONTENT){
             printf("%s",specification.c_str());
         } else if (instruction == TERMINATE){
-            printf("CHILD TERMINATED\n");
+            printf("PROGRAM FINISHED\n");
             api::end();
             exit(0);
         }

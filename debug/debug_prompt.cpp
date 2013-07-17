@@ -41,15 +41,21 @@ namespace debugger {
 
     debugList factBreaks = getFactList();
 
+    bool expectingMessage;
+
     while(true){
       if (isTheSystemPaused()){
         cout << ">";
         getline(cin,inpt);
         //react to the input
-        parseline(inpt,factBreaks);
+        expectingMessage = parseline(inpt,factBreaks);
       }
-      api::debugWaitMsg();
-      receiveMsg();
+
+      if (expectingMessage){
+          api::debugWaitMsg();
+          receiveMsg();
+      }
+
     }
     return NULL;
   }
@@ -57,7 +63,7 @@ namespace debugger {
 
 
   /*parses the command line and run the debugger*/
-  void parseline(string line, debugList& factBreaks){
+  bool parseline(string line, debugList& factBreaks){
 
     string build = "";
     int wordCount = 1;
@@ -68,7 +74,7 @@ namespace debugger {
     if (line == ""){
       //enterlast stored command
       debugController(lastInstruction, lastBuild);
-      return;
+      return true;
     }
 
     /*loop through input line*/
@@ -80,10 +86,14 @@ namespace debugger {
         build += line[i];
       } else {
         //exract the command
-        if (wordCount == 1)
+        if (wordCount == 1){
           command = handle_command(build,factBreaks);
+          if (command==NOTHING){
+              return false;
+          }
         wordCount++;
         build = "";
+        }
       }
     }
 
@@ -92,12 +102,16 @@ namespace debugger {
     if (wordCount == 1){
       command = handle_command(build,factBreaks);
 
+      if (command==NOTHING){
+              return false;
+          }
+
       if (command != BREAKPOINT && command!=DUMP
           && command != REMOVE){
         debugController(command, build);
         lastInstruction = command;
         lastBuild = build;
-        return;
+        return true;
       }
     }
 
@@ -105,20 +119,22 @@ namespace debugger {
     if ((command == BREAKPOINT||command == DUMP||command == REMOVE)&&
         wordCount == 1){
       cout << "Please specify- type help for options" << endl;
-      return;
+      return false;
     }
 
     /*handle breakpointsand dumps*/
     if (wordCount == 2){
-      if (command == BREAKPOINT||command == DUMP||command == REMOVE)
+        if (command == BREAKPOINT||command == DUMP||command == REMOVE){
         debugController(command,build);
-      else
+        } else
         debugController(command,"");
       lastInstruction = command;
       lastBuild = build;
+      return true;
     }
-  }
+    return false;
 
+  }
 
   /*recognizes and sets different modes for the debugger*/
   int handle_command(string command, debugList& factList){
@@ -143,6 +159,8 @@ namespace debugger {
       retVal = CONTINUE;
     } else if (command == "quit"||command == "q"){
       listFree(factList);
+      sendMsg(-1,TERMINATE,"",true);
+      api::end();
       exit(0);
     } else {
       cout << "unknown command: type 'help' for options " << endl;
