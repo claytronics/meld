@@ -660,19 +660,27 @@ program::add_data_file(program& other)
 void 
 program::print_predicate_dependency(){
 
-    size_t i;
+    size_t i,j;
 
+    for(i = 0; i < number_rules;i++){
+
+        cout<<"rule : "<<i<<endl;
+        rules[i]->print(cout,this);
+        cout<<endl;
+    }
 
     for(i = 0 ; i < num_predicates(); i++){
 
-        cout<<predicates[i]->name;
-        if(predicates[i]->agg_info){
-            if(predicates[i]->agg_info->remote_pred)
-            cout<<"-->"<<predicates[i]->agg_info->remote_pred->name;
-        }
-        cout<<endl;
-    
+        cout<<"predicate : "<<i<<endl;
+        cout<<"predicate id : "<<predicates[i]->id<<endl;
+        cout<<predicates[i]->name<<endl;
+
+        for(j = 0 ; j < predicates[i]->affected_rules.size();j++)
+            cout<<"affected rule : "<<predicates[i]->affected_rules[j]<<endl;
+
+        print_predicate_code(cout,get_predicate_by_name(predicates[i]->name));    
     }
+
 }
 
 }
