@@ -43,6 +43,8 @@ namespace api {
                                    const db::database::map_nodes&
                                    ));
 
+    static void freeDebugSendMsgs(void);
+
     /* Functions to calculate adjacent process ids in a ring structure */
     inline int prevProcess(void) {
         if (world->rank() == 0) {
@@ -77,7 +79,7 @@ namespace api {
     // Vectors to hold created messages in order to free them after the
     // asynchronous MPI calls are complete
     static vector<pair<mpi::request, message_type *> > sendMsgs, recvMsgs,
-        debugMsgs, debugRecvMsgs;
+        debugSendMsgs, debugRecvMsgs;
 
     // Dijkstra and Safra's token ring termination detection algorithm
     // Default states
@@ -415,7 +417,21 @@ namespace api {
             mpi::request req = world->isend(dest, DEBUG, msg, msgSize);
             sendMsgs.push_back(make_pair(req, msg));
         }
-        freeSendMsgs();
+        freeDebugSendMsgs();
+    }
+
+    void freeDebugSendMsgs(void) {
+        for (vector<pair<mpi::request,
+                         message_type*> >::iterator it = debugSendMsgs.begin();
+             it != debugSendMsgs.end(); ) {
+
+            mpi::request req(it->first);
+            if (req.test()) {
+                delete[] (it->second);
+                it = debugSendMsgs.erase(it);
+            } else
+                ++it;
+        }
     }
 
     void debugSendMsg(const int dest, message_type *msg,
@@ -423,8 +439,8 @@ namespace api {
         /* Send the message through MPI and place the message and status into
            the sendMsgs vector to be freed when the request completes */
         mpi::request req = world->isend(dest, DEBUG, msg, msgSize);
-        sendMsgs.push_back(make_pair(req, msg));
-        freeSendMsgs();
+        debugSendMsgs.push_back(make_pair(req, msg));
+        freeDebugSendMsgs();
     }
 
     void debugWaitMsg(void) {

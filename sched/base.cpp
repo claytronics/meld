@@ -58,6 +58,7 @@ base::do_loop(void)
           do_work(node);
           finish_work(node);
       }
+      //cout << "over and over" << endl;
       bool hasWork = api::pollAndProcess(this, state.all);
       bool ensembleFinished = false;
       if (!hasWork)

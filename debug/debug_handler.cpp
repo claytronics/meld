@@ -334,6 +334,7 @@ namespace debugger {
 
         //if the specifications are a hit, then pause the system
         if (isInBreakPointList(factBreakList,type,name,nodeID)){
+            MSG << "VM #" << api::world->rank() << ":" << endl;
             MSG << "Breakpoint-->";
             MSG << type << ":" << name << "@" << nodeID << endl;
             MSG <<  msg;
@@ -534,14 +535,12 @@ namespace debugger {
 
         /*print the output and then tell all other VMs to pause*/
         if (instruction == BREAKFOUND){
-            printf("Process %d:\n%s\n",
-                   api::world->rank(), specification.c_str());
+            printf("%s",specification.c_str());
             sendMsg(-1,PAUSE,"",BROADCAST);
 
         /*print content from a VM*/
         } else if (instruction == PRINTCONTENT){
-            printf("Process %d:\n%s\n",
-                   api::world->rank(), specification.c_str());
+            printf("%s",specification.c_str());
         } else if (instruction == TERMINATE){
             printf("CHILD TERMINATED\n");
             api::end();
@@ -605,7 +604,6 @@ namespace debugger {
 
         if (broadcast){
 
-            cout << "MASTER:broadcasting message"<<endl;
             api::debugBroadcastMsg(msg,msgSize);
 
         } else {
@@ -650,9 +648,6 @@ namespace debugger {
         /*load the message queue with messages*/
         api::debugGetMsgs();
 
-        if (api::world->rank()!=MASTER)
-            cout << "recieving messages" << endl;
-
         /*process each message until empty*/
         while(!messageQueue->empty()){
             /*extract the message*/
@@ -676,7 +671,6 @@ namespace debugger {
                 /*if a slave process (any vm) is receiving the message*/
             } else {
 
-                cout << "SLAVE: recieved message"<<endl;
                 debugController(instruction,spec);
             }
 
