@@ -70,11 +70,11 @@ run_mpi () {
     ITER=1
     while [ $ITER -lt 6 ]; do
         SCHED="sl"
-        TO_RUN="time mpiexec -n ${ITER} ${EXEC} -f ${TEST} -c ${SCHED}"
+        TO_RUN="times mpiexec -n ${ITER} ${EXEC} -f ${TEST} -c ${SCHED}"
 
-        echo -n "Running ${TEST} with MPI on [${ITER}] processes ...\n"
+        echo "Running ${TEST} with MPI on [${ITER}] processes ..."
         run_diff "${TO_RUN}"
-        echo "\nDONE!"
+        echo "DONE!"
 
         let ITER=$ITER+1
     done
