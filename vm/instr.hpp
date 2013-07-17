@@ -791,6 +791,7 @@ std::string val_string(const instr_val, pcounter *);
 pcounter instr_print(pcounter, const bool, const int, const program *, std::ostream&);
 pcounter instr_print_simple(pcounter, const int, const program *, std::ostream&);
 byte_code instrs_print(const byte_code, const code_size_t, const int, const program*, std::ostream&);
+void dependency_print();
 
 }
 

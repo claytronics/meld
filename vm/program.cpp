@@ -660,7 +660,7 @@ program::add_data_file(program& other)
 void 
 program::print_predicate_dependency(){
 
-    size_t i,j;
+    size_t i,j,k;
 
     for(i = 0; i < number_rules;i++){
 
@@ -672,13 +672,17 @@ program::print_predicate_dependency(){
     for(i = 0 ; i < num_predicates(); i++){
 
         cout<<"predicate : "<<i<<endl;
-        cout<<"predicate id : "<<predicates[i]->id<<endl;
         cout<<predicates[i]->name<<endl;
 
         for(j = 0 ; j < predicates[i]->affected_rules.size();j++)
             cout<<"affected rule : "<<predicates[i]->affected_rules[j]<<endl;
 
-        print_predicate_code(cout,get_predicate_by_name(predicates[i]->name));    
+        print_predicate_code(cout,get_predicate_by_name(predicates[i]->name));
+        
+        cout<<"Predicate depends on : "<<endl;
+        dependency_print();
+        cout<<endl;   
+ 
     }
 
 }

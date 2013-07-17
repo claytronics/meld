@@ -11,6 +11,8 @@ using namespace utils;
 namespace vm {
    
 namespace instr {
+
+std::vector<string> dependency;
    
 string
 op_string(const instr_op op)
@@ -230,7 +232,8 @@ instr_print(pcounter pc, const bool recurse, const int tabcount, const program *
    		}
    		break;
    	case ALLOC_INSTR:
-         cout << "ALLOC " << prog->get_predicate(alloc_predicate(pc))->get_name()
+         dependency.push_back(prog->get_predicate(alloc_predicate(pc))->get_name());   
+         cout << "ALLOC " << dependency.back() //prog->get_predicate(alloc_predicate(pc))->get_name()
               << " TO " << reg_string(alloc_reg(pc))
               << endl;
    		break;
@@ -262,8 +265,9 @@ instr_print(pcounter pc, const bool recurse, const int tabcount, const program *
    	case ITER_INSTR: {
             pcounter m = pc + ITER_BASE;
 				const byte opts(iter_options(pc));
-            
-            cout << "ITERATE OVER " << prog->get_predicate(iter_predicate(pc))->get_name() << " (";
+         
+            dependency.push_back(prog->get_predicate(iter_predicate(pc))->get_name());   
+            cout << "ITERATE OVER " << dependency.back() << " (";
 
 				if(iter_options_random(opts))
 					cout << "r";
@@ -343,7 +347,9 @@ instr_print(pcounter pc, const bool recurse, const int tabcount, const program *
             const predicate_id pred_id(delete_predicate(pc));
             const predicate *pred(prog->get_predicate(pred_id));
             const size_t num_args(delete_num_args(pc));
-            
+         
+            dependency.push_back(pred->get_name());
+   
             cout << "DELETE " << pred->get_name()
                  << " USING ";
                  
@@ -455,6 +461,8 @@ instr_print(pcounter pc, const bool recurse, const int tabcount, const program *
             predicate_id pid(predicate_get(p, 0));
             predicate *pred(prog->get_predicate(pid));
             print_tab(tabcount+1);
+    
+            dependency.push_back(pred->get_name());
             cout << pred->get_name() << "(";
 
             p++;
@@ -550,6 +558,17 @@ instrs_print(byte_code code, const code_size_t len, const int tabcount, const pr
 	}
 	
    return until;
+}
+
+void dependency_print(){
+
+    uint32_t k;
+
+    for(k = 0; k < dependency.size();k++)
+           cout<<dependency[k]<<endl;
+
+    dependency.clear();
+
 }
   
 }
