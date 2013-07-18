@@ -562,10 +562,17 @@ instrs_print(byte_code code, const code_size_t len, const int tabcount, const pr
 
 void dependency_print(){
 
-    uint32_t k;
+    uint32_t i,j;
 
-    for(k = 0; k < dependency.size();k++)
-           cout<<dependency[k]<<endl;
+
+    for(i = 0; i < dependency.size();i++) 
+        for(j = i + 1; j < dependency.size();j++) 
+            if(!dependency[i].compare(dependency[j]))
+                dependency.erase(dependency.begin() + (i-1));
+
+
+    for(j = 0; j < dependency.size();j++) 
+        cout<<dependency[j]<<endl;
 
     dependency.clear();
 

@@ -54,7 +54,6 @@ external_function::~external_function(void)
 external_function_id
 register_external_function(external_function *ex)
 {
-   cout<<"register_external_function : external_counter : "<<external_counter<<" obj : "<<ex<<endl;  
    hash_external[external_counter] = ex;
    return external_counter++;
 }

@@ -24,6 +24,7 @@ using namespace vm::instr;
 using namespace process;
 using namespace utils;
 
+std::ostream cnull(0);
 namespace vm {
 
 static const size_t PREDICATE_DESCRIPTOR_SIZE = sizeof(code_size_t) +
@@ -662,12 +663,17 @@ program::print_predicate_dependency(){
 
     size_t i,j,k;
 
-    for(i = 0; i < number_rules;i++){
+        for(i = 0; i < number_rules;i++){
 
-        cout<<"rule : "<<i<<endl;
-        rules[i]->print(cout,this);
-        cout<<endl;
-    }
+            cout<<"rule : "<<i<<endl;
+
+            if(print_code)
+                rules[i]->print(cout,this);
+            else
+                cout<<rules[i]->get_string()<<endl;
+
+            cout<<endl;
+        }
 
     for(i = 0 ; i < num_predicates(); i++){
 
@@ -677,8 +683,11 @@ program::print_predicate_dependency(){
         for(j = 0 ; j < predicates[i]->affected_rules.size();j++)
             cout<<"affected rule : "<<predicates[i]->affected_rules[j]<<endl;
 
+        if(print_code)
         print_predicate_code(cout,get_predicate_by_name(predicates[i]->name));
-        
+        else
+        print_predicate_code(cnull,get_predicate_by_name(predicates[i]->name));
+
         cout<<"Predicate depends on : "<<endl;
         dependency_print();
         cout<<endl;   

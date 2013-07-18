@@ -43,10 +43,12 @@ const size_t ADD_PRIORITY_PREDICATE_ID(5);
 const size_t SCHEDULE_NEXT_PREDICATE_ID(6);
 const size_t SETCOLOR2_PREDICATE_ID(7);
 
+
 class program
 {
 private:
 
+    
    const std::string filename;
 	size_t num_args;
    size_t number_rules;
@@ -88,6 +90,7 @@ public:
 
    strat_level MAX_STRAT_LEVEL;
 
+    bool print_code = false;
    inline size_t num_rules(void) const { return number_rules; }
 	inline size_t num_args_needed(void) const { return num_args; }
 
