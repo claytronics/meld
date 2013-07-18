@@ -139,6 +139,20 @@ database::print_db(ostream& cout) const
     api::printDB(cout, nodes);
 }
 
+/*not done in serialzed form as specified above*/
+
+void
+database::print_entire_db_debug(ostream&cout){
+
+    for(map_nodes::const_iterator it(nodes.begin());
+        it != nodes.end();
+        ++it)
+    {
+        if (api::onLocalVM(it->second->get_id()))
+           cout << *(it->second) << endl;
+    }
+
+}
 
 void
 database::print_db_debug(ostream& cout, const node::node_id real_id)

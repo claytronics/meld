@@ -45,19 +45,7 @@ namespace api {
 
     static void freeDebugSendMsgs(void);
 
-    /* Functions to calculate adjacent process ids in a ring structure */
-    inline int prevProcess(void) {
-        if (world->rank() == 0) {
-            return world->size() - 1;
-        } else {
-            return getVMId(world->rank() - 1);
-        }
-    }
-    inline int nextProcess(void) {
-        return getVMId(world->rank() + 1);
-    }
-
-	// token tags to tag messages in MPI
+     // token tags to tag messages in MPI
     enum tokens {
         DEBUG,
         TERM,
@@ -71,10 +59,32 @@ namespace api {
         PRINT_DONE
     };
 
+    static int RING_ORIGIN = 0;
+
+    /* Functions to calculate adjacent process ids in a ring structure */
+    inline int prevProcess(void) {
+
+        /*if in debugging mode skip over the debug master*/
+        if (world->rank() == RING_ORIGIN)
+            return world->size() - 1;
+        else
+            return world->rank() - 1;
+
+
+    }
+
+    inline int nextProcess(void) {
+        /*note skips over master debugging process in
+          debugging mode*/
+        if (world->rank() == world->size()-1)
+            return RING_ORIGIN;
+        else
+            return world->rank() + 1;
+    }
+
     // Global MPI variables
     mpi::communicator *world;
     static mpi::environment *env;
-    static int RING_ORIGIN = 0;
 
     // Vectors to hold created messages in order to free them after the
     // asynchronous MPI calls are complete
@@ -99,6 +109,7 @@ namespace api {
             env = new mpi::environment(argc, argv);
             world = new mpi::communicator();
             if (debugger::isInMpiDebuggingMode()) {
+                /*api master defined in debug_handler.hpp*/
                 RING_ORIGIN = api::MASTER;
             }
             if (world->rank() == RING_ORIGIN)
@@ -318,7 +329,7 @@ namespace api {
     int getVMId(const db::node::node_id id) {
         /* POLICY SPECIFIC according to the value of debugger::MASTER */
         if (debugger::isInMpiDebuggingMode()) {
-            return (id % (world->size() - 1)) + 1;
+          return (id % (world->size() - 1)) + 1;
         }
         return id % world->size();
     }
@@ -403,6 +414,7 @@ namespace api {
         }
         debugger::initMpiDebug(all);
         if (world->rank() == debugger::MASTER) {
+            cout << "MPI DEBUGGING MODE -- type 'help' for options" << endl;
             std::vector<tokens> allVMs;
             mpi::gather(*world, INIT, allVMs, debugger::MASTER);
             debugger::run(all);
@@ -413,16 +425,24 @@ namespace api {
     }
 
     void debugBroadcastMsg(message_type *msg, size_t msgSize) {
+
+        message_type *temp;
+
         for (int dest = 1; dest < world->size(); ++dest) {
+
+            temp = (message_type*)new utils::byte[msgSize];
+
+            memcpy(temp,msg,msgSize);
+
             mpi::request req = world->isend(dest, DEBUG, msg, msgSize);
-            sendMsgs.push_back(make_pair(req, msg));
+            debugSendMsgs.push_back(make_pair(req, temp));
         }
+        delete[] msg;
         freeDebugSendMsgs();
     }
 
     void freeDebugSendMsgs(void) {
-        for (vector<pair<mpi::request,
-                         message_type*> >::iterator it = debugSendMsgs.begin();
+        for (vector<pair<mpi::request,message_type*> >::iterator it = debugSendMsgs.begin();
              it != debugSendMsgs.end(); ) {
 
             mpi::request req(it->first);
@@ -463,6 +483,7 @@ namespace api {
              it != debugRecvMsgs.end(); ) {
             mpi::request req(it->first);
             if (req.test()) {
+                /*left to debugger to free the message*/
                 debugger::messageQueue->push(it->second);
                 it = debugRecvMsgs.erase(it);
             } else {

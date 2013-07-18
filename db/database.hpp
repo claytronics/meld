@@ -75,6 +75,7 @@ namespace db
 
         void print_db(std::ostream&) const;
         void print_db_debug(std::ostream&, unsigned int nodeNumber);
+        void print_entire_db_debug(std::ostream&cout);
         void dump_db(std::ostream&) const;
 
         void print(std::ostream&) const;

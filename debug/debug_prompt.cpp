@@ -44,7 +44,7 @@ namespace debugger {
     bool expectingMessage;
 
     while(true){
-      if (isTheSystemPaused()){
+      if (isTheSystemPaused()&&numberExpected==0){
         cout << ">";
         getline(cin,inpt);
         //react to the input
@@ -151,8 +151,7 @@ namespace debugger {
     } else if (command == "dump"||command == "d") {
       retVal = DUMP;
     } else if (command == "print" || command == "p"){
-      printList(getFactList());
-      retVal = NOTHING;
+      retVal = PRINTLIST;
     } else if (command == "remove" || command == "rm"){
       retVal = REMOVE;
     } else if (command == "continue"||command == "c"){

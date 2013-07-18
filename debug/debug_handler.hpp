@@ -35,6 +35,7 @@ namespace debugger {
     const int DEBUG = 16;
     const int DEBUGMPI = 0;
     const int TERMINATE = 10;
+    const int PRINTLIST = 11;
 
     extern std::queue<api::message_type*> *messageQueue;
     extern int numberExpected;
