@@ -74,6 +74,7 @@ namespace debugger {
     void receiveMsg(void);
     void sendMsg(int destination, int msgType,
                  std::string content, bool broadcast = false);
+    void *msgListener(void* passIn);
 }
 
 #endif

@@ -109,6 +109,8 @@ machine::route(const node* from, sched::base *sched_caller, const node::node_id 
 {
    assert(sched_caller != NULL);
 
+
+
    if (api::onLocalVM(id)){
        /* Belongs to the same process, does not require MPI */
       node *node(this->all->DATABASE->find_node(id));
@@ -132,6 +134,7 @@ machine::route(const node* from, sched::base *sched_caller, const node::node_id 
          sched_caller->new_work_other(sched_other, new_work);
       }
    } else {
+
      /* Send to the correct process */
        api::sendMessage(from,id,stpl);
    }
@@ -212,6 +215,7 @@ machine::execute_const_code(void)
 	// no node or tuple whatsoever
 	st.setup(NULL, NULL, 0);
 
+    cout << "vm " << api::world->rank() << "was here" << endl;
 
 	execute_bytecode(all->PROGRAM->get_const_bytecode(), st);
 }

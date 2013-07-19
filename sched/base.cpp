@@ -52,18 +52,24 @@ base::do_loop(void)
   db::node *node(NULL);
 
   while(true) {
-//      api::serializeBeginExec();
+      //api::serializeBeginExec();
       while ((node = get_work())) {
           // Current VM has local work, process work
           do_work(node);
           finish_work(node);
       }
       //cout << "over and over" << endl;
+
+      if (debugger::isInMpiDebuggingMode()&&debugger::isTheSystemPaused()){
+          debugger::display("PAUSED\n",debugger::PRINTCONTENT);
+          debugger::pauseIt();
+      }
+
       bool hasWork = api::pollAndProcess(this, state.all);
       bool ensembleFinished = false;
       if (!hasWork)
           ensembleFinished = api::ensembleFinished(this);
-//      api::serializeEndExec();
+      //api::serializeEndExec();
       if (ensembleFinished)
           break;
   }

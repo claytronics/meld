@@ -66,9 +66,13 @@ namespace debugger {
 
     /*setup MPI debugging mode*/
     void initMpiDebug(vm::all *debugAll){
-        setupFactList();
         messageQueue = new std::queue<api::message_type*>();
         all = debugAll;
+        if (api::world->rank()!=MASTER){
+            setupFactList();
+            pthread_t tid;
+            pthread_create(&tid, NULL, msgListener, NULL);
+        }
     }
 
     /*extract the pointer to the system state*/
@@ -328,11 +332,6 @@ namespace debugger {
             !isInMpiDebuggingMode())
             return;
 
-        /*check to see if any messages are available
-         *(the system could be paused)*/
-        if (isInMpiDebuggingMode())
-            receiveMsg();
-
         //if the specifications are a hit, then pause the system
         if (isInBreakPointList(factBreakList,type,name,nodeID)){
             MSG << "Breakpoint-->";
@@ -347,19 +346,20 @@ namespace debugger {
     /*pause the VM until further notice*/
     void pauseIt(){
 
+        cout << "paused VM " << api::world->rank() << endl;
         isSystemPaused = true;
             while(isSystemPaused) {
 
                 /*if is in MPI mode, recieve messages*/
                 /*will breakout of loop if CONTINUE message is
                  * specified which is handled by debugController*/
-                if (isInMpiDebuggingMode()){
-                    api::debugWaitMsg();
-                    receiveMsg();
+                //if (isInMpiDebuggingMode()){
+                    //api::debugWaitMsg();
+                    //receiveMsg();
 
-                } else {
+                //} else {
                     sleep(1);
-                }
+                    //}
             }
     }
 
@@ -388,7 +388,6 @@ namespace debugger {
     void continueExecution(){
         //setting this will break it out of a while loop
         //from pauseIt function
-        cout << "resuming VM" << api::world->rank() << endl;
         isSystemPaused = false;
     }
 
@@ -444,7 +443,8 @@ namespace debugger {
 
                 /*continue a paused system by broadcasting an UNPAUSE signal*/
                 sendMsg(-1,CONTINUE,"",BROADCAST);
-                numberExpected = (int)api::world->size()-1;
+                //numberExpected = (int)api::world->size()-1;
+                numberExpected = 1;
 
             } else if (instruction == DUMP) {
 
@@ -507,10 +507,8 @@ namespace debugger {
                     }
                     break;
                 case PAUSE:
-                    if (!isTheSystemPaused()){
-                        display("PAUSED\n", PRINTCONTENT);
-                        pauseIt();
-                    }
+                    cout << "pausing " << api::world->rank() << endl;
+                    isSystemPaused = true;
                     break;
                 case UNPAUSE:
                 case CONTINUE:
@@ -534,6 +532,8 @@ namespace debugger {
                     break;
                 case TERMINATE:
                     api::end();
+                    listFree(getFactList());
+                    delete messageQueue;
                     exit(0);
                     break;
                 case PRINTLIST:
@@ -650,6 +650,19 @@ namespace debugger {
                               msgSize);
         }
 
+    }
+
+
+    void* msgListener(void* passIn){
+
+        (void)passIn;
+
+        while (true){
+            api::debugWaitMsg();
+            receiveMsg();
+        }
+
+        return NULL;
     }
 
 

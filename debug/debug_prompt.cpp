@@ -157,9 +157,9 @@ namespace debugger {
     } else if (command == "continue"||command == "c"){
       retVal = CONTINUE;
     } else if (command == "quit"||command == "q"){
-      listFree(factList);
       sendMsg(-1,TERMINATE,"",true);
       api::end();
+      delete messageQueue;
       exit(0);
     } else {
       cout << "unknown command: type 'help' for options " << endl;
