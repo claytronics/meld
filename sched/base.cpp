@@ -61,7 +61,7 @@ base::do_loop(void)
       //cout << "over and over" << endl;
 
       if (debugger::isInMpiDebuggingMode()&&debugger::isTheSystemPaused()){
-          debugger::display("PAUSED\n",debugger::PRINTCONTENT);
+          //debugger::display("PAUSED\n",debugger::PRINTCONTENT);
           debugger::pauseIt();
       }
 

@@ -70,8 +70,8 @@ namespace debugger {
         all = debugAll;
         if (api::world->rank()!=MASTER){
             setupFactList();
-            pthread_t tid;
-            pthread_create(&tid, NULL, msgListener, NULL);
+            //pthread_t tid;
+            //pthread_create(&tid, NULL, msgListener, NULL);
         }
     }
 
@@ -245,7 +245,7 @@ namespace debugger {
 
         //to follow a format that a type must be presented first
         if (specification[0] == ':'|| specification[0] == '@'){
-            display("Please Enter a Type",PRINTCONTENT);
+            display("Please Enter a Type\n",PRINTCONTENT);
             return;
         }
 
@@ -257,7 +257,7 @@ namespace debugger {
         //if this type of break point is not valid
         if (type!="block"&&type!="action"&&type!="factDer"&&type!="sense"&&
             type!="factCon"&&type!="factRet"){
-            display("Please Enter a Valid Type-- type help for options"
+            display("Please Enter a Valid Type-- type help for options\n"
                     ,PRINTCONTENT);
             return;
         }
@@ -346,20 +346,19 @@ namespace debugger {
     /*pause the VM until further notice*/
     void pauseIt(){
 
-        cout << "paused VM " << api::world->rank() << endl;
         isSystemPaused = true;
-            while(isSystemPaused) {
+          while(isSystemPaused) {
 
                 /*if is in MPI mode, recieve messages*/
                 /*will breakout of loop if CONTINUE message is
                  * specified which is handled by debugController*/
-                //if (isInMpiDebuggingMode()){
-                    //api::debugWaitMsg();
-                    //receiveMsg();
+                if (isInMpiDebuggingMode()){
+                    api::debugWaitMsg();
+                    receiveMsg();
 
-                //} else {
+                } else {
                     sleep(1);
-                    //}
+                }
             }
     }
 
@@ -507,7 +506,6 @@ namespace debugger {
                     }
                     break;
                 case PAUSE:
-                    cout << "pausing " << api::world->rank() << endl;
                     isSystemPaused = true;
                     break;
                 case UNPAUSE:
@@ -554,8 +552,6 @@ namespace debugger {
         /*print the output and then tell all other VMs to pause*/
         if (instruction == BREAKFOUND){
             printf("%s",specification.c_str());
-            sendMsg(-1,PAUSE,"",BROADCAST);
-
         /*print content from a VM*/
         } else if (instruction == PRINTCONTENT){
             printf("%s",specification.c_str());

@@ -637,6 +637,7 @@ state::run_node(db::node *no)
    cout << "Node " << node->get_id() << endl;
 #endif
 
+
    assert(local_tuples.empty());
    // Gather_next_tuples is implementation specific
    sched->gather_next_tuples(node, local_tuples);
@@ -645,6 +646,7 @@ state::run_node(db::node *no)
 #ifdef DEBUG_RULES
 	cout << "Strat level: " << current_level << " got " << local_tuples.size() << " tuples " << endl;
 #endif
+
 
    if(do_persistent_tuples()) {
       mark_active_rules();
@@ -661,6 +663,8 @@ state::run_node(db::node *no)
 		cout << "Run rule " << all->PROGRAM->get_rule(rule)->get_string() << endl;
 #endif
 
+
+
 		/* delete rule and every check */
 		rules[rule] = false;
 #ifdef USE_RULE_COUNTING
@@ -672,7 +676,6 @@ state::run_node(db::node *no)
 		use_local_tuples = true;
       persistent_only = false;
 		execute_rule(rule, *this);
-
 		process_consumed_local_tuples();
       /* move from generated tuples to local_tuples */
       local_tuples.splice(local_tuples.end(), generated_tuples);
@@ -682,6 +685,7 @@ state::run_node(db::node *no)
       }
 		mark_active_rules();
 	}
+
 
    // push remaining tuples into node
 	for(db::simple_tuple_list::iterator it(local_tuples.begin()), end(local_tuples.end());

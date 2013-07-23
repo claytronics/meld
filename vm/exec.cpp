@@ -977,6 +977,7 @@ build_match_object(match& m, pcounter pc, state& state, const predicate *pred)
    do {
       match = pc;
 
+
       const field_num field(iter_match_field(match));
       const instr_val val(iter_match_val(match));
 
@@ -1797,6 +1798,7 @@ execute_new_axioms(pcounter pc, state& state)
    pc += NEW_AXIOMS_BASE;
 
    while(pc < end) {
+
       // read axions until the end!
       predicate_id pid(predicate_get(pc, 0));
       predicate *pred(state.all->PROGRAM->get_predicate(pid));
@@ -1825,6 +1827,7 @@ execute_new_axioms(pcounter pc, state& state)
                stack_int_list s;
 
                while(*pc++ == 1) {
+
                   s.push(pcounter_int(pc));
                   pcounter_move_int(&pc);
                }
@@ -1836,6 +1839,7 @@ execute_new_axioms(pcounter pc, state& state)
                stack_float_list s;
 
                while(*pc++ == 1) {
+
                   s.push(pcounter_float(pc));
                   pcounter_move_float(&pc);
                }
@@ -1873,6 +1877,7 @@ execute(pcounter pc, state& state)
    for(; ; pc = advance(pc))
    {
 eval_loop:
+
 
 #ifdef DEBUG_MODE
 		if(state.print_instrs)
