@@ -37,6 +37,7 @@ namespace debugger {
     static bool isDebug = false;
     static bool isSimDebug = false;
     static bool isMpiDebug = false;
+    static bool isPausedAtBreakpoint = false;
 
     /*the pointer to the list of break points*/
     static debugList factBreakList = NULL;
@@ -334,6 +335,7 @@ namespace debugger {
 
         //if the specifications are a hit, then pause the system
         if (isInBreakPointList(factBreakList,type,name,nodeID)){
+            isPausedAtBreakpoint = true;
             MSG << "Breakpoint-->";
             MSG << type << ":" << name << "@" << nodeID << endl;
             MSG <<  msg;
@@ -347,7 +349,7 @@ namespace debugger {
     void pauseIt(){
 
         isSystemPaused = true;
-          while(isSystemPaused) {
+        while(isSystemPaused) {
 
                 /*if is in MPI mode, recieve messages*/
                 /*will breakout of loop if CONTINUE message is
@@ -443,7 +445,7 @@ namespace debugger {
                 /*continue a paused system by broadcasting an UNPAUSE signal*/
                 sendMsg(-1,CONTINUE,"",BROADCAST);
                 //numberExpected = (int)api::world->size()-1;
-                numberExpected = 1;
+                numberExpected = api::world->size()-1;
 
             } else if (instruction == DUMP) {
 
@@ -506,10 +508,15 @@ namespace debugger {
                     }
                     break;
                 case PAUSE:
+                    if (isSystemPaused&&!isPausedAtBreakpoint){
+                        display("CURRENTLY PAUSED\n",PRINTCONTENT);
+                        break;
+                    }
                     isSystemPaused = true;
                     break;
                 case UNPAUSE:
                 case CONTINUE:
+                    isPausedAtBreakpoint = false;
                     continueExecution();
                     break;
                 case REMOVE:
@@ -553,6 +560,7 @@ namespace debugger {
         if (instruction == BREAKFOUND){
             printf("%s",specification.c_str());
         /*print content from a VM*/
+            sendMsg(-1,PAUSE,"",BROADCAST);
         } else if (instruction == PRINTCONTENT){
             printf("%s",specification.c_str());
         } else if (instruction == TERMINATE){
@@ -673,11 +681,14 @@ namespace debugger {
         int size;
         int debugFlag;
 
+
+
         /*load the message queue with messages*/
+
         api::debugGetMsgs();
 
-        /*process each message until empty*/
         while(!messageQueue->empty()){
+            /*process each message until empty*/
             /*extract the message*/
             msg = (utils::byte*)messageQueue->front();
 

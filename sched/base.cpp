@@ -58,10 +58,10 @@ base::do_loop(void)
           do_work(node);
           finish_work(node);
       }
-      //cout << "over and over" << endl;
 
+      debugger::receiveMsg();
       if (debugger::isInMpiDebuggingMode()&&debugger::isTheSystemPaused()){
-          //debugger::display("PAUSED\n",debugger::PRINTCONTENT);
+          debugger::display("PAUSED\n",debugger::PRINTCONTENT);
           debugger::pauseIt();
       }
 

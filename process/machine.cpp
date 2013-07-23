@@ -215,8 +215,6 @@ machine::execute_const_code(void)
 	// no node or tuple whatsoever
 	st.setup(NULL, NULL, 0);
 
-    cout << "vm " << api::world->rank() << "was here" << endl;
-
 	execute_bytecode(all->PROGRAM->get_const_bytecode(), st);
 }
 

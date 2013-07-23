@@ -51,7 +51,7 @@ namespace debugger {
         expectingMessage = parseline(inpt,factBreaks);
       }
 
-      if (expectingMessage){
+      if (isInMpiDebuggingMode()&&expectingMessage){
           api::debugWaitMsg();
           receiveMsg();
       }
