@@ -36,6 +36,7 @@ namespace api {
      * the pending messages to the scheduler queue
      */
     extern bool pollAndProcess(sched::base *sched, vm::all *all);
+    int getNodeID(void);
 
     /*
      * Initialize and terminate the API layer

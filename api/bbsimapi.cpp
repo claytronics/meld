@@ -180,6 +180,11 @@ inline face_t operator++(face_t& f, int) {
 
   using namespace std;
 
+  int
+  getNodeID(void){
+    return id;
+  }
+
 /*To initialize the connection to the simulator*/ 
   void 
   init(int argc, char **argv, sched::base* schedular)
@@ -298,7 +303,8 @@ set_color(db::node *n, const int r, const int g, const int b)
 {
   message_type *data=new message_type[8];
   size_t i(0);
-  cout<<"In setcolor"<<endl;
+//  cout<<"In setcolor"<<endl;
+  cout<<n->get_id() << ":Sending SetColor"<<endl;
   data[i++] = 7 * sizeof(message_type);
   data[i++] = SET_COLOR;
   data[i++] = 0;
@@ -381,6 +387,7 @@ set_color(db::node *n, const int r, const int g, const int b)
     const size_t msg_size = 5 * sizeof(message_type) + stpl_size;
 //serial_node *no(dynamic_cast<serial_node*>(info.work.get_node()));
 //Something to represent destination node.
+//cout<<id<<":Sending Message from "<<from->get_id()<< " to "<< to<< " Tuple info:"<<*stpl<<endl;
     size_t i = 0;
     reply[i++] = (message_type)msg_size;
     reply[i++] = SEND_MESSAGE;
@@ -388,7 +395,7 @@ reply[i++] = 0;//(message_type)ts;
 reply[i++] = from->get_id();
 reply[i++] = 0; //(dynamic_cast<serial_node*>(from))->get_face(to);
 reply[i++] = to;
-cout << from->get_id() << " Send " << *stpl << "to "<< to<< endl;
+//cout << from->get_id() << " Send " << *stpl << "to "<< to<< endl;
 
 int pos = i * sizeof(message_type);
 stpl->pack((utils::byte*)reply, msg_size + sizeof(message_type), &pos);
@@ -474,9 +481,9 @@ tcp_poll()
     if(my_tcp_socket->available())
     {
       size_t length = my_tcp_socket->read_some(boost::asio::buffer(msg, sizeof(message_type)));
-      cout<<"getting message of length "<< length<<endl;
+      //cout<<"getting message of length "<< length<<endl;
       length = my_tcp_socket->read_some(boost::asio::buffer(msg + 1,  msg[0]));
-      cout<<"Returning message of length "<< msg[0]<<endl;
+      //cout<<"Returning message of length "<< msg[0]<<endl;
       return msg;   
     }
   } catch(std::exception &e) {
@@ -503,7 +510,7 @@ tcp_poll()
   static void 
   process_message(message_type* reply)
   {
-    printf("Processing %s %lud bytes for %lud\n", msgcmd2str[reply[1]], reply[0], reply[3]);
+    printf("%d:Processing %s %lud bytes for %lud\n",id, msgcmd2str[reply[1]], reply[0], reply[3]);
     assert(reply!=NULL);
 
     switch(reply[1]) {
@@ -571,7 +578,7 @@ tcp_poll()
  {
   if(ts>0){}
 
-   work new_work(no, stpl);
+ work new_work(no, stpl);
  sched_state->new_work(no, new_work);
 
 }
@@ -599,10 +606,23 @@ add_neighbor_count(const size_t ts, serial_node *no, const size_t total, const i
 
   vm::tuple *tpl(new vm::tuple(neighbor_count_pred));
   tpl->set_int(0, (int_val)total);
-  cout << "Created tuple:" << tpl << endl;
+  cout <<id<< ":Adding tuple:" << tpl << endl;
 
   db::simple_tuple *stpl(new db::simple_tuple(tpl, count));
-  cout << "Created simple tuple:" << stpl << endl;
+  cout <<id<< ":Adding simple tuple:" << stpl << endl;
+
+  add_received_tuple(no, ts, stpl);
+}
+
+static void 
+remove_neighbor_count(const size_t ts, serial_node *no, const size_t total, const int count)
+{
+   vm::tuple *tpl(new vm::tuple(neighbor_count_pred));
+  tpl->set_int(0, (int_val)total);
+  cout <<id<< ":Adding tuple:" << tpl << endl;
+
+  db::simple_tuple *stpl(new db::simple_tuple(tpl, count));
+  cout <<id<< ":Adding simple tuple:" << stpl << endl;
 
   add_received_tuple(no, ts, stpl);
 }
@@ -627,12 +647,12 @@ static void
 handle_setid(deterministic_timestamp ts, db::node::node_id node_id)
 {
 #ifdef DEBUG
-  cout << "Create node with " << node_id << endl;
+ // cout << "Create node with " << node_id << endl;
 #endif
   /*similar to create_n_nodes*/
   db::node *no((sched_state)->state.all->DATABASE->create_node_id(node_id));
   sched_state->init_node(no);
-  cout<<"Node id is "<<no->get_id()<<endl;
+ // cout<<"Node id is "<<no->get_id()<<endl;
   serial_node *no_in((serial_node *)no);
     top=NO_NEIGHBOR;
     bottom=NO_NEIGHBOR;
@@ -671,7 +691,7 @@ static void handle_receive_message(const deterministic_timestamp ts,
       &offset, (sched_state->state).all->PROGRAM));
 
 #ifdef DEBUG
-    cout << "Receive message " << node << " to " << target->get_id() << " " << *stpl << " with priority " << ts << endl;
+  //  cout << id<<":Received message from" << node << " to " << target->get_id() << " with Tuple" << *stpl << " with priority " << ts << endl;
 #endif
 
     work new_work(target, stpl);
@@ -696,7 +716,7 @@ handleDebugMessage(utils::byte* reply, size_t totalSize)
     const db::node::node_id out, const face_t face)
   {
 #ifdef DEBUG
-   cout << ts << " neighbor(" << in << ", " << out << ", " << face << ")" << endl;
+  // cout << id << ":Added neighbor("<<out << " on face " << face << ")" << endl;
 #endif
    
    serial_node *no_in(dynamic_cast<serial_node*>((sched_state->state).all->DATABASE->find_node(in)));
@@ -710,7 +730,7 @@ handleDebugMessage(utils::byte* reply, size_t totalSize)
    }
   inc_neighbor_count();
 #ifdef DEBUG
-   cout << in << " neighbor count went up to " << get_neighbor_count() << endl;
+   //cout << id << ":neighbor count=" << get_neighbor_count() << endl;
 #endif
    if(has_been_instantiated())
      add_neighbor_count(ts, no_in, get_neighbor_count(), 1);
@@ -729,18 +749,19 @@ handleDebugMessage(utils::byte* reply, size_t totalSize)
 }
 }
 
-static void 
+static void
 handle_remove_neighbor(const deterministic_timestamp ts,
   const db::node::node_id in, const face_t face)
 {
-  cout<<"Removing"<<endl;
-#ifdef DEBUG
-  cout << ts << " remove neighbor(" << in << ", " << face << ")" << endl;
-#endif
+  
+
 
   serial_node *no_in(dynamic_cast<serial_node*>((sched_state->state).all->DATABASE->find_node(in)));
   node_val *neighbor(get_node_at_face(face));
 
+#ifdef DEBUG
+//  cout << id << ":Remove neighbor(" << *neighbor << ", " << face << ")" << endl;
+#endif
   if(*neighbor == NO_NEIGHBOR) {
       // remove vacant first, add 1 to neighbor count
     cerr << "Current face is vacant, cannot remove node!" << endl;
@@ -763,10 +784,12 @@ handle_remove_neighbor(const deterministic_timestamp ts,
 
 
 
+
+
 static void 
 handle_tap(const deterministic_timestamp ts, const db::node::node_id node)
 {
- cout << ts << " tap(" << node << ")" << endl;
+ //cout << id << ":tap(" << node << ")" << endl;
 
  serial_node *no(dynamic_cast<serial_node*>((sched_state->state).all->DATABASE->find_node(node)));
 
@@ -782,7 +805,7 @@ static void
 handle_accel(const deterministic_timestamp ts, const db::node::node_id node,
   const int_val f)
 {
- cout << ts << " accel(" << node << ", " << f << ")" << endl;
+ //cout << id << ":accel(" << node << ", " << f << ")" << endl;
 
  serial_node *no(dynamic_cast<serial_node*>((sched_state->state).all->DATABASE->find_node(node)));
 
@@ -801,7 +824,7 @@ static void
 handle_shake(const deterministic_timestamp ts, const db::node::node_id node,
   const int_val x, const int_val y, const int_val z)
 {
- cout << ts << " shake(" << node << ", " << x << ", " << y << ", " << z << ")" << endl;
+// cout << id << ":shake(" << node << ", " << x << ", " << y << ", " << z << ")" << endl;
 
  serial_node *no(dynamic_cast<serial_node*>((sched_state->state).all->DATABASE->find_node(node)));
 
