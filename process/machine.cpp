@@ -50,8 +50,8 @@ namespace process
                case 6: r = 255; g = 255; b = 255; break; // WHITE
                case 7: r = 139; b = 204; break; // PURPLE
                case 8: r = 255; g = 192; b = 203; break; // PINK
-               case -1: return; break;
-               default: break;
+               case -1: printf("Invalid Color(-1).\n");return; break;
+               default: printf("Default Color.\n");break;
            }
            api::set_color(node, r, g, b);
            break;
