@@ -59,10 +59,12 @@ base::do_loop(void)
           finish_work(node);
       }
 
-      debugger::receiveMsg();
-      if (debugger::isInMpiDebuggingMode()&&debugger::isTheSystemPaused()){
-          debugger::display("PAUSED\n",debugger::PRINTCONTENT);
-          debugger::pauseIt();
+      if (debugger::isInMpiDebuggingMode()){
+          debugger::receiveMsg();
+          if (debugger::isTheSystemPaused()){
+              debugger::display("PAUSED\n",debugger::PRINTCONTENT);
+              debugger::pauseIt();
+          }
       }
 
       bool hasWork = api::pollAndProcess(this, state.all);
