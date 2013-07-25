@@ -25,6 +25,7 @@ namespace api {
     extern boost::mpi::communicator *world;
     extern boost::asio::ip::tcp::socket *tcp_socket;
 
+
     /* Given a node destination, compute the process id that the node
      * belongs to, serialize the data for MPI and send the data
      */

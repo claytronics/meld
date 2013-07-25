@@ -61,11 +61,21 @@ public:
 	{
 		return refs == 0;
 	}
+
+   inline bool has_refs(void) const
+   {
+      return refs > 0;
+   }
 	
 	inline std::string get_content(void) const
 	{
 		return content;
 	}
+
+   inline rstring_ptr copy(void) const
+   {
+      return make_string(content);
+   }
 	
 	// XXX implement MPI stuff
 

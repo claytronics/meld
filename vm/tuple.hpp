@@ -59,18 +59,20 @@ namespace vm
     inline const predicate* get_predicate(void) const { return pred; }
 
     inline predicate_id get_predicate_id(void) const { return pred->get_id(); }
-   
+
     size_t get_storage_size(void) const;
-   
+
     void pack(utils::byte *, const size_t, int *) const;
     void load(utils::byte *, const size_t, int *);
-   
+
+   void copy_runtime(void);
+
     static tuple* unpack(utils::byte *, const size_t, int *, vm::program *);
 
     field_type get_field_type(const field_num& field) const { return pred->get_field_type(field); }
 
     tuple_field get_field(const field_num& field) const { return fields[field]; }
-   
+
 #define define_get(RET, NAME, VAL)					\
     inline RET get_ ## NAME (const field_num& field) const { return VAL; }
 
@@ -91,15 +93,15 @@ namespace vm
     inline bool is_linear(void) const { return pred->is_linear_pred(); }
     inline bool is_action(void) const { return pred->is_action_pred(); }
     inline bool is_reused(void) const { return pred->is_reused_pred(); }
-   
+
     void print(std::ostream&) const;
-   
+
     tuple *copy_except(const field_num) const;
     tuple *copy(void) const;
-   
+
     explicit tuple(void); // only used for serialization!
     explicit tuple(const predicate* pred);
-	
+
     ~tuple(void);
   };
 

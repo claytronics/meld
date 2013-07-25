@@ -277,6 +277,7 @@ state::search_for_negative_tuple_partial_agg(db::simple_tuple *stpl)
       db::simple_tuple *stpl2(*it);
       vm::tuple *tpl2(stpl2->get_tuple());
 
+
       if(tpl2->is_aggregate() && !stpl2->is_aggregate() &&
             stpl2->get_count() == -1 && *tpl2 == *tpl)
       {
@@ -299,6 +300,7 @@ state::search_for_negative_tuple_normal(db::simple_tuple *stpl)
    for(db::simple_tuple_list::iterator it(generated_persistent_tuples.begin());
          it != generated_persistent_tuples.end(); ++it)
    {
+
       db::simple_tuple *stpl2(*it);
       vm::tuple *tpl2(stpl2->get_tuple());
 
@@ -320,6 +322,8 @@ state::search_for_negative_tuple_full_agg(db::simple_tuple *stpl)
    for(db::simple_tuple_list::iterator it(generated_persistent_tuples.begin());
          it != generated_persistent_tuples.end(); ++it)
    {
+
+
       db::simple_tuple *stpl2(*it);
       vm::tuple *tpl2(stpl2->get_tuple());
 
@@ -422,6 +426,8 @@ state::mark_rules_using_local_tuples(db::simple_tuple_list& ls)
 	for(db::simple_tuple_list::iterator it(ls.begin());
 		it != ls.end(); )
 	{
+
+
 		db::simple_tuple *stpl(*it);
 		vm::tuple *tpl(stpl->get_tuple());
 
@@ -461,6 +467,7 @@ state::process_consumed_local_tuples(void)
 		it != local_tuples.end();
 		)
 	{
+
 		simple_tuple *stpl(*it);
 		if(!stpl->can_be_consumed()) {
 			vm::tuple *tpl(stpl->get_tuple());
@@ -540,6 +547,8 @@ state::process_persistent_tuple(db::simple_tuple *stpl, vm::tuple *tpl)
    if(stpl->get_count() > 0) {
 		const bool is_new(add_fact_to_node(tpl));
 
+
+
       if(is_new) {
          setup(tpl, node, stpl->get_count());
          use_local_tuples = false;
@@ -599,6 +608,7 @@ state::process_others(void)
 		it != end;
 		it++)
 	{
+
 		/* no need to mark tuples */
 		all->MACHINE->route_self(sched, node, *it);
 	}
@@ -632,6 +642,7 @@ state::run_node(db::node *no)
 	cout<<node->get_id() << ":Strat level: " << current_level << " got " << local_tuples.size() << " tuples " << endl;
 #endif
 
+
    if(do_persistent_tuples()) {
       mark_active_rules();
    } else
@@ -642,9 +653,12 @@ state::run_node(db::node *no)
 
 		rule_id rule(rule_queue.pop());
 
+
 #ifdef DEBUG_RULES
 		cout<<node->get_id() << ":Run rule " << all->PROGRAM->get_rule(rule)->get_string() << endl;
 #endif
+
+
 
 		/* delete rule and every check */
 		rules[rule] = false;
@@ -657,7 +671,6 @@ state::run_node(db::node *no)
 		use_local_tuples = true;
       persistent_only = false;
 		execute_rule(rule, *this);
-
 		process_consumed_local_tuples();
       /* move from generated tuples to local_tuples */
       local_tuples.splice(local_tuples.end(), generated_tuples);
@@ -667,6 +680,7 @@ state::run_node(db::node *no)
       }
 		mark_active_rules();
 	}
+
 
    // push remaining tuples into node
 	for(db::simple_tuple_list::iterator it(local_tuples.begin()), end(local_tuples.end());

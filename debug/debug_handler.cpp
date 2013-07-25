@@ -19,6 +19,7 @@ using namespace std;
 using namespace vm;
 using namespace debugger;
 
+
 namespace debugger {
 
 #define SIZE (sizeof(api::message_type))
@@ -36,6 +37,7 @@ namespace debugger {
     static bool isDebug = false;
     static bool isSimDebug = false;
     static bool isMpiDebug = false;
+    static bool isPausedAtBreakpoint = false;
 
     /*the pointer to the list of break points*/
     static debugList factBreakList = NULL;
@@ -43,9 +45,13 @@ namespace debugger {
     /*pointer to the system state class*/
     static state *systemState;
 
+    /*number of messages the Master expects to recieve*/
     int numberExpected = 0;
 
+    /*used to store the state of the system to dump/print system*/
     vm::all* all;
+
+    const int APIMASTER = -1;
 
     /******************************************************************/
 
@@ -61,9 +67,13 @@ namespace debugger {
 
     /*setup MPI debugging mode*/
     void initMpiDebug(vm::all *debugAll){
-        setupFactList();
         messageQueue = new std::queue<api::message_type*>();
         all = debugAll;
+        if (api::world->rank()!=MASTER){
+            setupFactList();
+            //pthread_t tid;
+            //pthread_create(&tid, NULL, msgListener, NULL);
+        }
     }
 
     /*extract the pointer to the system state*/
@@ -236,7 +246,7 @@ namespace debugger {
 
         //to follow a format that a type must be presented first
         if (specification[0] == ':'|| specification[0] == '@'){
-            display("Please Enter a Type",PRINTCONTENT);
+            display("Please Enter a Type\n",PRINTCONTENT);
             return;
         }
 
@@ -248,7 +258,7 @@ namespace debugger {
         //if this type of break point is not valid
         if (type!="block"&&type!="action"&&type!="factDer"&&type!="sense"&&
             type!="factCon"&&type!="factRet"){
-            display("Please Enter a Valid Type-- type help for options"
+            display("Please Enter a Valid Type-- type help for options\n"
                     ,PRINTCONTENT);
             return;
         }
@@ -271,7 +281,6 @@ namespace debugger {
         //insert the information in the breakpoint list
         insertBreak(factBreakList,type_copy,name_copy, node_copy);
 
-
         msg << "-->Breakpoint set with following conditions:" << endl;
         msg  << "\tType: " << type << endl;
         if (name!="")
@@ -289,6 +298,8 @@ namespace debugger {
      *message passing*/
     void display(string msg, int type){
 
+        ostringstream MSG;
+
         /*if normal- pass on the normal cout*/
         if (isInDebuggingMode())
             cout << msg;
@@ -299,7 +310,11 @@ namespace debugger {
         /*if is in MPI debugging mode, send to master to display/handle
          *the message*/
         else if (isInMpiDebuggingMode()){
-            sendMsg(MASTER,type,msg);
+            MSG << "<=======VM#" <<
+                api::world->rank()
+                << "===================================================>"
+                << endl << msg;
+            sendMsg(MASTER,type,MSG.str());
         }
     }
 
@@ -318,17 +333,9 @@ namespace debugger {
             !isInMpiDebuggingMode())
             return;
 
-        /*check to see if any messages are available
-         *(the system could be paused)*/
-        if (isInMpiDebuggingMode())
-            receiveMsg();
-
-        /*if the system was paused, then pause it*/
-        if (isTheSystemPaused())
-            pauseIt();
-
         //if the specifications are a hit, then pause the system
         if (isInBreakPointList(factBreakList,type,name,nodeID)){
+            isPausedAtBreakpoint = true;
             MSG << "Breakpoint-->";
             MSG << type << ":" << name << "@" << nodeID << endl;
             MSG <<  msg;
@@ -342,7 +349,7 @@ namespace debugger {
     void pauseIt(){
 
         isSystemPaused = true;
-            while(isSystemPaused) {
+        while(isSystemPaused) {
 
                 /*if is in MPI mode, recieve messages*/
                 /*will breakout of loop if CONTINUE message is
@@ -368,7 +375,7 @@ namespace debugger {
 
         //if a node is not specified by the dump command
         if (nodeNumber == -1)
-            all->DATABASE->print_db(msg);
+            all->DATABASE->print_entire_db_debug(msg);
         else
             //print out only the given node
             all->DATABASE->print_db_debug(msg,nodeNumber);
@@ -400,26 +407,32 @@ namespace debugger {
         char* content = (char*)&msg[3];
         std::string str(content);
         return str;
-
-
     }
 
 
-    /*exrtact the intruction encoding from a message*/
+    /*extract the intruction encoding from a message*/
     api::message_type getInstruction(api::message_type* msg){
         return msg[2];
     }
 
 
+    /*DEBUG CONTROLLER -- main controller of pausing/unpausing/dumping VMs*/
     /*execute instruction based on encoding and specification
-      call from the debug_prompt*/
+     *call from the debug_prompt -- There are two different sides to
+     *this function:  There is one side that handles sending messages to
+     *processes in which these process will recieve that message
+     *The other side pertains to the processes that are controlled by the
+     *the master process.  They will change their system state and give
+     *feed back to the master process (see debugger::display())
+     *When the master sends a message, it will expect to see a certain
+     *amount of messages sent back*/
     void debugController(int instruction, string specification){
 
         string type;
         string name;
         string node;
 
-        /*for numberExpected see debug_prompt.cpp, run()*/
+        /*for use of numberExpected see debug_prompt.cpp, run()*/
 
         /*if MPI debugging and the master process:
          *send a  message instead of changing the system state
@@ -431,7 +444,8 @@ namespace debugger {
 
                 /*continue a paused system by broadcasting an UNPAUSE signal*/
                 sendMsg(-1,CONTINUE,"",BROADCAST);
-                numberExpected = 1;
+                //numberExpected = (int)api::world->size()-1;
+                numberExpected = api::world->size()-1;
 
             } else if (instruction == DUMP) {
 
@@ -466,14 +480,16 @@ namespace debugger {
                     /*send break/remove to a specific node */
                     sendMsg(atoi(node.c_str()),instruction,specification);
                     numberExpected = 1;
+
                 }
 
 
-            } else if (instruction == PAUSE) {
+            } else if (instruction == PRINTLIST) {
 
                 /*broadcast  a pause message*/
-                sendMsg(-1,PAUSE,"",BROADCAST);
-                numberExpected = 0;
+                sendMsg(-1,PRINTLIST,"",BROADCAST);
+                numberExpected = (int)api::world->size()-1;
+
             }
 
 
@@ -492,10 +508,15 @@ namespace debugger {
                     }
                     break;
                 case PAUSE:
+                    if (isSystemPaused&&!isPausedAtBreakpoint){
+                        display("CURRENTLY PAUSED\n",PRINTCONTENT);
+                        break;
+                    }
                     isSystemPaused = true;
                     break;
                 case UNPAUSE:
                 case CONTINUE:
+                    isPausedAtBreakpoint = false;
                     continueExecution();
                     break;
                 case REMOVE:
@@ -505,15 +526,27 @@ namespace debugger {
                     if (removeBreakPoint(getFactList(),(char*)type.c_str(),
                                          (char *)name.c_str(),
                                          atoi(node.c_str())) < 0){
-                        display("Breakpoint is not in List\n",REMOVE);
+                        display("Breakpoint is not in List\n",PRINTCONTENT);
                     } else {
-                        display("Breakpoint removed\n",REMOVE);
+                        display("Breakpoint removed\n",PRINTCONTENT);
                     }
                     break;
                 case BREAKPOINT:
                     activateBreakPoint(specification);
                     instruction = NOTHING;
                     break;
+                case TERMINATE:
+                    api::end();
+                    listFree(getFactList());
+                    delete messageQueue;
+                    exit(0);
+                    break;
+                case PRINTLIST:
+                    ostringstream printListMsg;
+                    printList(printListMsg,getFactList());
+                    display(printListMsg.str(),PRINTCONTENT);
+                    break;
+
             }
         }
     }
@@ -525,12 +558,15 @@ namespace debugger {
 
         /*print the output and then tell all other VMs to pause*/
         if (instruction == BREAKFOUND){
-            printf("Process %d: %s\n", api::world->rank(), specification.c_str());
-            sendMsg(-1,PAUSE,"",BROADCAST);
-
+            printf("%s",specification.c_str());
         /*print content from a VM*/
+            sendMsg(-1,PAUSE,"",BROADCAST);
         } else if (instruction == PRINTCONTENT){
-            printf("Process %d:  %s\n", api::world->rank(), specification.c_str());
+            printf("%s",specification.c_str());
+        } else if (instruction == TERMINATE){
+            printf("PROGRAM FINISHED\n");
+            api::end();
+            exit(0);
         }
     }
 
@@ -561,41 +597,17 @@ namespace debugger {
         size_t bufSize = api::MAXLENGTH*SIZE;
 
 
-        switch(msgEncode){
 
-            case UNPAUSE:
-            case PAUSE:
+        /*same as above for first three fields*/
+        utils::pack<size_t>(&size,1,msg,bufSize,&pos);
+        utils::pack<int>(&debugFlag,1,msg,bufSize,&pos);
+        utils::pack<int>(&msgEncode,1,msg,bufSize,&pos);
 
-                /*pack the size of the array*/
-                utils::pack<size_t>(&size,1,msg,bufSize,&pos);
-
-                /*pack the debug indicator*/
-                utils::pack<int>(&debugFlag,1,msg,bufSize,&pos);
-
-                /*pack the message encoding*/
-                utils::pack<int>(&msgEncode,1,msg,bufSize,&pos);
-
-                return (api::message_type*)msg;
-                break;
-
-            case DUMP:
-            case PRINTCONTENT:
-            case BREAKFOUND:
-            case BREAKPOINT:
-
-                /*same as above for first three fields*/
-                utils::pack<size_t>(&size,1,msg,bufSize,&pos);
-                utils::pack<int>(&debugFlag,1,msg,bufSize,&pos);
-                utils::pack<int>(&msgEncode,1,msg,bufSize,&pos);
-
-                /*add the content into the buffer*/
-                utils::pack<char>((char*)content.c_str(),content.size()+1,
+        /*add the content into the buffer*/
+        utils::pack<char>((char*)content.c_str(),content.size()+1,
                                  msg,bufSize,&pos);
-                return (api::message_type*)msg;
-                break;
-        }
+        return (api::message_type*)msg;
 
-        return NULL;
     }
 
 
@@ -607,34 +619,54 @@ namespace debugger {
               string content, bool broadcast)  {
 
 
-
         /*pack the message*/
         api::message_type* msg = pack(msgType,content);
 
         size_t msgSize = api::MAXLENGTH;
 
-        if (broadcast)
+        if (broadcast){
 
             api::debugBroadcastMsg(msg,msgSize);
 
-        else {
+        } else {
 
             /*send to the master debugging process*/
             if (destination == MASTER){
                 api::debugSendMsg(MASTER,msg,
                                   msgSize);
                 return;
+
+                /*send to api-master -- see dumping DB in api/mpi
+                 *with passing a token*/
+            } else if (destination == APIMASTER) {
+                api::debugSendMsg(api::MASTER,msg,
+                                  msgSize);
+                return;
             }
 
             /*convert user input id to system internal id*/
             int destinationNodeId =
-                (int)all->DATABASE->translate_real_to_fake_id((db::node::node_id) destination);
+                (int)all->DATABASE->
+                translate_real_to_fake_id((db::node::node_id) destination);
 
             /*get the process id (getVMId) and send the message*/
             api::debugSendMsg(api::getVMId(destinationNodeId),msg,
                               msgSize);
         }
 
+    }
+
+
+    void* msgListener(void* passIn){
+
+        (void)passIn;
+
+        while (true){
+            api::debugWaitMsg();
+            receiveMsg();
+        }
+
+        return NULL;
     }
 
 
@@ -649,11 +681,14 @@ namespace debugger {
         int size;
         int debugFlag;
 
+
+
         /*load the message queue with messages*/
+
         api::debugGetMsgs();
 
-        /*process each message until empty*/
         while(!messageQueue->empty()){
+            /*process each message until empty*/
             /*extract the message*/
             msg = (utils::byte*)messageQueue->front();
 
@@ -673,6 +708,7 @@ namespace debugger {
 
                 /*if a slave process (any vm) is receiving the message*/
             } else {
+
                 debugController(instruction,spec);
             }
 

@@ -9,7 +9,7 @@ namespace debugger {
 
     void debug(vm::all* debugAll);
     void *run(void *debugAll);
-    void parseline(std::string line, debugList& factBreaks);
+    bool parseline(std::string line, debugList& factBreaks);
     int handle_command(std::string command, debugList& factList);
     void help();
 
