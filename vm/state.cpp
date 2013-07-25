@@ -79,7 +79,7 @@ state::purge_runtime_objects(void)
    for(list<TYPE*>::iterator it(free_ ## TYPE.begin()); it != free_ ## TYPE .end(); ++it) { \
       TYPE *x(*it); \
       assert(x != NULL); \
-		if(x->zero_refs()) { x->destroy(); } \
+      x->dec_refs(); \
    } \
    free_ ## TYPE .clear()
 
@@ -421,7 +421,7 @@ vm::strat_level
 state::mark_rules_using_local_tuples(db::simple_tuple_list& ls)
 {
    bool has_level(false);
-   vm::strat_level level;
+   vm::strat_level level = 0;
 
 	for(db::simple_tuple_list::iterator it(ls.begin());
 		it != ls.end(); )
