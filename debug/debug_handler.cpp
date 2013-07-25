@@ -60,10 +60,10 @@ namespace debugger {
     /******************************************************************/
 
     /*setup simulation debugging mode*/
-    void initSimDebug(void){
+    void initSimDebug(vm::all *debugAll){
+        all = debugAll;
         setupFactList();
         messageQueue = new std::queue<api::message_type*>();
-        pauseIt();
     }
 
     /*setup MPI debugging mode*/
@@ -659,19 +659,6 @@ namespace debugger {
     }
 
 
-    void* msgListener(void* passIn){
-
-        (void)passIn;
-
-        while (true){
-            api::debugWaitMsg();
-            receiveMsg();
-        }
-
-        return NULL;
-    }
-
-
     /*populate the queue of messages from the mpi layer and handle them
      *until there are no more messages*/
     void receiveMsg(void){
@@ -697,8 +684,10 @@ namespace debugger {
             msg = (utils::byte*)messageQueue->front();
 
             /*unpack the message into readable form*/
-            utils::unpack<api::message_type>(msg,api::MAXLENGTH*SIZE,&pos,&size,1);
-            utils::unpack<api::message_type>(msg,api::MAXLENGTH*SIZE,&pos,&debugFlag,1);
+            utils::unpack<api::message_type>(msg,api::MAXLENGTH*SIZE,
+                                             &pos,&size,1);
+            utils::unpack<api::message_type>(msg,api::MAXLENGTH*SIZE,
+                                             &pos,&debugFlag,1);
             utils::unpack<int>(msg,api::MAXLENGTH*SIZE,&pos,&instruction,1);
             utils::unpack<size_t>(msg,api::MAXLENGTH*SIZE,&pos,&specSize,1);
             utils::unpack<char>(msg,api::MAXLENGTH*SIZE,&pos,
@@ -706,7 +695,7 @@ namespace debugger {
             string spec(specification);
 
             /*if the controlling process is recieving a message*/
-            if (api::world->rank()==MASTER){
+            if (isInMpiDebuggingMode()&&api::world->rank()==MASTER){
 
                 debugMasterController(instruction,spec);
                 numberExpected--;
