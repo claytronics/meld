@@ -41,6 +41,8 @@ namespace debugger {
     extern int numberExpected;
     extern vm::all *all;
 
+    extern bool isPausedInWorkLoop;
+
     const int MASTER = 0;
 
     void activateBreakPoint(std::string specification);

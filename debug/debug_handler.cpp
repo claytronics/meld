@@ -39,11 +39,11 @@ namespace debugger {
     static bool isMpiDebug = false;
     static bool isPausedAtBreakpoint = false;
 
+    static bool okayToBroadcastPause = false;
+    bool isPausedInWorkLoop = false;
+
     /*the pointer to the list of break points*/
     static debugList factBreakList = NULL;
-
-    /*pointer to the system state class*/
-    static state *systemState;
 
     /*number of messages the Master expects to recieve*/
     int numberExpected = 0;
@@ -62,6 +62,7 @@ namespace debugger {
     /*setup simulation debugging mode*/
     void initSimDebug(void){
         setupFactList();
+        messageQueue = new std::queue<api::message_type*>();
         pauseIt();
     }
 
@@ -71,16 +72,8 @@ namespace debugger {
         all = debugAll;
         if (api::world->rank()!=MASTER){
             setupFactList();
-            //pthread_t tid;
-            //pthread_create(&tid, NULL, msgListener, NULL);
         }
     }
-
-    /*extract the pointer to the system state*/
-    void setState(vm::state& st){
-        systemState = &st;
-    }
-
 
     /*set up the list to store break points*/
     void setupFactList(void){
@@ -132,10 +125,6 @@ namespace debugger {
     /*return the pointer the list of breakpoints*/
     debugList getFactList(void){
         return factBreakList;
-    }
-
-    vm::state *getState(void){
-        return systemState;
     }
 
 
@@ -354,14 +343,15 @@ namespace debugger {
                 /*if is in MPI mode, recieve messages*/
                 /*will breakout of loop if CONTINUE message is
                  * specified which is handled by debugController*/
-                if (isInMpiDebuggingMode()){
+            if (isInMpiDebuggingMode()){
                     api::debugWaitMsg();
                     receiveMsg();
-
-                } else {
-                    sleep(1);
-                }
+            } else if (isInSimDebuggingMode()){
+                receiveMsg();
+            } else {
+                sleep(1);
             }
+        }
     }
 
 
@@ -442,6 +432,7 @@ namespace debugger {
             /*process of master debugger in MPI DEBUGGINGMODE*/
             if (instruction == CONTINUE || instruction == UNPAUSE){
 
+                okayToBroadcastPause = true;
                 /*continue a paused system by broadcasting an UNPAUSE signal*/
                 sendMsg(-1,CONTINUE,"",BROADCAST);
                 //numberExpected = (int)api::world->size()-1;
@@ -508,8 +499,13 @@ namespace debugger {
                     }
                     break;
                 case PAUSE:
-                    if (isSystemPaused&&!isPausedAtBreakpoint){
-                        display("CURRENTLY PAUSED\n",PRINTCONTENT);
+                    if (isPausedInWorkLoop)
+                        break;
+                    if (isPausedAtBreakpoint){
+                        break;
+                    }
+                    if (isSystemPaused){
+                        display("CURRENTLY PAUSED",PRINTCONTENT);
                         break;
                     }
                     isSystemPaused = true;
@@ -517,6 +513,7 @@ namespace debugger {
                 case UNPAUSE:
                 case CONTINUE:
                     isPausedAtBreakpoint = false;
+                    isPausedInWorkLoop = false;
                     continueExecution();
                     break;
                 case REMOVE:
@@ -560,7 +557,10 @@ namespace debugger {
         if (instruction == BREAKFOUND){
             printf("%s",specification.c_str());
         /*print content from a VM*/
-            sendMsg(-1,PAUSE,"",BROADCAST);
+            if (okayToBroadcastPause){
+                sendMsg(-1,PAUSE,"",BROADCAST);
+                okayToBroadcastPause = false;
+            }
         } else if (instruction == PRINTCONTENT){
             printf("%s",specification.c_str());
         } else if (instruction == TERMINATE){
@@ -592,17 +592,19 @@ namespace debugger {
 
         utils::byte* msg = (utils::byte*)new api::message_type[api::MAXLENGTH];
         int pos = 0;
-        int debugFlag =  DEBUG;
-        size_t size = content.length() + 1;
+        api::message_type debugFlag =  DEBUG;
+        size_t contentSize = content.length() + 1;
         size_t bufSize = api::MAXLENGTH*SIZE;
+        api::message_type msgSize = bufSize;
 
 
 
         /*same as above for first three fields*/
-        utils::pack<size_t>(&size,1,msg,bufSize,&pos);
-        utils::pack<int>(&debugFlag,1,msg,bufSize,&pos);
+        utils::pack<api::message_type>(&msgSize,1,msg,bufSize,&pos);
+        utils::pack<api::message_type>(&debugFlag,1,msg,bufSize,&pos);
         utils::pack<int>(&msgEncode,1,msg,bufSize,&pos);
 
+        utils::pack<size_t>(&contentSize,1,msg,bufSize,&pos);
         /*add the content into the buffer*/
         utils::pack<char>((char*)content.c_str(),content.size()+1,
                                  msg,bufSize,&pos);
@@ -678,8 +680,10 @@ namespace debugger {
         int instruction;
         char specification[api::MAXLENGTH*SIZE];
         int pos = 0;
-        int size;
-        int debugFlag;
+        api::message_type size;
+        api::message_type debugFlag;
+        size_t specSize;
+
 
 
 
@@ -693,11 +697,12 @@ namespace debugger {
             msg = (utils::byte*)messageQueue->front();
 
             /*unpack the message into readable form*/
-            utils::unpack<size_t>(msg,api::MAXLENGTH*SIZE,&pos,&size,1);
-            utils::unpack<int>(msg,api::MAXLENGTH*SIZE,&pos,&debugFlag,1);
+            utils::unpack<api::message_type>(msg,api::MAXLENGTH*SIZE,&pos,&size,1);
+            utils::unpack<api::message_type>(msg,api::MAXLENGTH*SIZE,&pos,&debugFlag,1);
             utils::unpack<int>(msg,api::MAXLENGTH*SIZE,&pos,&instruction,1);
+            utils::unpack<size_t>(msg,api::MAXLENGTH*SIZE,&pos,&specSize,1);
             utils::unpack<char>(msg,api::MAXLENGTH*SIZE,&pos,
-                                &specification,size);
+                                &specification,specSize);
             string spec(specification);
 
             /*if the controlling process is recieving a message*/

@@ -62,6 +62,7 @@ base::do_loop(void)
       if (debugger::isInMpiDebuggingMode()){
           debugger::receiveMsg();
           if (debugger::isTheSystemPaused()){
+              debugger::isPausedInWorkLoop = true;
               debugger::display("PAUSED\n",debugger::PRINTCONTENT);
               debugger::pauseIt();
           }
