@@ -163,7 +163,7 @@ inline face_t operator++(face_t& f, int) {
   static void initTCP();
   static void sendMessageTCP(message_type *msg);
   static void handleDebugMessage(utils::byte* reply, size_t totalSize);
-  //static void sendMessageTCP(message *m);
+  static void sendMessageTCP1(message *m);
 
   static bool ready(false);
 
@@ -302,23 +302,23 @@ onLocalVM(const db::node::node_id id){
 void 
 set_color(db::node *n, const int r, const int g, const int b)
 {
-  message_type *data=new message_type[8];
-  size_t i(0);
+  message* colorMessage=(message*)calloc(8, sizeof(message_type));
+
 //  cout<<"In setcolor"<<endl;
   cout<<n->get_id() << ":Sending SetColor"<<endl;
-  data[i++] = 7 * sizeof(message_type);
-  data[i++] = SET_COLOR;
-  data[i++] = 0;
-  data[i++] = (message_type)n->get_id();
-  data[i++] = (message_type)r; // R
-  data[i++] = (message_type)g; // G
-  data[i++] = (message_type)b; // B
-  data[i++] = 0; // intensity
 
-    sendMessageTCP(data);
-    delete []data;
+  colorMessage->size=7 * sizeof(message_type);
+  colorMessage->command=SET_COLOR;
+  colorMessage->timestamp=0;
+  colorMessage->node=(message_type)n->get_id();
+  colorMessage->data.color.r=r;
+  colorMessage->data.color.g=g;
+  colorMessage->data.color.b=b;
+  colorMessage->data.color.i=0;
 
-  }
+  sendMessageTCP1(colorMessage);
+  free(colorMessage);
+}
 
 /*Returns the node id for bbsimAPI*/
   int 
@@ -343,60 +343,31 @@ set_color(db::node *n, const int r, const int g, const int b)
 
 
 /*Sends the "SEND_MESSAGE" command*/
- /* void 
-  send_message(db::node* from,const db::node::node_id to, db::simple_tuple* stpl)
+  void 
+  sendMessage(const db::node* from, db::node::node_id to, db::simple_tuple* stpl)
   {
-   message* msg;
-
+   
+   cout<<"in SendMessage"<<endl;
    const size_t stpl_size(stpl->storage_size());
    const size_t msg_size = 5 * sizeof(message_type) + stpl_size;
-
+   message* msga=(message*)calloc((msg_size+ sizeof(message_type)), 1);
   //Something to represent destination node.
    size_t i = 0;
-   msg->size = (message_type)msg_size;
-   msg->command = SEND_MESSAGE;
-   msg->timestamp = 0;//(message_type)ts;
-   msg->node = from->get_id();
-   msg->data.send_message.face= 0; //(dynamic_cast<serial_node*>(from))->get_face(to);
-   msg->data.send_message.dest_nodeID = to;
+   msga->size = (message_type)msg_size;
+   msga->command = SEND_MESSAGE;
+   msga->timestamp = 0;//(message_type)ts;
+   msga->node = from->get_id();
+   msga->data.send_message.face= 0; //(dynamic_cast<serial_node*>(from))->get_face(to);
+   msga->data.send_message.dest_nodeID = to;
    cout << from->get_id() << " Send " << *stpl << "to "<< to<< endl;
   int pos = 6 * sizeof(message_type);
-  stpl->pack((utils::byte*)msg, msg_size + sizeof(message_type), &pos);
+  stpl->pack((utils::byte*)msga, msg_size + sizeof(message_type), &pos);
 
   assert((size_t)pos == msg_size + sizeof(message_type));
 
   simple_tuple::wipeout(stpl);
-
-  sendMessageTCP(msg);
-}*/
-
-/*Sends the "SENDMESSAGE" command*/
-  void sendMessage(const db::node* from, db::node::node_id to,  db::simple_tuple* stpl)
-  {
-    message_type reply[MAXLENGTH];
-
-    const size_t stpl_size(stpl->storage_size());
-    const size_t msg_size = 5 * sizeof(message_type) + stpl_size;
-//serial_node *no(dynamic_cast<serial_node*>(info.work.get_node()));
-//Something to represent destination node.
-//cout<<id<<":Sending Message from "<<from->get_id()<< " to "<< to<< " Tuple info:"<<*stpl<<endl;
-    size_t i = 0;
-    reply[i++] = (message_type)msg_size;
-    reply[i++] = SEND_MESSAGE;
-reply[i++] = 0;//(message_type)ts;
-reply[i++] = from->get_id();
-reply[i++] = 0; //(dynamic_cast<serial_node*>(from))->get_face(to);
-reply[i++] = to;
-//cout << from->get_id() << " Send " << *stpl << "to "<< to<< endl;
-
-int pos = i * sizeof(message_type);
-stpl->pack((utils::byte*)reply, msg_size + sizeof(message_type), &pos);
-
-assert((size_t)pos == msg_size + sizeof(message_type));
-
-simple_tuple::wipeout(stpl);
-
-sendMessageTCP(reply);
+  sendMessageTCP1(msga);
+  free(msga);
 }
 
 /*Flags if VM can run now*/
@@ -460,6 +431,15 @@ sendMessageTCP(message_type *msg)
   {
     boost::asio::write(*my_tcp_socket, boost::asio::buffer(msg, msg[0] + sizeof(message_type)));
   }
+
+  static void 
+sendMessageTCP1(message *msg)
+  {
+    cout<<"In send tcp1, size is="<<msg->size<<endl;
+    boost::asio::write(*my_tcp_socket, boost::asio::buffer(msg, msg->size + sizeof(message_type)));
+  }
+
+
 /*TCP helper functions end*/
 
 
