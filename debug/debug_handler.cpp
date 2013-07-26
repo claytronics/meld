@@ -39,6 +39,9 @@ namespace debugger {
     static bool isMpiDebug = false;
     static bool isPausedAtBreakpoint = false;
 
+    bool verboseMode = false;
+    bool serializationMode = false;
+
     static bool okayToBroadcastPause = false;
     bool isPausedInWorkLoop = false;
 
@@ -406,6 +409,22 @@ namespace debugger {
     }
 
 
+    void setFlags(string specification){
+        ostringstream msg;
+        for (int i = 0; i < specification.length(); i++){
+            if ((uint)specification[i] == 'V'){
+                verboseMode = true;
+                msg << "-verbose mode set" << endl;
+            } else if ((uint)specification[i] == 'S'){
+                msg << "-serialzation mode set" << endl;
+                serializationMode = true;
+            }
+        }
+        if (api::world->rank()!=MASTER)
+            display(msg.str(),PRINTCONTENT);
+    }
+
+
     /*DEBUG CONTROLLER -- main controller of pausing/unpausing/dumping VMs*/
     /*execute instruction based on encoding and specification
      *call from the debug_prompt -- There are two different sides to
@@ -435,7 +454,18 @@ namespace debugger {
                 okayToBroadcastPause = true;
                 /*continue a paused system by broadcasting an UNPAUSE signal*/
                 sendMsg(-1,CONTINUE,"",BROADCAST);
-                //numberExpected = (int)api::world->size()-1;
+                numberExpected = api::world->size()-1;
+
+            } else if (instruction == RUN) {
+
+                okayToBroadcastPause = true;
+                sendMsg(-1,RUN,"",BROADCAST);
+                numberExpected = api::world->size()-1;
+
+            } else if (instruction == MODE) {
+
+                setFlags(specification);
+                sendMsg(-1,MODE,specification,BROADCAST);
                 numberExpected = api::world->size()-1;
 
             } else if (instruction == DUMP) {
@@ -505,7 +535,7 @@ namespace debugger {
                         break;
                     }
                     if (isSystemPaused){
-                        display("CURRENTLY PAUSED",PRINTCONTENT);
+                        display("CURRENTLY PAUSED",PAUSE);
                         break;
                     }
                     isSystemPaused = true;
@@ -539,10 +569,21 @@ namespace debugger {
                     exit(0);
                     break;
                 case PRINTLIST:
-                    ostringstream printListMsg;
+                {
+                    std::ostringstream printListMsg;
                     printList(printListMsg,getFactList());
                     display(printListMsg.str(),PRINTCONTENT);
+                }
                     break;
+                case RUN:
+                    isPausedAtBreakpoint = false;
+                    isPausedInWorkLoop = false;
+                    continueExecution();
+                    break;
+                case MODE:
+                    setFlags(specification);
+                    break;
+
 
             }
         }
@@ -555,18 +596,29 @@ namespace debugger {
 
         /*print the output and then tell all other VMs to pause*/
         if (instruction == BREAKFOUND){
+
             printf("%s",specification.c_str());
-        /*print content from a VM*/
             if (okayToBroadcastPause){
                 sendMsg(-1,PAUSE,"",BROADCAST);
                 okayToBroadcastPause = false;
             }
+
         } else if (instruction == PRINTCONTENT){
+
             printf("%s",specification.c_str());
+
         } else if (instruction == TERMINATE){
+
             printf("PROGRAM FINISHED\n");
             api::end();
             exit(0);
+
+        } else if (instruction == PAUSE){
+
+            if (verboseMode){
+                printf("%s",specification.c_str());
+            }
+
         }
     }
 

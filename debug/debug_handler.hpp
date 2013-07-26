@@ -36,12 +36,17 @@ namespace debugger {
     const int DEBUGMPI = 0;
     const int TERMINATE = 10;
     const int PRINTLIST = 11;
+    const int RUN = 12;
+    const int MODE = 13;
 
     extern std::queue<api::message_type*> *messageQueue;
     extern int numberExpected;
     extern vm::all *all;
 
     extern bool isPausedInWorkLoop;
+
+    extern bool verboseMode;
+    extern bool serializationMode;
 
     const int MASTER = 0;
 
