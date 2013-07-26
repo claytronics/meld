@@ -63,7 +63,7 @@ base::do_loop(void)
           debugger::receiveMsg();
           if (debugger::isTheSystemPaused()){
               debugger::isPausedInWorkLoop = true;
-              debugger::display("PAUSED\n",debugger::PRINTCONTENT);
+              debugger::display("PAUSED\n",debugger::PAUSE);
               debugger::pauseIt();
           }
       }

@@ -505,7 +505,7 @@ namespace debugger {
                         break;
                     }
                     if (isSystemPaused){
-                        display("CURRENTLY PAUSED",PRINTCONTENT);
+                        display("CURRENTLY PAUSED",PAUSE);
                         break;
                     }
                     isSystemPaused = true;
@@ -567,6 +567,8 @@ namespace debugger {
             printf("PROGRAM FINISHED\n");
             api::end();
             exit(0);
+        } else if (instruction == PAUSE){
+            return;
         }
     }
 

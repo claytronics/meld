@@ -13,7 +13,7 @@ endif
 PROFILING = #-pg
 OPTIMIZATIONS = -O0
 ARCH = -march=x86-64
-DEBUG = -g -DDEBUG_RULES
+#DEBUG = -g -DDEBUG_RULES
 WARNINGS = -Wall -Wextra #-Werror
 C0X = -std=c++0x
 UILIBRARIES = #-lwebsocketpp -ljson_spirit
@@ -87,9 +87,10 @@ SRCS = utils/utils.cpp \
 			 debug/debug_prompt.cpp \
 			 debug/debug_handler.cpp \
 			 debug/debug_list.cpp \
-			 api/bbsimapi.cpp \
-#			 api/mpi.cpp \
-			
+			 api/mpi.cpp
+#			 api/bbsimapi.cpp \
+			 api/mpi.cpp \
+
 
 OBJS = $(patsubst %.cpp,%.o,$(SRCS))
 
