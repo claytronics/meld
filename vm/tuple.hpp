@@ -88,26 +88,30 @@ namespace vm
 
 #undef define_get
 
-    inline bool is_persistent(void) const { return pred->is_persistent_pred(); }
-    inline bool is_aggregate(void) const { return pred->is_aggregate(); }
-    inline bool is_linear(void) const { return pred->is_linear_pred(); }
-    inline bool is_action(void) const { return pred->is_action_pred(); }
-    inline bool is_reused(void) const { return pred->is_reused_pred(); }
+	 inline bool is_persistent(void) const { return pred->is_persistent_pred(); }
+   inline bool is_aggregate(void) const { return pred->is_aggregate(); }
+   inline bool is_linear(void) const { return pred->is_linear_pred(); }
+   inline bool is_action(void) const { return pred->is_action_pred(); }
+   inline bool is_reused(void) const { return pred->is_reused_pred(); }
+   inline bool is_cycle(void) const { return pred->is_cycle_pred(); }
+   
+   void print(std::ostream&) const;
+#ifdef USE_UI
+	json_spirit::Value dump_json(void) const;
+#endif
+   
+   tuple *copy_except(const field_num) const;
+   tuple *copy(void) const;
+   
+   explicit tuple(void); // only used for serialization!
+	explicit tuple(const predicate* pred);
+	
+   ~tuple(void);
+};
 
-    void print(std::ostream&) const;
+std::ostream& operator<<(std::ostream& cout, const tuple& pred);
 
-    tuple *copy_except(const field_num) const;
-    tuple *copy(void) const;
-
-    explicit tuple(void); // only used for serialization!
-    explicit tuple(const predicate* pred);
-
-    ~tuple(void);
-  };
-
-  std::ostream& operator<<(std::ostream& cout, const tuple& pred);
-
-  typedef std::list<tuple*, mem::allocator<vm::tuple*> > tuple_list;
+typedef std::list<tuple*, mem::allocator<vm::tuple*> > tuple_list;
 
 }
 

@@ -46,7 +46,6 @@ match_serial(const char *name, char *arg, const scheduler_type type)
     }
 
     return false;
-
 }
 
 static inline bool fail_sched(char* sched)
@@ -103,18 +102,26 @@ run_program(int argc, char **argv, const char *program, const vm::machine_argume
 	assert(num_threads > 0);
 
 	try {
-        /* save time to compute execution time */
-        /* calculate execution time */
-        double start_time(0.0);
-        execution_time tm;
+      double start_time(0.0);
+      execution_time tm;
 
-        if(time_execution) {
+      (void)start_time;
+      
+      if(time_execution) {
+#ifdef COMPILE_MPI
+         if(is_mpi_sched(sched_type))
+            start_time = MPI_Wtime();
+         else
+#endif
+         {
             tm.start();
         }
+      }
 
         api::init(argc, argv, NULL);
 
         machine mac(program, num_threads, sched_type, margs, data_file == NULL ? string("") : string(data_file));
+
 
 
         if (debugger::isInDebuggingMode()) {
@@ -125,7 +132,7 @@ run_program(int argc, char **argv, const char *program, const vm::machine_argume
             debugger::pauseIt();
         }
 
-        //api::init(argc, argv, mac.get_all()->ALL_THREADS[0]);
+        api::init(argc, argv, mac.get_all()->ALL_THREADS[0]);
         if (debugger::isInMpiDebuggingMode()){
             api::debugInit(mac.get_all());
         }
