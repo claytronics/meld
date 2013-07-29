@@ -11,9 +11,16 @@
 #include "utils/fs.hpp"
 #include "interface.hpp"
 #include "sched/serial.hpp"
+
 #include "api/api.hpp"
 #include "debug/debug_handler.hpp"
 #include "debug/debug_prompt.hpp"
+//#include "sched/serial_ui.hpp"
+//#include "sched/serial_ui.hpp"
+//#include "sched/sim.hpp"
+//#include "thread/threads.hpp"
+//#include "thread/prio.hpp"
+
 
 using namespace process;
 using namespace db;
@@ -50,8 +57,8 @@ namespace process
                case 6: r = 255; g = 255; b = 255; break; // WHITE
                case 7: r = 139; b = 204; break; // PURPLE
                case 8: r = 255; g = 192; b = 203; break; // PINK
-               case -1: return; break;
-               default: break;
+               case -1: printf("Invalid Color(-1).\n");return; break;
+               default: printf("Default Color.\n");break;
            }
            api::set_color(node, r, g, b);
            break;
@@ -109,6 +116,8 @@ machine::route(const node* from, sched::base *sched_caller, const node::node_id 
 {
    assert(sched_caller != NULL);
 
+
+
    if (api::onLocalVM(id)){
        /* Belongs to the same process, does not require MPI */
       node *node(this->all->DATABASE->find_node(id));
@@ -132,6 +141,7 @@ machine::route(const node* from, sched::base *sched_caller, const node::node_id 
          sched_caller->new_work_other(sched_other, new_work);
       }
    } else {
+
      /* Send to the correct process */
        api::sendMessage(from,id,stpl);
    }
@@ -211,7 +221,6 @@ machine::execute_const_code(void)
 
 	// no node or tuple whatsoever
 	st.setup(NULL, NULL, 0);
-
 
 	execute_bytecode(all->PROGRAM->get_const_bytecode(), st);
 }

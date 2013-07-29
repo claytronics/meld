@@ -6,7 +6,7 @@
 #include <vector>
 
 #include "sched/base.hpp"
-#include "thread/static.hpp"
+#include "thread/threads.hpp"
 #include "queue/safe_complex_pqueue.hpp"
 #include "sched/nodes/thread_intrusive.hpp"
 #include "queue/safe_double_queue.hpp"
@@ -17,7 +17,7 @@ namespace sched
 
 extern db::database *prio_db;
 
-class threads_prio: public static_local
+class threads_prio: public threads_sched
 {
 protected:
    
@@ -47,8 +47,11 @@ protected:
    node_priorities node_map;
 
 #ifdef TASK_STEALING
-   virtual void check_stolen_nodes(void);
-   virtual void answer_steal_requests(void);
+   bool steal_flag;
+   thread_intrusive_node *steal_node(void);
+   virtual size_t number_of_nodes(void) const {
+      return queue_nodes.size() + prio_queue.size();
+   }
 #endif
 	
    virtual void assert_end(void) const;
@@ -77,7 +80,7 @@ protected:
       }
    }
    
-   virtual bool has_work(void) const { return static_local::has_work() || !prio_queue.empty(); }
+   virtual bool has_work(void) const { return threads_sched::has_work() || !prio_queue.empty(); }
 
 public:
    

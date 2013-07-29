@@ -1,4 +1,3 @@
-
 #include <sstream>
 #include <iostream>
 #include <algorithm>
@@ -384,8 +383,11 @@ execute_send_self(tuple *tuple, state& state)
    cout << "\t" << *tuple << " " << state.count << " -> self " << state.node->get_id() << endl;
 #endif
    if(tuple->is_action()) {
-      state.all->MACHINE->run_action(state.sched,
-            state.node, tuple);
+      if(state.count > 0)
+         state.all->MACHINE->run_action(state.sched,
+               state.node, tuple);
+      else
+         delete tuple;
       return;
    }
 
@@ -977,6 +979,7 @@ build_match_object(match& m, pcounter pc, state& state, const predicate *pred)
    do {
       match = pc;
 
+
       const field_num field(iter_match_field(match));
       const instr_val val(iter_match_val(match));
 
@@ -1124,11 +1127,7 @@ execute_iter(pcounter pc, const utils::byte options, const utils::byte options_a
 			it != end; ++it)
 		{
 			tuple_trie_leaf *tuple_leaf(*it);
-#ifndef TRIE_MATCHING
-			if(!do_matches(pc, tuple_leaf->get_underlying_tuple(), state))
-				continue;
-#endif
-#if defined(TRIE_MATCHING_ASSERT) && defined(TRIE_MATCHING)
+#ifdef TRIE_MATCHING_ASSERT
 	      assert(do_matches(pc, tuple_leaf->get_underlying_tuple(), state));
 #endif
 			everything.push_back(iter_object(ITER_DB, (void*)tuple_leaf));
@@ -1237,8 +1236,9 @@ execute_iter(pcounter pc, const utils::byte options, const utils::byte options_a
       // we get the tuple later since the previous leaf may have been deleted
       tuple *match_tuple(tuple_leaf->get_underlying_tuple());
       assert(match_tuple != NULL);
+   
+#ifdef TRIE_MATCHING_ASSERT
 
-#if defined(TRIE_MATCHING_ASSERT) && defined(TRIE_MATCHING)
       assert(do_matches(pc, match_tuple, state));
 #else
       (void)pc;
@@ -1248,14 +1248,7 @@ execute_iter(pcounter pc, const utils::byte options, const utils::byte options_a
 
       return_type ret;
 
-#ifdef TRIE_MATCHING
       ret = execute(first, state);
-#else
-      if(do_matches(pc, match_tuple, state))
-         ret = execute(first, state);
-      else
-         ret = RETURN_OK;
-#endif
 
 		POP_STATE();
 
@@ -1797,6 +1790,7 @@ execute_new_axioms(pcounter pc, state& state)
    pc += NEW_AXIOMS_BASE;
 
    while(pc < end) {
+
       // read axions until the end!
       predicate_id pid(predicate_get(pc, 0));
       predicate *pred(state.all->PROGRAM->get_predicate(pid));
@@ -1825,6 +1819,7 @@ execute_new_axioms(pcounter pc, state& state)
                stack_int_list s;
 
                while(*pc++ == 1) {
+
                   s.push(pcounter_int(pc));
                   pcounter_move_int(&pc);
                }
@@ -1836,6 +1831,7 @@ execute_new_axioms(pcounter pc, state& state)
                stack_float_list s;
 
                while(*pc++ == 1) {
+
                   s.push(pcounter_float(pc));
                   pcounter_move_float(&pc);
                }
@@ -1873,6 +1869,7 @@ execute(pcounter pc, state& state)
    for(; ; pc = advance(pc))
    {
 eval_loop:
+
 
 #ifdef DEBUG_MODE
 		if(state.print_instrs)
@@ -1945,12 +1942,8 @@ eval_loop:
 #ifdef CORE_STATISTICS
 					state.stat_db_hits++;
 #endif
-#ifdef TRIE_MATCHING
                build_match_object(mobj, pc + ITER_BASE, state, pred);
                state.node->match_predicate(pred_id, mobj, matches);
-#else
-               state.node->match_predicate(pred_id, matches);
-#endif
 
                const return_type ret(execute_iter(pc + ITER_BASE,
 								iter_options(pc), iter_options_argument(pc),

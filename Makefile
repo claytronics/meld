@@ -87,12 +87,15 @@ SRCS = utils/utils.cpp \
 			 debug/debug_prompt.cpp \
 			 debug/debug_handler.cpp \
 			 debug/debug_list.cpp \
-			 api/mpi.cpp \
+			 api/mpi.cpp
 #			 api/bbsimapi.cpp \
+			 api/mpi.cpp \
+
 
 OBJS = $(patsubst %.cpp,%.o,$(SRCS))
 
-all: meld print predicates server
+all: meld print server
+
 	echo $(OBJS)
 
 -include Makefile.externs
@@ -107,9 +110,6 @@ meld: $(OBJS) meld.o
 
 print: $(OBJS) print.o
 	$(COMPILE) print.o -o print $(LDFLAGS)
-
-predicates: $(OBJS) predicates.o
-	$(COMPILE) predicates.o -o predicates $(LDFLAGS)
 
 server: $(OBJS) server.o
 	$(COMPILE) server.o -o server $(LDFLAGS)

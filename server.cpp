@@ -147,10 +147,10 @@ parse_command(string cmd)
 	return COMMAND_NONE;
 }
 
-
 int
 main(int argc, char **argv)
 {
+
 	cerr << "No UI was compiled" << endl;
 	return EXIT_FAILURE;
 }

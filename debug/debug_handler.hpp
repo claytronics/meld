@@ -41,6 +41,8 @@ namespace debugger {
     extern int numberExpected;
     extern vm::all *all;
 
+    extern bool isPausedInWorkLoop;
+
     const int MASTER = 0;
 
     void activateBreakPoint(std::string specification);
@@ -55,7 +57,7 @@ namespace debugger {
     bool isInSimDebuggingMode(void);
     void setupFactList(void);
     debugList getFactList(void);
-    void initSimDebug(void);
+    void initSimDebug(vm::all *debugAll);
     void setSimDebuggingMode(bool setting);
     void handleDebugMessage(uint64_t *msg);
     void display(std::string msg,int type);
@@ -68,9 +70,7 @@ namespace debugger {
     int characterInStringIndex(std::string str, char character);
     void initMpiDebug(vm::all *debugAll);
     bool isInMpiDebuggingMode(void);
-    void setState(vm::state& st);
     void setMpiDebuggingMode(bool setting);
-    vm::state *getState(void);
     void receiveMsg(void);
     void sendMsg(int destination, int msgType,
                  std::string content, bool broadcast = false);
