@@ -75,7 +75,6 @@ namespace api {
      * nodes---msg is to be freed
      */
     extern void debugSendMsg(int dest,message_type* msg, size_t messageSize);
-
     extern void debugBroadcastMsg(message_type *msg, size_t messageSize);
 
     extern void debugWaitMsg(void);

@@ -122,7 +122,8 @@ run_program(int argc, char **argv, const char *program, const vm::machine_argume
             debugger::debug(mac.get_all());
             debugger::pauseIt();
         } else if (debugger::isInSimDebuggingMode()){
-            debugger::initSimDebug();
+            debugger::initSimDebug(mac.get_all());
+            debugger::pauseIt();
         }
         /*BBSIM API Init*/
         api::init(argc, argv, mac.get_all()->ALL_THREADS[0]);
