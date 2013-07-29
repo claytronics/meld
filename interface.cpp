@@ -111,7 +111,7 @@ run_program(int argc, char **argv, const char *program, const vm::machine_argume
         if(time_execution) {
             tm.start();
         }
-
+        /*MPI Init*/
         api::init(argc, argv, NULL);
 
         machine mac(program, num_threads, sched_type, margs, data_file == NULL ? string("") : string(data_file));
@@ -124,7 +124,7 @@ run_program(int argc, char **argv, const char *program, const vm::machine_argume
         } else if (debugger::isInSimDebuggingMode()){
             debugger::initSimDebug();
         }
-
+        /*BBSIM API Init*/
         api::init(argc, argv, mac.get_all()->ALL_THREADS[0]);
         if (debugger::isInMpiDebuggingMode()){
             api::debugInit(mac.get_all());
