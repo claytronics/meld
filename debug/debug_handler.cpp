@@ -666,7 +666,7 @@ namespace debugger {
 
 
 
-    /*the desination specified is the process*/
+    /*the desination specified is the user input node ID*/
     /*send a debug message to another process through the MPI layer*/
     /*if send to all, specify BROADCAST (see top)*/
     void sendMsg(int destination, int msgType,
@@ -698,13 +698,8 @@ namespace debugger {
                 return;
             }
 
-            /*convert user input id to system internal id*/
-            int destinationNodeId =
-                (int)all->DATABASE->
-                translate_real_to_fake_id((db::node::node_id) destination);
-
             /*get the process id (getVMId) and send the message*/
-            api::debugSendMsg(api::getVMId(destinationNodeId),msg,
+            api::debugSendMsg(destination,msg,
                               msgSize);
         }
 
