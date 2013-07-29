@@ -13,6 +13,7 @@ endif
 PROFILING = #-pg
 OPTIMIZATIONS = -O0
 ARCH = -march=armv7
+#armv7 for fawn
 #ARCH = -march=x86-64
 #DEBUG = -g -DDEBUG_RULES
 WARNINGS = -Wall -Wextra #-Werror
