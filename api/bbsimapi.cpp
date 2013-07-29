@@ -220,6 +220,7 @@ inline face_t operator++(face_t& f, int) {
 void debugInit(vm::all *all)
 {
   /*Initilize the debugger*/
+  return;
 }
 
 
@@ -657,7 +658,7 @@ handleDebugMessage(utils::byte* reply, size_t totalSize)
   int position=4*sizeof(message_type);
 
   utils::unpack<message_type>(reply, totalSize+sizeof(message_type), &position, msg, msgSize);
-  //messageQueue->push(msg);
+  debugger::messageQueue->push(msg);
   
 }
 
@@ -790,6 +791,7 @@ handleShake(const deterministic_timestamp ts, const db::node::node_id node,
 void 
 debugGetMsgs(void)
 {
+  pollAndProcess(sched_state, debugger::all);
   return;
 }
 
