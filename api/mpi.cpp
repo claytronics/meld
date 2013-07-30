@@ -454,8 +454,20 @@ namespace api {
         }
     }
 
-    void debugSendMsg(const int dest, message_type *msg,
+    void debugSendMsg(int destination, message_type *msg,
                       size_t msgSize) {
+
+        int dest;
+
+        if (destination == debugger::MASTER){
+            dest = debugger::MASTER;
+        } else {
+            dest = getVMId(debugger::all->
+                                     DATABASE->translate_real_to_fake_id(
+                                         (db::node::node_id) destination));
+        }
+
+
         /* Send the message through MPI and place the message and status into
            the sendMsgs vector to be freed when the request completes */
         mpi::request req = world->isend(dest, DEBUG, msg, msgSize);

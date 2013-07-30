@@ -37,43 +37,43 @@ num_cpus_available(void)
 static inline bool
 match_serial(const char *name, char *arg, const scheduler_type type)
 {
-    const size_t len(strlen(name));
+  const size_t len(strlen(name));
 
-    if(strlen(arg) == len && strncmp(name, arg, len) == 0) {
-        sched_type = type;
-        num_threads = 1;
-        return true;
-    }
+  if(strlen(arg) == len && strncmp(name, arg, len) == 0) {
+    sched_type = type;
+    num_threads = 1;
+    return true;
+  }
 
-    return false;
+  return false;
 }
 
 static inline bool fail_sched(char* sched)
 {
 
 	cerr << "Error: invalid scheduler " << sched << endl;
-    exit(EXIT_FAILURE);
-    return false;
+  exit(EXIT_FAILURE);
+  return false;
 
 }
 
 void
 parse_sched(char *sched)
 {
-    assert(sched != NULL);
+  assert(sched != NULL);
 
-    if(strlen(sched) < 2)
-        fail_sched(sched);
+  if(strlen(sched) < 2)
+    fail_sched(sched);
 
     // attempt to parse the scheduler string
-    match_serial("sl", sched, SCHED_SERIAL) ||
-		match_serial("ui", sched, SCHED_SERIAL_UI) ||
-        fail_sched(sched);
+  match_serial("sl", sched, SCHED_SERIAL) ||
+  match_serial("ui", sched, SCHED_SERIAL_UI) ||
+  fail_sched(sched);
 
-	if (num_threads == 0) {
-        cerr << "Error: invalid number of threads" << endl;
-        exit(EXIT_FAILURE);
-    }
+  if (num_threads == 0) {
+    cerr << "Error: invalid number of threads" << endl;
+    exit(EXIT_FAILURE);
+  }
 
 }
 
@@ -90,7 +90,7 @@ help_schedulers(void)
 static inline void
 finish(void)
 {
-    api::end();
+  api::end();
 }
 
 /* program = meld program */
@@ -102,61 +102,63 @@ run_program(int argc, char **argv, const char *program, const vm::machine_argume
 	assert(num_threads > 0);
 
 	try {
-      double start_time(0.0);
-      execution_time tm;
+    double start_time(0.0);
+    execution_time tm;
 
-      (void)start_time;
-      
-      if(time_execution) {
+    (void)start_time;
+
+    if(time_execution) {
 #ifdef COMPILE_MPI
-         if(is_mpi_sched(sched_type))
-            start_time = MPI_Wtime();
-         else
+     if(is_mpi_sched(sched_type))
+      start_time = MPI_Wtime();
+    else
 #endif
-         {
-            tm.start();
-        }
-      }
+    {
+      tm.start();
+    }      
+  }
 
-        api::init(argc, argv, NULL);
+  /*MPI Init*/
+  api::init(argc, argv, NULL);
 
-        machine mac(program, num_threads, sched_type, margs, data_file == NULL ? string("") : string(data_file));
+  machine mac(program, num_threads, sched_type, margs, data_file == NULL ? string("") : string(data_file));
+
+/*BBSIM API Init*/
+  api::init(argc, argv, mac.get_all()->ALL_THREADS[0]);
+  if (debugger::isInMpiDebuggingMode()){
+    api::debugInit(mac.get_all());
+  }
+
+  if (debugger::isInDebuggingMode()) {
+    debugger::debug(mac.get_all());
+    debugger::pauseIt();
+  } else if (debugger::isInSimDebuggingMode()){
+    debugger::initSimDebug(mac.get_all());
+    debugger::pauseIt();
+  }
 
 
+  mac.start();
 
-        if (debugger::isInDebuggingMode()) {
-            debugger::debug(mac.get_all());
-            debugger::pauseIt();
-        } else if (debugger::isInSimDebuggingMode()){
-            debugger::initSimDebug();
-        }
+  if(time_execution) {
+    tm.stop();
+    size_t ms = tm.milliseconds();
 
-        api::init(argc, argv, mac.get_all()->ALL_THREADS[0]);
-        if (debugger::isInMpiDebuggingMode()){
-            api::debugInit(mac.get_all());
-        }
+    cout << "Time: " << ms << " ms" << endl;
+  }
 
-        mac.start();
+} catch(machine_error& err) {
+  finish();
+  throw err;
+} catch(load_file_error& err) {
+  finish();
+  throw err;
+} catch(db::database_error& err) {
+  finish();
+  throw err;
+}
 
-        if(time_execution) {
-            tm.stop();
-            size_t ms = tm.milliseconds();
+finish();
 
-            cout << "Time: " << ms << " ms" << endl;
-        }
-
-    } catch(machine_error& err) {
-        finish();
-        throw err;
-    } catch(load_file_error& err) {
-        finish();
-        throw err;
-    } catch(db::database_error& err) {
-        finish();
-        throw err;
-    }
-
-    finish();
-
-	return true;
+return true;
 }

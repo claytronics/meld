@@ -107,7 +107,7 @@ namespace debugger {
           }
 
       if (command != BREAKPOINT && command!=DUMP
-          && command != REMOVE){
+          && command != REMOVE && command != MODE){
         debugController(command, build);
         lastInstruction = command;
         lastBuild = build;
@@ -116,15 +116,16 @@ namespace debugger {
     }
 
     /*if not enough info - these  types must have a specification*/
-    if ((command == BREAKPOINT||command == DUMP||command == REMOVE)&&
-        wordCount == 1){
+    if ((command == BREAKPOINT||command == DUMP||command == REMOVE||
+         command == MODE)&&wordCount == 1){
       cout << "Please specify- type help for options" << endl;
       return false;
     }
 
     /*handle breakpointsand dumps*/
     if (wordCount == 2){
-        if (command == BREAKPOINT||command == DUMP||command == REMOVE){
+        if (command == BREAKPOINT||command == DUMP||command == REMOVE||
+            command == MODE){
         debugController(command,build);
         } else
         debugController(command,"");
@@ -142,28 +143,30 @@ namespace debugger {
     int retVal;
 
     if (command == "break"){
-      retVal = BREAKPOINT;
+        retVal = BREAKPOINT;
     } else if (command == "help"||command == "h") {
-      help();
-      retVal = NOTHING;
+        help();
+        retVal = NOTHING;
     } else if (command == "run"|| command == "r") {
-      retVal = CONTINUE;
+        retVal = RUN;
     } else if (command == "dump"||command == "d") {
-      retVal = DUMP;
+        retVal = DUMP;
     } else if (command == "print" || command == "p"){
-      retVal = PRINTLIST;
+        retVal = PRINTLIST;
     } else if (command == "remove" || command == "rm"){
-      retVal = REMOVE;
+        retVal = REMOVE;
     } else if (command == "continue"||command == "c"){
-      retVal = CONTINUE;
+        retVal = CONTINUE;
+    } else if (command == "mode"||command == "m"){
+        retVal = MODE;
     } else if (command == "quit"||command == "q"){
-      sendMsg(-1,TERMINATE,"",true);
-      api::end();
-      delete messageQueue;
-      exit(0);
+        sendMsg(-1,TERMINATE,"",true);
+        api::end();
+        delete messageQueue;
+        exit(0);
     } else {
-      cout << "unknown command: type 'help' for options " << endl;
-      retVal = NOTHING;
+        cout << "unknown command: type 'help' for options " << endl;
+        retVal = NOTHING;
     }
     return retVal;
   }

@@ -36,10 +36,17 @@ namespace debugger {
     const int DEBUGMPI = 0;
     const int TERMINATE = 10;
     const int PRINTLIST = 11;
+    const int RUN = 12;
+    const int MODE = 13;
 
     extern std::queue<api::message_type*> *messageQueue;
     extern int numberExpected;
     extern vm::all *all;
+
+    extern bool isPausedInWorkLoop;
+
+    extern bool verboseMode;
+    extern bool serializationMode;
 
     const int MASTER = 0;
 
@@ -55,7 +62,7 @@ namespace debugger {
     bool isInSimDebuggingMode(void);
     void setupFactList(void);
     debugList getFactList(void);
-    void initSimDebug(void);
+    void initSimDebug(vm::all *debugAll);
     void setSimDebuggingMode(bool setting);
     void handleDebugMessage(uint64_t *msg);
     void display(std::string msg,int type);
@@ -68,13 +75,10 @@ namespace debugger {
     int characterInStringIndex(std::string str, char character);
     void initMpiDebug(vm::all *debugAll);
     bool isInMpiDebuggingMode(void);
-    void setState(vm::state& st);
     void setMpiDebuggingMode(bool setting);
-    vm::state *getState(void);
     void receiveMsg(void);
     void sendMsg(int destination, int msgType,
                  std::string content, bool broadcast = false);
-    void *msgListener(void* passIn);
 }
 
 #endif

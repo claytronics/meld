@@ -52,7 +52,9 @@ base::do_loop(void)
   db::node *node(NULL);
 
   while(true) {
-      //api::serializeBeginExec();
+
+      if (debugger::serializationMode)
+          api::serializeBeginExec();
       while ((node = get_work())) {
           // Current VM has local work, process work
           do_work(node);
@@ -62,7 +64,8 @@ base::do_loop(void)
       if (debugger::isInMpiDebuggingMode()){
           debugger::receiveMsg();
           if (debugger::isTheSystemPaused()){
-              debugger::display("PAUSED\n",debugger::PRINTCONTENT);
+              debugger::isPausedInWorkLoop = true;
+              debugger::display("PAUSED\n",debugger::PAUSE);
               debugger::pauseIt();
           }
       }
@@ -71,7 +74,8 @@ base::do_loop(void)
       bool ensembleFinished = false;
       if (!hasWork)
           ensembleFinished = api::ensembleFinished(this);
-      //api::serializeEndExec();
+      if (debugger::serializationMode)
+          api::serializeEndExec();
       if (ensembleFinished)
           break;
   }
