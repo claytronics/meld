@@ -5,8 +5,10 @@
 #include "vm/rule_matcher.hpp"
 #include "vm/program.hpp"
 #include "vm/state.hpp"
+#include "api/api.hpp"
 
 using namespace std;
+using namespace db;
 
 //#define DEBUG_RULES 1
 
@@ -27,7 +29,7 @@ rule_matcher::register_predicate_availability(const predicate *pred)
       rules[rule].total_have++;
 		if(rules[rule].total_have == rules[rule].total_needed) {
 #ifdef DEBUG_RULES
-			cout << "Rule " << rule << " activated" << endl;
+			cout << "Rule " << rule << " activated->" <<"Predicate" << *pred << endl;
 #endif
          active_rules.insert(rule);
          dropped_rules.erase(rule);
@@ -46,7 +48,7 @@ rule_matcher::register_predicate_unavailability(const predicate *pred)
 
 		if(rules[rule].total_have == rules[rule].total_needed) {
 #ifdef DEBUG_RULES
-			cout << "Rule " << rule << " deactivated" << endl;
+			cout << "Rule " << rule << " deactivated->" <<"Predicate" << *pred<< endl;
 #endif
          active_rules.erase(rule);
          dropped_rules.insert(rule);
@@ -63,7 +65,7 @@ rule_matcher::register_tuple(tuple *tpl, const ref_count count, const bool is_ne
    const vm::predicate_id id(tpl->get_predicate_id());
 	bool ret(false);
 #ifdef DEBUG_RULES
-	cout << "Add tuple " << *tpl << endl;
+	cout<<api::getNodeID() << ":Add tuple " << *tpl << endl;
 #endif
 	if(is_new) {
    	if(predicate_count[id] == 0) {
@@ -84,7 +86,7 @@ rule_matcher::deregister_tuple(tuple *tpl, const ref_count count)
 	bool ret(false);
 	
 #ifdef DEBUG_RULES
-	cout << "Remove tuple " << *tpl << endl;
+	cout<<api::getNodeID() << ":Remove tuple " << *tpl << endl;
 #endif
    assert(predicate_count[id] >= count);
 

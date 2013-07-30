@@ -16,6 +16,14 @@
 #include "vm/function.hpp"
 #include "runtime/string.hpp"
 #include "queue/heap_implementation.hpp"
+#include "vm/import.hpp"
+#ifdef USE_UI
+#include <json_spirit.h>
+#endif
+
+namespace process {
+   class router;
+}
 
 namespace vm {
 
@@ -38,6 +46,11 @@ class program
 private:
 
    const std::string filename;
+   uint32_t major_version, minor_version;
+
+   std::vector<import*> imported_predicates;
+   std::vector<std::string> exported_predicates;
+
 	size_t num_args;
    size_t number_rules;
 
@@ -76,7 +89,7 @@ private:
    
 public:
 
-    strat_level MAX_STRAT_LEVEL;
+   strat_level MAX_STRAT_LEVEL;
 
    inline size_t num_rules(void) const { return number_rules; }
 	inline size_t num_args_needed(void) const { return num_args; }
@@ -108,7 +121,12 @@ public:
    
    void print_bytecode(std::ostream&) const;
    void print_predicates(std::ostream&) const;
+   void print_rules(std::ostream&) const;
+   void print_program(std::ostream&) const;
    void print_bytecode_by_predicate(std::ostream&, const std::string&) const;
+#ifdef USE_UI
+	json_spirit::Value dump_json(void) const;
+#endif
    
    predicate* get_predicate(const predicate_id&) const;
    predicate* get_route_predicate(const size_t&) const;

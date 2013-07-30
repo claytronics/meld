@@ -79,7 +79,7 @@ state::purge_runtime_objects(void)
    for(list<TYPE*>::iterator it(free_ ## TYPE.begin()); it != free_ ## TYPE .end(); ++it) { \
       TYPE *x(*it); \
       assert(x != NULL); \
-		if(x->zero_refs()) { x->destroy(); } \
+      x->dec_refs(); \
    } \
    free_ ## TYPE .clear()
 
@@ -421,7 +421,7 @@ vm::strat_level
 state::mark_rules_using_local_tuples(db::simple_tuple_list& ls)
 {
    bool has_level(false);
-   vm::strat_level level;
+   vm::strat_level level = 0;
 
 	for(db::simple_tuple_list::iterator it(ls.begin());
 		it != ls.end(); )
@@ -633,18 +633,13 @@ state::run_node(db::node *no)
 
 	this->node = no;
 
-#ifdef DEBUG_RULES
-   cout << "Node " << node->get_id() << endl;
-#endif
-
-
    assert(local_tuples.empty());
    // Gather_next_tuples is implementation specific
    sched->gather_next_tuples(node, local_tuples);
    start_matching();
 	current_level = mark_rules_using_local_tuples(local_tuples);
 #ifdef DEBUG_RULES
-	cout << "Strat level: " << current_level << " got " << local_tuples.size() << " tuples " << endl;
+	cout<<node->get_id() << ":Strat level: " << current_level << " got " << local_tuples.size() << " tuples " << endl;
 #endif
 
 
@@ -660,7 +655,7 @@ state::run_node(db::node *no)
 
 
 #ifdef DEBUG_RULES
-		cout << "Run rule " << all->PROGRAM->get_rule(rule)->get_string() << endl;
+		cout<<node->get_id() << ":Run rule " << all->PROGRAM->get_rule(rule)->get_string() << endl;
 #endif
 
 

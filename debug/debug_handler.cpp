@@ -314,7 +314,7 @@ namespace debugger {
 
         /*if is in MPI or SIM debugging mode, send to master to display/handle
          *the message*/
-        else if (isInMpiDebuggingMode()||isInSimDebuggingMode()){
+        else if (isInMpiDebuggingMode()){
             MSG << "<=======VM#" <<
                 api::world->rank()
                 << "===================================================>"
@@ -654,27 +654,37 @@ namespace debugger {
     inline int getSize(string content){
 
         /*will always return an integer*/
-        return  3 + ((content.size()+1) + (SIZE-(content.size()+1)%SIZE))/SIZE;
+        return  content.length()+1+
+            sizeof(utils::byte)+2*sizeof(api::message_type)+sizeof(size_t)
+            +sizeof(int);
     }
 
 
     /*PACK--given the type encoding and content, pack the information into
      *a sendable messeage*/
-    api::message_type* pack(int msgEncode, string content){
+    std::list<api::message_type*> pack(int msgEncode, string content){
 
         utils::byte* msg = (utils::byte*)new api::message_type[api::MAXLENGTH];
         int pos = 0;
+
+        std::list<api::message_type*> msgList;
 
         api::message_type debugFlag =  DEBUG;
         size_t contentSize = content.length() + 1;
         size_t bufSize = api::MAXLENGTH*SIZE;//bytes
         api::message_type msgSize = bufSize;
+        utils::byte anotherIndicator = 0;
+
+        int currentSize = 0;
 
         /*message size in bytes*/
         utils::pack<api::message_type>(&msgSize,1,msg,bufSize,&pos);
 
         /*debug indicator*/
         utils::pack<api::message_type>(&debugFlag,1,msg,bufSize,&pos);
+
+        /*indicate if another message is coming*/
+        utils::pack<utils::byte>(&anotherIndicator,1,msg,bufSize,&pos);
 
         /*debug command encoding*/
         utils::pack<int>(&msgEncode,1,msg,bufSize,&pos);
@@ -686,7 +696,9 @@ namespace debugger {
         utils::pack<char>((char*)content.c_str(),content.size()+1,
                                  msg,bufSize,&pos);
 
-        return (api::message_type*)msg;
+        msgList.push_back((api::message_type*)msg);
+
+        return msgList;
 
     }
 
@@ -698,39 +710,40 @@ namespace debugger {
     void sendMsg(int destination, int msgType,
               string content, bool broadcast)  {
 
+         /*length of array*/
+            size_t msgSize = api::MAXLENGTH;
+            /*pack the message*/
+            std::list<api::message_type*> msgList = pack(msgType,content);
+            api::message_type* msg;
 
-        /*pack the message*/
-        api::message_type* msg = pack(msgType,content);
+            msg = msgList.front();
+            msgList.pop_front();
 
-        /*length of array*/
-        size_t msgSize = api::MAXLENGTH;
+            if (broadcast){
 
-        if (broadcast){
+                /*send to all*/
+                api::debugBroadcastMsg(msg,msgSize);
 
-            /*send to all*/
-            api::debugBroadcastMsg(msg,msgSize);
+            } else {
 
-        } else {
+                /*send to the master debugging process*/
+                if (destination == MASTER){
+                    api::debugSendMsg(MASTER,msg,
+                                      msgSize);
+                    return;
+                }
 
-            /*send to the master debugging process*/
-            if (destination == MASTER){
-                api::debugSendMsg(MASTER,msg,
+                /*send the message through api layer*/
+                api::debugSendMsg(destination,msg,
                                   msgSize);
-                return;
             }
-
-            /*send the message through api layer*/
-            api::debugSendMsg(destination,msg,
-                              msgSize);
-        }
 
     }
 
 
-
-
-    /*RECIEVEMSG--populate the queue of messages from the mpi layer and handle them
-     *until there are no more messages*/
+    /*RECIEVEMSG--populate the queue of messages
+     * from the mpi layer and handle them
+     * until there are no more messages*/
     void receiveMsg(void){
 
         utils::byte *msg;
@@ -740,6 +753,7 @@ namespace debugger {
         api::message_type size;
         api::message_type debugFlag;
         size_t specSize;
+        utils::byte anotherIndicator;
 
         /*load the message queue with messages*/
         api::debugGetMsgs();
@@ -756,6 +770,9 @@ namespace debugger {
             /*debugFlag*/
             utils::unpack<api::message_type>(msg,api::MAXLENGTH*SIZE,
                                              &pos,&debugFlag,1);
+            /*if another message is coming*/
+            utils::unpack<utils::byte>(msg,api::MAXLENGTH*SIZE,
+                                       &pos,&anotherIndicator,1);
             /*command encoding*/
             utils::unpack<int>(msg,api::MAXLENGTH*SIZE,&pos,&instruction,1);
             /*content size*/
@@ -770,7 +787,8 @@ namespace debugger {
             if (isInMpiDebuggingMode()&&api::world->rank()==MASTER){
 
                 debugMasterController(instruction,spec);
-                numberExpected--;
+                if (!anotherIndicator)
+                    numberExpected--;
 
             /*if a slave process (any vm) is receiving the message*/
             } else {
@@ -786,4 +804,20 @@ namespace debugger {
         }
     }
 
-}
+
+}//namespace debugger
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
