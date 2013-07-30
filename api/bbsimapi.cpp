@@ -24,7 +24,7 @@ using namespace sched;
 using namespace msg;
 
 #define SETID 1
-#define DEBUG 3
+#define DEBUG 16
 #define STOP 4
 #define ADD_NEIGHBOR 5
 #define REMOVE_NEIGHBOR 6
@@ -141,10 +141,10 @@ inline face_t operator++(face_t& f, int) {
   static const char* msgcmd2str[16];
   static boost::asio::ip::tcp::socket *my_tcp_socket;
   static void processMessage(message_type* reply);
-  static void add_received_tuple(serial_node *no, size_t ts, db::simple_tuple *stpl);
-  static void add_neighbor(const size_t ts, serial_node *no, const node_val out, const face_t face, const int count);
-  static void add_neighbor_count(const size_t ts, serial_node *no, const size_t total, const int count);
-  static void add_vacant(const size_t ts,  serial_node *no, const face_t face, const int count);
+  static void addReceivedTuple(serial_node *no, size_t ts, db::simple_tuple *stpl);
+  static void addNeighbor(const size_t ts, serial_node *no, const node_val out, const face_t face, const int count);
+  static void addNeighborCount(const size_t ts, serial_node *no, const size_t total, const int count);
+  static void addVacant(const size_t ts,  serial_node *no, const face_t face, const int count);
   static void handleSetID(deterministic_timestamp ts, node::node_id node_id);
   static void handleReceiveMessage(const deterministic_timestamp ts, db::node::node_id node,
     const face_t face, db::node::node_id dest_id, utils::byte *data, int offset, const int limit);
@@ -305,7 +305,6 @@ set_color(db::node *n, const int r, const int g, const int b)
 {
   message* colorMessage=(message*)calloc(8, sizeof(message_type));
 
-//  cout<<"In setcolor"<<endl;
   cout<<n->get_id() << ":Sending SetColor"<<endl;
 
   colorMessage->size=7 * sizeof(message_type);
@@ -341,14 +340,11 @@ set_color(db::node *n, const int r, const int g, const int b)
 
  }
 
-
-
 /*Sends the "SEND_MESSAGE" command*/
   void 
   sendMessage(const db::node* from, db::node::node_id to, db::simple_tuple* stpl)
   {
    
-   cout<<"in SendMessage"<<endl;
    const size_t stpl_size(stpl->storage_size());
    const size_t msg_size = 5 * sizeof(message_type) + stpl_size;
    message* msga=(message*)calloc((msg_size+ sizeof(message_type)), 1);
@@ -383,9 +379,6 @@ end(void)
 {
   return;
 }
-
-
-
 
 
 /*tcp helper functions begin*/
@@ -436,7 +429,6 @@ sendMessageTCP(message_type *msg)
   static void 
 sendMessageTCP1(message *msg)
   {
-    cout<<"In send tcp1, size is="<<msg->size<<endl;
     boost::asio::write(*my_tcp_socket, boost::asio::buffer(msg, msg->size + sizeof(message_type)));
   }
 
@@ -523,7 +515,7 @@ sendMessageTCP1(message *msg)
 
 /*Adds the tuple to the node's work queue*/
  static void 
- add_received_tuple(serial_node *no, size_t ts, db::simple_tuple *stpl)
+ addReceivedTuple(serial_node *no, size_t ts, db::simple_tuple *stpl)
  {
   if(ts>0){}
 
@@ -534,7 +526,7 @@ sendMessageTCP1(message *msg)
 
 /*Add the neighbor to the block*/
 static void 
-add_neighbor(const size_t ts, serial_node *no, const node_val out, const face_t face, const int count)
+addNeighbor(const size_t ts, serial_node *no, const node_val out, const face_t face, const int count)
 {
  if(!neighbor_pred)
   return;
@@ -545,12 +537,12 @@ tpl->set_int(1, static_cast<int_val>(face));
 
 db::simple_tuple *stpl(new db::simple_tuple(tpl, count));
 
-add_received_tuple(no, ts, stpl);
+addReceivedTuple(no, ts, stpl);
 }
 
 
 static void 
-add_neighbor_count(const size_t ts, serial_node *no, const size_t total, const int count)
+addNeighborCount(const size_t ts, serial_node *no, const size_t total, const int count)
 {
   if(!neighbor_count_pred)
     return;
@@ -562,7 +554,7 @@ add_neighbor_count(const size_t ts, serial_node *no, const size_t total, const i
   db::simple_tuple *stpl(new db::simple_tuple(tpl, count));
   cout <<id<< ":Adding simple tuple:" << stpl << endl;
 
-  add_received_tuple(no, ts, stpl);
+  addReceivedTuple(no, ts, stpl);
 }
 
 static void 
@@ -575,11 +567,11 @@ remove_neighbor_count(const size_t ts, serial_node *no, const size_t total, cons
   db::simple_tuple *stpl(new db::simple_tuple(tpl, count));
   cout <<id<< ":Adding simple tuple:" << stpl << endl;
 
-  add_received_tuple(no, ts, stpl);
+  addReceivedTuple(no, ts, stpl);
 }
 
 static void 
-add_vacant(const size_t ts,  serial_node *no, const face_t face, const int count)
+addVacant(const size_t ts,  serial_node *no, const face_t face, const int count)
 {
  if(!vacant_pred)
   return;
@@ -589,7 +581,7 @@ tpl->set_int(0, static_cast<int_val>(face));
 
 db::simple_tuple *stpl(new db::simple_tuple(tpl, count));
 
-add_received_tuple(no, ts, stpl);
+addReceivedTuple(no, ts, stpl);
 }
 
 
@@ -603,7 +595,7 @@ handleSetID(deterministic_timestamp ts, db::node::node_id node_id)
   /*similar to create_n_nodes*/
   db::node *no((sched_state)->state.all->DATABASE->create_node_id(node_id));
   sched_state->init_node(no);
- // cout<<"Node id is "<<no->get_id()<<endl;
+
   serial_node *no_in((serial_node *)no);
     top=NO_NEIGHBOR;
     bottom=NO_NEIGHBOR;
@@ -615,10 +607,10 @@ handleSetID(deterministic_timestamp ts, db::node::node_id node_id)
 
   instantiated_flag=true;
   for(face_t face = INITIAL_FACE; face <= FINAL_FACE; ++face) {
-    add_vacant(ts, no_in, face, 1);
+    addVacant(ts, no_in, face, 1);
   }
 
-    add_neighbor_count(ts, no_in, 0, 1);
+    addNeighborCount(ts, no_in, 0, 1);
 }
 
 static void handleReceiveMessage(const deterministic_timestamp ts,
@@ -652,14 +644,12 @@ static void handleReceiveMessage(const deterministic_timestamp ts,
 static void
 handleDebugMessage(utils::byte* reply, size_t totalSize)
 {
-  size_t msgSize=totalSize/sizeof(message_type)-3;
+  size_t msgSize=totalSize/sizeof(message_type);
 
-  message_type* msg= new message_type[msgSize];
-  int position=4*sizeof(message_type);
-
-  utils::unpack<message_type>(reply, totalSize+sizeof(message_type), &position, msg, msgSize);
-  debugger::messageQueue->push(msg);
-  
+ message* msg= (message*)calloc(msgSize, sizeof(message_type));
+ msg=(message*)reply;
+ memcpy(msg->data.units,reply,totalSize-4*sizeof(message_type));
+ debugger::messageQueue->push((message_type*)msg);
 }
 
  static void 
@@ -676,26 +666,26 @@ handleDebugMessage(utils::byte* reply, size_t totalSize)
    if(*neighbor == NO_NEIGHBOR) {
       // remove vacant first, add 1 to neighbor count
     if(has_been_instantiated()) {
-     add_vacant(ts, no_in, face, -1);
-     add_neighbor_count(ts, no_in, get_neighbor_count(), -1);
+     addVacant(ts, no_in, face, -1);
+     addNeighborCount(ts, no_in, get_neighbor_count(), -1);
    }
   inc_neighbor_count();
 #ifdef DEBUG
    //cout << id << ":neighbor count=" << get_neighbor_count() << endl;
 #endif
    if(has_been_instantiated())
-     add_neighbor_count(ts, no_in, get_neighbor_count(), 1);
+     addNeighborCount(ts, no_in, get_neighbor_count(), 1);
    *neighbor = out;
    if(has_been_instantiated())
-     add_neighbor(ts, no_in, out, face, 1);
+     addNeighbor(ts, no_in, out, face, 1);
  } else {
   if(*neighbor != out) {
          // remove old node
    if(has_been_instantiated())
-    add_neighbor(ts, no_in, *neighbor, face, -1);
+    addNeighbor(ts, no_in, *neighbor, face, -1);
   *neighbor = out;
   if(has_been_instantiated())
-    add_neighbor(ts, no_in, out, face, 1);
+    addNeighbor(ts, no_in, out, face, 1);
 }
 }
 }
@@ -707,8 +697,8 @@ handleRemoveNeighbor(const deterministic_timestamp ts,
   
 
 
-  serial_node *no_in(dynamic_cast<serial_node*>((sched_state->state).all->DATABASE->find_node(in)));
-  node_val *neighbor(get_node_at_face(face));
+serial_node *no_in(dynamic_cast<serial_node*>((sched_state->state).all->DATABASE->find_node(in)));
+node_val *neighbor(get_node_at_face(face));
 
 #ifdef DEBUG
 //  cout << id << ":Remove neighbor(" << *neighbor << ", " << face << ")" << endl;
@@ -720,14 +710,14 @@ handleRemoveNeighbor(const deterministic_timestamp ts,
   } else {
       // remove old node
     if(has_been_instantiated())
-     add_neighbor_count(ts, no_in, get_neighbor_count(), -1);
+     addNeighborCount(ts, no_in, get_neighbor_count(), -1);
    dec_neighbor_count();
-   add_vacant(ts, no_in, face, 1);
+   addVacant(ts, no_in, face, 1);
    if(has_been_instantiated())
-     add_neighbor_count(ts, no_in, get_neighbor_count(), 1);
+     addNeighborCount(ts, no_in, get_neighbor_count(), 1);
  }
 
- add_neighbor(ts, no_in, *neighbor, face, -1);
+ addNeighbor(ts, no_in, *neighbor, face, -1);
 
  *neighbor = NO_NEIGHBOR;
 }
@@ -743,7 +733,7 @@ handleTap(const deterministic_timestamp ts, const db::node::node_id node)
   vm::tuple *tpl(new vm::tuple(tap_pred));
   db::simple_tuple *stpl(new db::simple_tuple(tpl, 1));
 
-  add_received_tuple(no, ts, stpl);
+  addReceivedTuple(no, ts, stpl);
 }
 }
 
@@ -761,7 +751,7 @@ handleAccel(const deterministic_timestamp ts, const db::node::node_id node,
 
   db::simple_tuple *stpl(new db::simple_tuple(tpl, 1));
 
-  add_received_tuple(no, ts, stpl);
+  addReceivedTuple(no, ts, stpl);
 }
 }
 
@@ -782,7 +772,7 @@ handleShake(const deterministic_timestamp ts, const db::node::node_id node,
 
   db::simple_tuple *stpl(new db::simple_tuple(tpl, 1));
 
-  add_received_tuple(no, ts, stpl);
+  addReceivedTuple(no, ts, stpl);
 }
 }
 /*Helper functions end*/
@@ -818,11 +808,11 @@ debugWaitMsg(void)
  }
 
 void 
-debugSendMsg(int destination,
-                             message_type* msg, size_t messageSize)
+debugSendMsg(int destination,message_type* msg, size_t messageSize)
 {
   size_t datasize=messageSize+4;
   message_type *data=new message_type[datasize];
+  datasize=datasize*sizeof(message_type);
   size_t i(0);
   
   data[i++] = datasize - sizeof(message_type);
