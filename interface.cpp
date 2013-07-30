@@ -116,7 +116,6 @@ run_program(int argc, char **argv, const char *program, const vm::machine_argume
 
         machine mac(program, num_threads, sched_type, margs, data_file == NULL ? string("") : string(data_file));
 
-
         if (debugger::isInDebuggingMode()) {
             debugger::debug(mac.get_all());
             debugger::pauseIt();
