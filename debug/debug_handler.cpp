@@ -309,12 +309,15 @@ namespace debugger {
         /*if normal- pass on the normal cout*/
         if (isInDebuggingMode())
             cout << msg;
-        else if (isInSimDebuggingMode())
-            sendMsg(MASTER,type,MSG.str());
-
-        /*if is in MPI or SIM debugging mode, send to master to display/handle
+        else if (isInSimDebuggingMode()) {
+           MSG << "<=======VM#" <<
+                api::getNodeID()
+                << "===================================================>"
+                << endl << msg;
+            sendMsg(api::getNodeID(),type,MSG.str());
+        /*if is in MPI debugging mode, send to master to display/handle
          *the message*/
-        else if (isInMpiDebuggingMode()){
+        } else if (isInMpiDebuggingMode()){
             MSG << "<=======VM#" <<
                 api::world->rank()
                 << "===================================================>"
@@ -795,7 +798,7 @@ namespace debugger {
                                 &specification,specSize);
 
             string spec(specification);
-
+			cout << "spec: " << specification << endl;
             /*if the controlling process is recieving a message*/
             if (isInMpiDebuggingMode()&&api::world->rank()==MASTER){
 
