@@ -322,6 +322,10 @@ namespace api {
         }
     }
 
+    int getNodeID(void){
+        return world->rank();
+    }
+
     bool onLocalVM(const db::node::node_id id) {
         return getVMId(id) == world->rank();
     }

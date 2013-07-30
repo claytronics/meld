@@ -674,6 +674,8 @@ namespace debugger {
         size_t bufSize = api::MAXLENGTH*SIZE;//bytes
         api::message_type msgSize = bufSize;
         utils::byte anotherIndicator = 0;
+        api::message_type timeStamp = 0;
+        api::message_type nodeId = api::getNodeID();
 
         int currentSize = 0;
 
@@ -682,6 +684,12 @@ namespace debugger {
 
         /*debug indicator*/
         utils::pack<api::message_type>(&debugFlag,1,msg,bufSize,&pos);
+
+        /*timestamp*/
+        utils::pack<api::message_type>(&timeStamp,1,msg,bufSize,&pos);
+
+        /*VM id*/
+        utils::pack<api::message_type>(&nodeId,1,msg,bufSize,&pos);
 
         /*indicate if another message is coming*/
         utils::pack<utils::byte>(&anotherIndicator,1,msg,bufSize,&pos);
@@ -750,8 +758,7 @@ namespace debugger {
         int instruction;
         char specification[api::MAXLENGTH*SIZE];
         int pos = 0;
-        api::message_type size;
-        api::message_type debugFlag;
+        api::message_type size,debugFlag,timeStamp,NodeId;
         size_t specSize;
         utils::byte anotherIndicator;
 
@@ -770,6 +777,12 @@ namespace debugger {
             /*debugFlag*/
             utils::unpack<api::message_type>(msg,api::MAXLENGTH*SIZE,
                                              &pos,&debugFlag,1);
+            /*timestamp*/
+            utils::unpack<api::message_type>(msg,api::MAXLENGTH*SIZE,
+                                             &pos,&timeStamp,1);
+            /*place msg came from*/
+            utils::unpack<api::message_type>(msg,api::MAXLENGTH*SIZE,
+                                             &pos,&NodeId,1);
             /*if another message is coming*/
             utils::unpack<utils::byte>(msg,api::MAXLENGTH*SIZE,
                                        &pos,&anotherIndicator,1);
