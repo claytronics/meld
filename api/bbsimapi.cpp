@@ -646,10 +646,14 @@ handleDebugMessage(utils::byte* reply, size_t totalSize)
 {
   size_t msgSize=totalSize/sizeof(message_type);
 
- message* msg= (message*)calloc(msgSize, sizeof(message_type));
- msg=(message*)reply;
- memcpy(msg->data.units,reply,totalSize-4*sizeof(message_type));
- debugger::messageQueue->push((message_type*)msg);
+ message* msg= (message*)calloc(msgSize+1, sizeof(message_type));
+// msg=(message*)reply;
+ memcpy(msg,reply, totalSize+sizeof(message_type));
+
+ message_type* debugData=(message_type*)calloc(msgSize-3, sizeof(message_type));
+ memcpy(debugData,msg->data.units,totalSize-3*sizeof(message_type));
+
+ debugger::messageQueue->push(debugData);
  free(msg);
 }
 

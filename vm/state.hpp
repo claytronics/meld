@@ -68,6 +68,7 @@ public:
 	db::simple_tuple *tuple_queue;
    db::node *node;
    ref_count count;
+   vm::depth_t depth;
    sched::base *sched;
    bool is_linear;
    list_linear used_linear_tuples;
@@ -167,7 +168,7 @@ public:
                                                        free_rstring.push_back(str); }
    inline void add_generated_tuple(db::simple_tuple *tpl) { tpl->set_generated_run(true); generated_tuples.push_back(tpl); }
    
-	bool add_fact_to_node(vm::tuple *, vm::ref_count count = 1);
+	bool add_fact_to_node(vm::tuple *, const vm::ref_count count = 1, const vm::depth_t depth = 0);
 	
 #ifndef USE_RULE_COUNTING
 	void mark_predicate_rules(const vm::predicate *);
@@ -186,8 +187,10 @@ public:
 
    void process_others(void);
    vm::strat_level mark_rules_using_local_tuples(db::simple_tuple_list&);
-   void run_node(db::node *);
-   void setup(vm::tuple*, db::node*, const ref_count);
+
+	void run_node(db::node *);
+   void setup(vm::tuple*, db::node*, const vm::ref_count, const vm::depth_t);
+
    void cleanup(void);
    bool linear_tuple_can_be_used(db::tuple_trie_leaf *) const;
    void using_new_linear_tuple(db::tuple_trie_leaf *);

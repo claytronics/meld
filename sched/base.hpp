@@ -81,14 +81,14 @@ namespace sched
 
       inline bool leader_thread(void) const { return get_id() == 0; }
 
-      virtual void init_node(db::node *node)
-      {
-         db::simple_tuple *stpl(db::simple_tuple::create_new(new vm::tuple(state.all->PROGRAM->get_init_predicate())));
-         new_work_self(node, stpl);
-         node->init();
-         node->set_owner(this);
-      }
-
+   virtual void init_node(db::node *node)
+   {
+      db::simple_tuple *stpl(db::simple_tuple::create_new(new vm::tuple(state.all->PROGRAM->get_init_predicate()), 0));
+      new_work_self(node, stpl);
+      node->init();
+      node->set_owner(this);
+   }
+   
    // a new work was created for the current executing node
       inline void new_work_self(db::node *node, db::simple_tuple *stpl, const process::work_modifier mod = process::mods::NOTHING)
       {
