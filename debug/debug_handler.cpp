@@ -638,9 +638,9 @@ namespace debugger {
         } else if (instruction == PAUSE){
 
             /*prints more information*/
-            if (verboseMode){
+            //if (verboseMode){
                 printf("%s",specification.c_str());
-            }
+            //}
 
         }
     }
@@ -675,7 +675,7 @@ namespace debugger {
         api::message_type debugFlag =  DEBUG;
         size_t contentSize = content.length() + 1;
         size_t bufSize = api::MAXLENGTH*SIZE;//bytes
-        api::message_type msgSize = bufSize;
+        api::message_type msgSize = bufSize-SIZE;
         utils::byte anotherIndicator = 0;
         api::message_type timeStamp = 0;
         api::message_type nodeId = api::getNodeID();
