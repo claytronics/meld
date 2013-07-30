@@ -650,6 +650,7 @@ handleDebugMessage(utils::byte* reply, size_t totalSize)
  msg=(message*)reply;
  memcpy(msg->data.units,reply,totalSize-4*sizeof(message_type));
  debugger::messageQueue->push((message_type*)msg);
+ free(msg);
 }
 
  static void 
