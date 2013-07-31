@@ -329,7 +329,6 @@ public:
    virtual inline void add_new(const vm::depth_t depth,
          const vm::ref_count many)
    {
-      std::cout<<":Add many received:"<<many<<std::endl;
       assert(many > 0);
       count += many;
       if(depths) {
@@ -340,7 +339,6 @@ public:
    virtual inline void sub(const vm::depth_t depth,
          const vm::ref_count many)
    {
-      std::cout<<":Sub many received:"<<many<<std::endl;
       assert(many < 0);
       count += many;
       if(depths) {

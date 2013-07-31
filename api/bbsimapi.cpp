@@ -349,7 +349,7 @@ set_color(db::node *n, const int r, const int g, const int b)
    const size_t msg_size = 5 * sizeof(message_type) + stpl_size;
    message* msga=(message*)calloc((msg_size+ sizeof(message_type)), 1);
   //Something to represent destination node.
-   size_t i = 0;
+  
    msga->size = (message_type)msg_size;
    msga->command = SEND_MESSAGE;
    msga->timestamp = 0;//(message_type)ts;
@@ -357,11 +357,8 @@ set_color(db::node *n, const int r, const int g, const int b)
    msga->data.send_message.face= 0; //(dynamic_cast<serial_node*>(from))->get_face(to);
    msga->data.send_message.dest_nodeID = to;
    cout << from->get_id() << " Send " << *stpl << "to "<< to<< endl;
-  int pos = 6 * sizeof(message_type);
-  stpl->pack((utils::byte*)msga, msg_size + sizeof(message_type), &pos);
-
-  assert((size_t)pos == msg_size + sizeof(message_type));
-
+   memcpy(msga+6,stpl,stpl_size);
+ 
   simple_tuple::wipeout(stpl);
   sendMessageTCP1(msga);
   free(msga);
