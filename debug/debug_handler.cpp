@@ -638,9 +638,9 @@ namespace debugger {
         } else if (instruction == PAUSE){
 
             /*prints more information*/
-            if (verboseMode){
+            //if (verboseMode){
                 printf("%s",specification.c_str());
-            }
+            //}
 
         }
     }

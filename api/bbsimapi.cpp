@@ -138,7 +138,7 @@ inline face_t operator++(face_t& f, int) {
   boost::mpi::communicator *world = NULL;
   
   /*Helper Functions*/
-  static const char* msgcmd2str[16];
+  static const char* msgcmd2str[17];
   static boost::asio::ip::tcp::socket *my_tcp_socket;
   static void processMessage(message_type* reply);
   static void addReceivedTuple(serial_node *no, size_t ts, db::simple_tuple *stpl);
@@ -192,10 +192,9 @@ inline face_t operator++(face_t& f, int) {
   { 
     if (schedular == NULL) return;
 
-    for (int i=0; i<16; i++) 
+    for (int i=0; i<17; i++) 
     msgcmd2str[i] = NULL;
     msgcmd2str[SETID] = "SETID";
-    msgcmd2str[DEBUG] = "DEBUG";
     msgcmd2str[STOP] = "STOP";
     msgcmd2str[ADD_NEIGHBOR] = "ADD_NEIGHBOR";
     msgcmd2str[REMOVE_NEIGHBOR] = "REMOVE_NEIGHBOR";
@@ -205,6 +204,7 @@ inline face_t operator++(face_t& f, int) {
     msgcmd2str[RECEIVE_MESSAGE] = "RECEIVE_MESSAGE";
     msgcmd2str[ACCEL] = "ACCEL";
     msgcmd2str[SHAKE] = "SHAKE";
+    msgcmd2str[DEBUG] = "DEBUG";
 
     try{
     /* Calling the connect*/
@@ -644,15 +644,17 @@ static void handleReceiveMessage(const deterministic_timestamp ts,
 static void
 handleDebugMessage(utils::byte* reply, size_t totalSize)
 {
-  size_t msgSize=totalSize/sizeof(message_type);
-
- message* msg= (message*)calloc(msgSize, sizeof(message_type));
- msg=(message*)reply;
- memcpy(msg->data.units,reply,totalSize-4*sizeof(message_type));
+ size_t msgSize=totalSize/sizeof(message_type);
+ message_type* m = (message_type*) reply;
+ message* msg= (message*)calloc(msgSize+1, sizeof(message_type));
+ memcpy(msg,reply, totalSize+sizeof(message_type));
  debugger::messageQueue->push((message_type*)msg);
 }
 
- static void 
+
+
+
+static void 
   handleAddNeighbor(const deterministic_timestamp ts, const db::node::node_id in,
     const db::node::node_id out, const face_t face)
   {
@@ -810,21 +812,8 @@ debugWaitMsg(void)
 void 
 debugSendMsg(int destination,message_type* msg, size_t messageSize)
 {
-  size_t datasize=messageSize+4;
-  message_type *data=new message_type[datasize];
-  datasize=datasize*sizeof(message_type);
-  size_t i(0);
-  
-  data[i++] = datasize - sizeof(message_type);
-  data[i++] = DEBUG;
-  data[i++] = 0;
-  data[i++] = (message_type)destination;
-  int pos=i * sizeof(message_type);
-  utils::pack<message_type>((void*)msg, messageSize, (utils::byte*)data, datasize, &pos);
-  sendMessageTCP(data);
-  delete []data;
+  sendMessageTCP(msg);
   delete[] msg;
-
 }
 }
 
