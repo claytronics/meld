@@ -367,7 +367,7 @@ message* msga=(message*)calloc((msg_size+ sizeof(message_type)), 1);
 int pos = 6 * sizeof(message_type);
   stpl->pack((utils::byte*)msga, msg_size + sizeof(message_type), &pos);
 // cout<<"Message Size:"<< msg_size<<" Pos:"<<pos<<" Assertion:"<<msg_size+sizeof(message_type)<<endl;
-  assert((size_t)pos == msg_size + sizeof(message_type)); <-----The assertion is failing now.
+  assert((size_t)pos == msg_size + sizeof(message_type));
 
   simple_tuple::wipeout(stpl);
   sendMessageTCP1(msga);
