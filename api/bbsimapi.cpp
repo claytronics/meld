@@ -341,15 +341,20 @@ set_color(db::node *n, const int r, const int g, const int b)
  }
 
 /*Sends the "SEND_MESSAGE" command*/
-  void 
+void
   sendMessage(const db::node* from, db::node::node_id to, db::simple_tuple* stpl)
   {
-   
+   //Find the tuple size
    const size_t stpl_size(stpl->storage_size());
-   const size_t msg_size = 5 * sizeof(message_type) + stpl_size;
-   message* msga=(message*)calloc((msg_size+ sizeof(message_type)), 1);
-  //Something to represent destination node.
-  
+ //  cout<<getNodeID<<":Stpl:"<<*stpl<<":Stpl size:"<<stpl_size<<endl;
+
+//Compute the size field  
+const size_t msg_size = 5 * sizeof(message_type) + stpl_size;
+
+//Allocating the buffer for the message   msg_size + the space for msga->size field.
+message* msga=(message*)calloc((msg_size+ sizeof(message_type)), 1);
+ 
+ 
    msga->size = (message_type)msg_size;
    msga->command = SEND_MESSAGE;
    msga->timestamp = 0;//(message_type)ts;
@@ -357,12 +362,18 @@ set_color(db::node *n, const int r, const int g, const int b)
    msga->data.send_message.face= 0; //(dynamic_cast<serial_node*>(from))->get_face(to);
    msga->data.send_message.dest_nodeID = to;
    cout << from->get_id() << " Send " << *stpl << "to "<< to<< endl;
-   memcpy(msga+6,stpl,stpl_size);
- 
+
+/*Setting the position at the end of header to copy the tuple*/ 
+int pos = 6 * sizeof(message_type);
+  stpl->pack((utils::byte*)msga, msg_size + sizeof(message_type), &pos);
+// cout<<"Message Size:"<< msg_size<<" Pos:"<<pos<<" Assertion:"<<msg_size+sizeof(message_type)<<endl;
+  assert((size_t)pos == msg_size + sizeof(message_type)); <-----The assertion is failing now.
+
   simple_tuple::wipeout(stpl);
   sendMessageTCP1(msga);
   free(msga);
 }
+
 
 /*Flags if VM can run now*/
 bool 
