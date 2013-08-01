@@ -445,38 +445,39 @@ sendMessageTCP(message *msg)
   {
     printf("%d:Processing %s %lud bytes for %lud\n",id, msgcmd2str[reply[1]], reply[0], reply[3]);
     assert(reply!=NULL);
+    message* msg=(message*)reply;
 
-    switch(reply[1]) {
+    switch(msg->command) {
   /*Initilize the blocks's ID*/
       case SETID: 
-      handleSetID((deterministic_timestamp) reply[2], (db::node::node_id) reply[3]);
+      handleSetID((deterministic_timestamp) msg->timestamp, (db::node::node_id) msg->node);
       id=(db::node::node_id) reply[3];
       ready=true;
       break;
 
       case RECEIVE_MESSAGE:
-      handleReceiveMessage((deterministic_timestamp)reply[2],
-        (db::node::node_id)reply[3],
-        (face_t)reply[4],
-        (db::node::node_id)reply[5],
+      handleReceiveMessage((deterministic_timestamp)msg->timestamp,
+        (db::node::node_id)msg->node,
+        (face_t)msg->data.receiveMessage.face,
+        (db::node::node_id)msg->data.receiveMessage.from,
         (utils::byte*)reply,
         6 * sizeof(message_type),
-        (int)(reply[0] + sizeof(message_type)));
+        (int)(msg->size + sizeof(message_type)));
       break;
 
       case ADD_NEIGHBOR:
-      if(id==(db::node::node_id) reply[3])
-        handleAddNeighbor((deterministic_timestamp)reply[2],
-         (db::node::node_id)reply[3],
-         (db::node::node_id)reply[4],
-         (face_t)reply[5]);
+      if(id==(db::node::node_id) msg->node)
+        handleAddNeighbor((deterministic_timestamp)msg->timestamp,
+         (db::node::node_id)msg->node,
+         (db::node::node_id)msg->data.addNeighbor.nid,
+         (face_t)msg->data.addNeighbor.face);
       break;
 
       case REMOVE_NEIGHBOR:
    // if(id==(db::node::node_id) reply[3])
-      handleRemoveNeighbor((deterministic_timestamp)reply[2],
-        (db::node::node_id)reply[3],
-        (face_t)reply[4]);
+      handleRemoveNeighbor((deterministic_timestamp)msg->timestamp,
+        (db::node::node_id)msg->node,
+        (face_t)msg->data.delNeighbor.face);
       break;
 
       case TAP:
