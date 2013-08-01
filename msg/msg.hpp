@@ -66,6 +66,10 @@ namespace msg{
         message_type face;
       } delNeighbor;
 
+    //CMD TAP
+      struct{
+      }tap;
+
       message_type units[MAX_MSG];
 
     } data;

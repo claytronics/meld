@@ -481,17 +481,17 @@ sendMessageTCP(message *msg)
       break;
 
       case TAP:
-      handleTap((deterministic_timestamp)reply[2], (db::node::node_id)reply[3]);
+      handleTap((deterministic_timestamp)msg->timestamp, (db::node::node_id)msg->node);
       break;
 
       case ACCEL:
-      handleAccel((deterministic_timestamp)reply[2],
-       (db::node::node_id)reply[3],
+      handleAccel((deterministic_timestamp)msg->timestamp,
+       (db::node::node_id)msg->node,
        (int)reply[4]);
       break;
 
       case SHAKE:
-      handleShake((deterministic_timestamp)reply[2], (db::node::node_id)reply[3],
+      handleShake((deterministic_timestamp)msg->timestamp, (db::node::node_id)msg->node,
        (int)reply[4], (int)reply[5], (int)reply[6]);
       break;
 
