@@ -61,7 +61,7 @@ base::do_loop(void)
           finish_work(node);
       }
 
-      if (debugger::isInMpiDebuggingMode()){
+      if (debugger::isInMpiDebuggingMode()||debugger::isInSimDebuggingMode()){
           debugger::receiveMsg();
           if (debugger::isTheSystemPaused()){
               debugger::isPausedInWorkLoop = true;
@@ -72,7 +72,7 @@ base::do_loop(void)
 
       bool hasWork = api::pollAndProcess(this, state.all);
       bool ensembleFinished = false;
-      if (!hasWork)
+      if (!hasWork){
           ensembleFinished = api::ensembleFinished(this);
       if (debugger::serializationMode)
           api::serializeEndExec();

@@ -1236,7 +1236,7 @@ execute_iter(pcounter pc, const utils::byte options, const utils::byte options_a
       // we get the tuple later since the previous leaf may have been deleted
       tuple *match_tuple(tuple_leaf->get_underlying_tuple());
       assert(match_tuple != NULL);
-   
+
 #ifdef TRIE_MATCHING_ASSERT
 
       assert(do_matches(pc, match_tuple, state));

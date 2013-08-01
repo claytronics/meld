@@ -309,12 +309,15 @@ namespace debugger {
         /*if normal- pass on the normal cout*/
         if (isInDebuggingMode())
             cout << msg;
-        else if (isInSimDebuggingMode())
-            sendMsg(MASTER,type,MSG.str());
-
-        /*if is in MPI or SIM debugging mode, send to master to display/handle
+        else if (isInSimDebuggingMode()) {
+           MSG << "<=======VM#" <<
+                api::getNodeID()
+                << "===================================================>"
+                << endl << msg;
+            sendMsg(api::getNodeID(),type,MSG.str());
+        /*if is in MPI debugging mode, send to master to display/handle
          *the message*/
-        else if (isInMpiDebuggingMode()){
+        } else if (isInMpiDebuggingMode()){
             MSG << "<=======VM#" <<
                 api::world->rank()
                 << "===================================================>"
@@ -424,7 +427,8 @@ namespace debugger {
                 serializationMode = true;
             }
         }
-        if (isInMpiDebuggingMode()&&api::world->rank()!=MASTER)
+        if ((isInMpiDebuggingMode()&&api::world->rank()!=MASTER)
+            ||isInSimDebuggingMode())
             display(msg.str(),PRINTCONTENT);
     }
 
@@ -576,7 +580,8 @@ namespace debugger {
                     break;
                 case TERMINATE:
                     /*if quit command was specified*/
-                    api::end();
+                    if (isInMpiDebuggingMode())
+                        api::end();
                     listFree(getFactList());
                     delete messageQueue;
                     exit(0);
@@ -672,7 +677,7 @@ namespace debugger {
         api::message_type debugFlag =  DEBUG;
         size_t contentSize = content.length() + 1;
         size_t bufSize = api::MAXLENGTH*SIZE;//bytes
-        api::message_type msgSize = bufSize;
+        api::message_type msgSize = bufSize-SIZE;
         utils::byte anotherIndicator = 0;
         api::message_type timeStamp = 0;
         api::message_type nodeId = api::getNodeID();
@@ -795,7 +800,6 @@ namespace debugger {
                                 &specification,specSize);
 
             string spec(specification);
-
             /*if the controlling process is recieving a message*/
             if (isInMpiDebuggingMode()&&api::world->rank()==MASTER){
 
