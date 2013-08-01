@@ -161,9 +161,8 @@ inline face_t operator++(face_t& f, int) {
   static bool isReady();
   static message_type *tcpPool();
   static void initTCP();
-  static void sendMessageTCP(message_type *msg);
   static void handleDebugMessage(utils::byte* reply, size_t totalSize);
-  static void sendMessageTCP1(message *m);
+  static void sendMessageTCP(message *m);
 
   static bool ready(false);
 
@@ -316,7 +315,7 @@ set_color(db::node *n, const int r, const int g, const int b)
   colorMessage->data.color.b=b;
   colorMessage->data.color.i=0;
 
-  sendMessageTCP1(colorMessage);
+  sendMessageTCP(colorMessage);
   free(colorMessage);
 }
 
@@ -370,7 +369,7 @@ int pos = 6 * sizeof(message_type);
   assert((size_t)pos == msg_size + sizeof(message_type));
 
   simple_tuple::wipeout(stpl);
-  sendMessageTCP1(msga);
+  sendMessageTCP(msga);
   free(msga);
 }
 
@@ -429,13 +428,7 @@ tcpPool()
 
 /*Sends the message over the socket*/
 static void 
-sendMessageTCP(message_type *msg)
-  {
-    boost::asio::write(*my_tcp_socket, boost::asio::buffer(msg, msg[0] + sizeof(message_type)));
-  }
-
-  static void 
-sendMessageTCP1(message *msg)
+sendMessageTCP(message *msg)
   {
     boost::asio::write(*my_tcp_socket, boost::asio::buffer(msg, msg->size + sizeof(message_type)));
   }
@@ -820,7 +813,7 @@ debugWaitMsg(void)
 void 
 debugSendMsg(int destination,message_type* msg, size_t messageSize)
 {
-  sendMessageTCP(msg);
+  sendMessageTCP((message*)msg);
   delete[] msg;
 }
 }
