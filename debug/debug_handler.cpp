@@ -427,7 +427,8 @@ namespace debugger {
                 serializationMode = true;
             }
         }
-        if (isInMpiDebuggingMode()&&api::world->rank()!=MASTER)
+        if ((isInMpiDebuggingMode()&&api::world->rank()!=MASTER)
+            ||isInSimDebuggingMode())
             display(msg.str(),PRINTCONTENT);
     }
 
@@ -579,7 +580,8 @@ namespace debugger {
                     break;
                 case TERMINATE:
                     /*if quit command was specified*/
-                    api::end();
+                    if (isInMpiDebuggingMode())
+                        api::end();
                     listFree(getFactList());
                     delete messageQueue;
                     exit(0);
@@ -638,9 +640,9 @@ namespace debugger {
         } else if (instruction == PAUSE){
 
             /*prints more information*/
-            //if (verboseMode){
+            if (verboseMode){
                 printf("%s",specification.c_str());
-            //}
+            }
 
         }
     }
@@ -798,7 +800,6 @@ namespace debugger {
                                 &specification,specSize);
 
             string spec(specification);
-			cout << "spec: " << specification << endl;
             /*if the controlling process is recieving a message*/
             if (isInMpiDebuggingMode()&&api::world->rank()==MASTER){
 
