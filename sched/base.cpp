@@ -113,7 +113,7 @@ base::start(void)
        // Main thread
   thread = new boost::thread();
   loop();
-}
+ }
 }
 
 base::~base(void)
