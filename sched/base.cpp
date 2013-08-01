@@ -72,7 +72,7 @@ base::do_loop(void)
 
       bool hasWork = api::pollAndProcess(this, state.all);
       bool ensembleFinished = false;
-      if (!hasWork){
+      if (!hasWork)
           ensembleFinished = api::ensembleFinished(this);
       if (debugger::serializationMode)
           api::serializeEndExec();
@@ -113,7 +113,7 @@ base::start(void)
        // Main thread
   thread = new boost::thread();
   loop();
-}
+ }
 }
 
 base::~base(void)
