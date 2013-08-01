@@ -47,21 +47,29 @@ namespace process
            api::set_color(node, tpl->get_int(0), tpl->get_int(1), tpl->get_int(2));
            break;
        case SETCOLOR2_PREDICATE_ID:
+       {
+           string colorName = "";
            switch(tpl->get_int(0)) {
-               case 0: r = 255; break; // RED
-               case 1: r = 255; g = 160; break; // ORANGE
-               case 2: r = 255; g = 247; break; // YELLOW
-               case 3: g = 255; break; // GREEN
-               case 4: g = 191; b = 255; break; // AQUA
-               case 5: b = 255; break; // BLUE
-               case 6: r = 255; g = 255; b = 255; break; // WHITE
-               case 7: r = 139; b = 204; break; // PURPLE
-               case 8: r = 255; g = 192; b = 203; break; // PINK
+               case 0: r = 255; colorName = "RED"; break; // RED
+               case 1: r = 255; g = 160; colorName = "ORANGE"; break; // ORANGE
+               case 2: r = 255; g = 247; colorName = "YELLOW"; break; // YELLOW
+               case 3: g = 255; colorName = "GREEN"; break; // GREEN
+               case 4: g = 191; b = 255; colorName = "AQUA"; break; // AQUA
+               case 5: b = 255; colorName = "BLUE"; break;// BLUE
+               case 6: r = 255; g = 255; b = 255;
+                   colorName = "WHITE"; break; // WHITE
+               case 7: r = 139; b = 204; colorName = "PURPLE"; break; // PURPLE
+               case 8: r = 255; g = 192; b = 203;
+                   colorName = "PINK"; break; // PINK
                case -1: printf("Invalid Color(-1).\n");return; break;
                default: printf("Default Color.\n");break;
            }
+           string msg = "\t-The color " + colorName +  " has been set\n";
            api::set_color(node, r, g, b);
+           debugger::runBreakPoint("action",msg.c_str(),
+                                   (char*)colorName.c_str(),api::getNodeID());
            break;
+       }
        case SETEDGELABEL_PREDICATE_ID:
            break;
        case SET_PRIORITY_PREDICATE_ID:
@@ -96,7 +104,6 @@ namespace process
    }
 
 	delete tpl;
-	debugger::runBreakPoint("action","","",-1);
 }
 
   void

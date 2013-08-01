@@ -61,7 +61,7 @@ base::do_loop(void)
           finish_work(node);
       }
 
-      if (debugger::isInMpiDebuggingMode()){
+      if (debugger::isInMpiDebuggingMode()||debugger::isInSimDebuggingMode()){
           debugger::receiveMsg();
           if (debugger::isTheSystemPaused()){
               debugger::isPausedInWorkLoop = true;
