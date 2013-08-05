@@ -14,11 +14,12 @@ PROFILING = #-pg
 OPTIMIZATIONS = -O0
 ARCH = -march=x86-64
 #DEBUG = -g -DDEBUG_RULES
+DETERMINISM = -DSIMD
 WARNINGS = -Wall -Wextra #-Werror
 C0X = -std=c++0x
 UILIBRARIES = #-lwebsocketpp -ljson_spirit
 
-CFLAGS = $(ARCH) $(PROFILING) $(OPTIMIZATIONS) $(WARNINGS) $(DEBUG) $(INCLUDE_DIRS) $(COX)
+CFLAGS = $(ARCH) $(PROFILING) $(OPTIMIZATIONS) $(WARNINGS) $(DEBUG) $(DETERMINISM) $(INCLUDE_DIRS) $(COX)
 
 LIBRARIES = -pthread -lpthread -lm -lreadline -lboost_thread-mt -lboost_system-mt \
 			-lboost_date_time-mt -lboost_regex-mt $(UILIBRARIES)

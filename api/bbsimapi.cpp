@@ -35,6 +35,12 @@ using namespace msg;
 #define ACCEL 14
 #define SHAKE 15
 
+#ifdef SIMD
+	#define SET_DETERMINISTIC_MODE	20
+	#define START_COMPUTATION		21
+	#define END_COMPUTATION			22
+#endif
+
 // debug messages for simulation
 // #define DEBUG
 
@@ -138,7 +144,7 @@ inline face_t operator++(face_t& f, int) {
   boost::mpi::communicator *world = NULL;
   
   /*Helper Functions*/
-  static const char* msgcmd2str[17];
+  static const char* msgcmd2str[23];
   static boost::asio::ip::tcp::socket *my_tcp_socket;
   static void processMessage(message_type* reply);
   static void addReceivedTuple(serial_node *no, size_t ts, db::simple_tuple *stpl);
@@ -164,6 +170,13 @@ inline face_t operator++(face_t& f, int) {
   static void sendMessageTCP(message_type *msg);
   static void handleDebugMessage(utils::byte* reply, size_t totalSize);
   static void sendMessageTCP1(message *m);
+
+#ifdef SIMD
+	static void handleSetDeterministicMode(const deterministic_timestamp ts,
+  const db::node::node_id node);
+	static void handleStartComputation(const deterministic_timestamp ts,
+  const db::node::node_id node, int duration); 
+#endif
 
   static bool ready(false);
 
@@ -192,7 +205,7 @@ inline face_t operator++(face_t& f, int) {
   { 
     if (schedular == NULL) return;
 
-    for (int i=0; i<17; i++) 
+    for (int i=0; i<23; i++) 
     msgcmd2str[i] = NULL;
     msgcmd2str[SETID] = "SETID";
     msgcmd2str[STOP] = "STOP";
@@ -205,7 +218,11 @@ inline face_t operator++(face_t& f, int) {
     msgcmd2str[ACCEL] = "ACCEL";
     msgcmd2str[SHAKE] = "SHAKE";
     msgcmd2str[DEBUG] = "DEBUG";
-
+#ifdef SIMD
+    msgcmd2str[SET_DETERMINISTIC_MODE] = "SET_DETERMINISTIC_MODE";
+    msgcmd2str[START_COMPUTATION] = "START_COMPUTATION";
+    msgcmd2str[END_COMPUTATION] = "END_COMPUTATION";
+#endif
     try{
     /* Calling the connect*/
       initTCP();
@@ -215,6 +232,9 @@ inline face_t operator++(face_t& f, int) {
     } catch(std::exception &e) {
       throw machine_error("can't connect to simulator");
     }
+    #ifdef SIMD
+    sched_state->state.isInDeterministicMode = true;
+    #endif
   }
 
 void debugInit(vm::all *all)
@@ -309,7 +329,11 @@ set_color(db::node *n, const int r, const int g, const int b)
 
   colorMessage->size=7 * sizeof(message_type);
   colorMessage->command=SET_COLOR;
+#ifdef SIMD
+  colorMessage->timestamp=sched_state->state.current_local_time;
+#else
   colorMessage->timestamp=0;
+#endif  
   colorMessage->node=(message_type)n->get_id();
   colorMessage->data.color.r=r;
   colorMessage->data.color.g=g;
@@ -319,6 +343,22 @@ set_color(db::node *n, const int r, const int g, const int b)
   sendMessageTCP1(colorMessage);
   free(colorMessage);
 }
+
+#ifdef SIMD
+  void endComputation(db::node *n) {
+	if (!sched_state->state.compute) return;
+	sched_state->state.compute = false;
+    message* endComputationMessage=(message*)calloc(4, sizeof(message_type));
+    endComputationMessage->size=3 * sizeof(message_type);
+    endComputationMessage->command=END_COMPUTATION;
+    endComputationMessage->timestamp=max(sched_state->state.current_local_time, sched_state->state.current_computation_end_time);
+    endComputationMessage->node=(message_type)n->get_id();
+    sched_state->state.current_local_time = max(sched_state->state.current_local_time, sched_state->state.current_computation_end_time);
+    cout << "end of computation sent at " << max(sched_state->state.current_local_time, sched_state->state.current_computation_end_time) << endl;
+    sendMessageTCP1(endComputationMessage);
+    free(endComputationMessage);
+  }
+#endif
 
 /*Returns the node id for bbsimAPI*/
   int 
@@ -352,7 +392,11 @@ set_color(db::node *n, const int r, const int g, const int b)
    size_t i = 0;
    msga->size = (message_type)msg_size;
    msga->command = SEND_MESSAGE;
-   msga->timestamp = 0;//(message_type)ts;
+#ifdef SIMD
+  msga->timestamp = sched_state->state.current_local_time;
+#else
+  msga->timestamp = 0;
+#endif 
    msga->node = from->get_id();
    msga->data.send_message.face= 0; //(dynamic_cast<serial_node*>(from))->get_face(to);
    msga->data.send_message.dest_nodeID = to;
@@ -403,6 +447,9 @@ static message_type *
 tcpPool()
 {
   static message_type msg[1024];
+#ifdef SIMD
+	if(sched_state->state.compute) return NULL;
+#endif
   try {
     if(my_tcp_socket->available())
     {
@@ -503,6 +550,17 @@ sendMessageTCP1(message *msg)
       usleep(200);
       break;
 
+#ifdef SIMD      
+      case SET_DETERMINISTIC_MODE:
+		handleSetDeterministicMode((deterministic_timestamp)reply[2],
+		 (db::node::node_id)reply[3]);
+      break;
+      
+      case START_COMPUTATION:
+		 handleStartComputation((deterministic_timestamp)reply[2],
+		  (db::node::node_id)reply[3], (int)reply[4]);
+      break;
+#endif
       default: cerr << "Unrecognized message " << reply[1] << endl;
     }
   }
@@ -777,6 +835,21 @@ handleShake(const deterministic_timestamp ts, const db::node::node_id node,
   addReceivedTuple(no, ts, stpl);
 }
 }
+
+#ifdef SIMD
+  void handleSetDeterministicMode(const deterministic_timestamp ts,
+    const db::node::node_id node) {
+     sched_state->state.isInDeterministicMode=true;
+  }
+
+  void handleStartComputation(const deterministic_timestamp ts,
+    const db::node::node_id node, int duration) {
+	 sched_state->state.compute = true;
+	 sched_state->state.current_computation_end_time=ts+duration;
+	 cout << "will compute till : "<< sched_state->state.current_computation_end_time << endl;
+  }
+#endif
+
 /*Helper functions end*/
 
 /*Debugger Messages*/

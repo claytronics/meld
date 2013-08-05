@@ -52,15 +52,19 @@ base::do_loop(void)
   db::node *node(NULL);
 
   while(true) {
-
+	  //cout << "while loop" << endl;
       if (debugger::serializationMode)
           api::serializeBeginExec();
       while ((node = get_work())) {
           // Current VM has local work, process work
           do_work(node);
           finish_work(node);
+          cout << "get_work loop..." << endl;
       }
-
+#ifdef SIMD
+		  api::endComputation(state.node);
+		  //cout << "get_work end..." << endl;
+#endif   
       if (debugger::isInMpiDebuggingMode()||debugger::isInSimDebuggingMode()){
           debugger::receiveMsg();
           if (debugger::isTheSystemPaused()){
@@ -72,8 +76,9 @@ base::do_loop(void)
 
       bool hasWork = api::pollAndProcess(this, state.all);
       bool ensembleFinished = false;
-      if (!hasWork){
-          ensembleFinished = api::ensembleFinished(this);
+      if (!hasWork) {       
+          ensembleFinished = api::ensembleFinished(this);      
+	  }
       if (debugger::serializationMode)
           api::serializeEndExec();
       if (ensembleFinished)

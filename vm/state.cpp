@@ -743,6 +743,12 @@ state::state(sched::base *_sched, vm::all *_all):
    , print_instrs(false)
 #endif
    , all(_all)
+#ifdef SIMD
+	, current_local_time(0),
+	current_computation_end_time(0),
+	isInDeterministicMode(false),
+	compute(false)
+#endif
 {
 #ifdef CORE_STATISTICS
    init_core_statistics();
@@ -752,6 +758,7 @@ state::state(sched::base *_sched, vm::all *_all):
 	predicates = new bool[all->PROGRAM->num_predicates()];
 	fill_n(predicates, all->PROGRAM->num_predicates(), false);
 	rule_queue.set_type(HEAP_INT_ASC);
+
 }
 
 state::state(vm::all *_all):
@@ -761,6 +768,12 @@ state::state(vm::all *_all):
 #endif
    , persistent_only(false)
    , all(_all)
+#ifdef SIMD
+	, current_local_time(0),
+	current_computation_end_time(0),
+	isInDeterministicMode(false),
+	compute(false)
+#endif
 {
 #ifdef CORE_STATISTICS
    init_core_statistics();

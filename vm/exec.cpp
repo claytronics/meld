@@ -10,6 +10,7 @@
 #include "db/tuple.hpp"
 #include "process/machine.hpp"
 #include "debug/debug_handler.hpp"
+#include "api/api.hpp"
 
 //#define DEBUG_SENDS
 //#define DEBUG_INSTRS
@@ -1869,7 +1870,19 @@ execute(pcounter pc, state& state)
    for(; ; pc = advance(pc))
    {
 eval_loop:
-
+#ifdef SIMD
+	if(!CANCOMPUTE) {
+        cout << "can not compute" << endl;
+		if(state.current_computation_end_time != 0)
+			api::endComputation(state.node);
+		while(!CANCOMPUTE) {
+			api::pollAndProcess(NULL,NULL);
+            usleep(5000); // to avoid polling to much
+        }
+        cout << "can compute again" << endl;
+	}
+	state.current_local_time += 5; // test purpose
+#endif
 
 #ifdef DEBUG_MODE
 		if(state.print_instrs)

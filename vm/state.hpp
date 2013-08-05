@@ -15,6 +15,8 @@
 #include "utils/random.hpp"
 #include "queue/safe_simple_pqueue.hpp"
 
+#define CANCOMPUTE (!state.isInDeterministicMode || state.current_local_time<state.current_computation_end_time)
+
 // forward declaration
 namespace sched {
 	class base;
@@ -105,6 +107,13 @@ public:
 	bool stat_inside_rule;
 	size_t stat_rules_activated;
 #endif
+
+#ifdef SIMD
+	deterministic_timestamp current_local_time;
+	deterministic_timestamp current_computation_end_time;
+	bool isInDeterministicMode;
+	bool compute;
+#endif   
    
 #define define_get(WHAT, RET, BODY) \
    inline RET get_ ## WHAT (const reg_num& num) const { BODY; }
