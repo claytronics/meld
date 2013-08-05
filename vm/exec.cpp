@@ -1874,7 +1874,7 @@ eval_loop:
 	if(!CANCOMPUTE) {
         cout << "can not compute" << endl;
 		if(state.current_computation_end_time != 0)
-			api::endComputation(state.node);
+			api::endComputation(state.node, false);
 		while(!CANCOMPUTE) {
 			api::pollAndProcess(NULL,NULL);
             usleep(5000); // to avoid polling to much

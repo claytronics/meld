@@ -59,6 +59,11 @@ namespace msg{
       struct {
         message_type face;
       } delNeighbor;
+      
+      // CMD_END_COMPUTATION (DETERMINISM)
+      struct {
+		  message_type hasNoWork;
+	  } endComputation;
 
       message_type units[MAX_MSG];
 
