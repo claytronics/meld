@@ -44,7 +44,7 @@ static const int TIME_TO_INSTANTIATE = 500;
 
 namespace sched
 {
-	
+
 int sim_sched::PORT(0);
 vm::predicate* sim_sched::neighbor_pred(NULL);
 vm::predicate* sim_sched::tap_pred(NULL);
@@ -67,38 +67,38 @@ sim_sched::~sim_sched(void)
 		//delete socket;
 	}
 }
-	
+
 void
 sim_sched::init(const size_t num_threads)
 {
 	if(slave)
 		return;
-		
+
 	assert(num_threads == 1);
-	
+
    database::map_nodes::iterator it(state.all->DATABASE->get_node_iterator(remote::self->find_first_node(id)));
    database::map_nodes::iterator end(state.all->DATABASE->get_node_iterator(remote::self->find_last_node(id)));
 
 	// no nodes
 	assert(it == end);
-	
+
 	state::SIM = true;
    sim_sched::socket_messages = new queue::push_safe_linear_queue<sim_sched::message_type*>();
-	
+
 	try {
    	// add socket
 		boost::asio::io_service io_service;
-		
+
 		tcp::resolver resolver(io_service);
 		tcp::resolver::query query(tcp::v4(), "127.0.0.1", utils::to_string(PORT));
 		tcp::resolver::iterator iterator = resolver.resolve(query);
-	
+
 		socket = new tcp::socket(io_service);
 		socket->connect(*iterator);
 	} catch(std::exception &e) {
 		throw machine_error("can't connect to simulator");
 	}
-	
+
 	// find neighbor predicate
 	neighbor_pred = state.all->PROGRAM->get_predicate_by_name("neighbor");
    if(neighbor_pred) {
@@ -106,7 +106,7 @@ sim_sched::init(const size_t num_threads)
    } else {
       cerr << "No neighbor predicate found" << endl;
    }
-	
+
 	tap_pred = state.all->PROGRAM->get_predicate_by_name("tap");
    if(tap_pred) {
       assert(tap_pred->num_fields() == 0);
@@ -164,9 +164,9 @@ void
 sim_sched::new_work(const node *_src, work& new_work)
 {
    sim_node *to(dynamic_cast<sim_node*>(new_work.get_node()));
-   
+
 	db::simple_tuple *stpl(new_work.get_tuple());
-	
+
 	if(thread_mode) {
       to->pending.push(stpl);
 	} else {
@@ -222,9 +222,9 @@ sim_sched::add_neighbor(const size_t ts, sim_node *no, const node_val out, const
    vm::tuple *tpl(new vm::tuple(neighbor_pred));
    tpl->set_node(0, out);
    tpl->set_int(1, static_cast<int_val>(face));
-				
+
    db::simple_tuple *stpl(new db::simple_tuple(tpl, count));
-				
+
    add_received_tuple(no, ts, stpl);
 }
 
@@ -331,7 +331,7 @@ sim_sched::handle_deterministic_computation(void)
    }
 
    current_node->timestamp = state.sim_instr_counter;
-   
+
    size_t i(0);
 	message_type reply[MAXLENGTH];
    reply[i++] = (4 + nodes.size()) * sizeof(message_type);
@@ -339,7 +339,7 @@ sim_sched::handle_deterministic_computation(void)
    reply[i++] = (message_type)current_node->timestamp;
    reply[i++] = (message_type)current_node->get_id();
    reply[i++] = (message_type)nodes.size();
-   
+
    for(set<sim_node*>::iterator it(nodes.begin()), end(nodes.end());
       it != end;
       ++it)
@@ -380,9 +380,9 @@ node*
 sim_sched::handle_run_node(const deterministic_timestamp ts, const db::node::node_id node)
 {
    assert(!thread_mode);
-   
+
    db::node *no(state.all->DATABASE->find_node(node));
-   
+
    current_node = (sim_node*)no;
 
 #ifdef DEBUG
@@ -432,7 +432,7 @@ sim_sched::handle_add_neighbor(const deterministic_timestamp ts, const db::node:
 #ifdef DEBUG
    cout << ts << " neighbor(" << in << ", " << out << ", " << face << ")" << endl;
 #endif
-   
+
    sim_node *no_in(dynamic_cast<sim_node*>(state.all->DATABASE->find_node(in)));
    node_val *neighbor(no_in->get_node_at_face(face));
 
@@ -470,7 +470,7 @@ sim_sched::handle_remove_neighbor(const deterministic_timestamp ts,
 #ifdef DEBUG
    cout << ts << " remove neighbor(" << in << ", " << face << ")" << endl;
 #endif
-   
+
    sim_node *no_in(dynamic_cast<sim_node*>(state.all->DATABASE->find_node(in)));
    node_val *neighbor(no_in->get_node_at_face(face));
 
@@ -496,15 +496,16 @@ void
 sim_sched::handle_tap(const deterministic_timestamp ts, const db::node::node_id node)
 {
    cout << ts << " tap(" << node << ")" << endl;
-   
+
    sim_node *no(dynamic_cast<sim_node*>(state.all->DATABASE->find_node(node)));
 
    if(tap_pred) {
       vm::tuple *tpl(new vm::tuple(tap_pred));
       db::simple_tuple *stpl(new db::simple_tuple(tpl, 1));
-      
+
       add_received_tuple(no, ts, stpl);
    }
+   debugger::runBreakPoint("sense","\tA tap has been sensed","tap",node);
 }
 
 void
@@ -523,6 +524,8 @@ sim_sched::handle_accel(const deterministic_timestamp ts, const db::node::node_i
 
       add_received_tuple(no, ts, stpl);
    }
+
+   debugger::runBreakPoint("sense","\tAn acceleration has been sensed","accel",node);
 }
 
 void
@@ -543,6 +546,7 @@ sim_sched::handle_shake(const deterministic_timestamp ts, const db::node::node_i
 
       add_received_tuple(no, ts, stpl);
    }
+   debugger::runBreakPoint("sense","\tA shake has been sensed",shake,node);
 }
 
 void
@@ -568,14 +572,14 @@ sim_sched::master_get_work(void)
 {
 	assert(!thread_mode && !slave);
 	message_type reply[MAXLENGTH];
-	
+
 	if(current_node) {
 		// we just did a round of computation
 		assert(!thread_mode);
 
       handle_deterministic_computation();
 	}
-	
+
 	while(true) {
 		if(!socket->available()) {
          send_pending_messages();
@@ -595,14 +599,14 @@ sim_sched::master_get_work(void)
 		} else {
 //         cout << "Not available" << endl;
       }
-		
+
 		size_t length =
 			socket->read_some(boost::asio::buffer(reply, sizeof(message_type)));
 		assert(length == sizeof(message_type));
 		length = socket->read_some(boost::asio::buffer(reply+1,  reply[0]));
 
 		assert(length == (size_t)reply[0]);
-		
+
 		switch(reply[1]) {
 			case USE_THREADS:
             cout << "Run in threads mode" << endl;
@@ -680,7 +684,7 @@ sim_sched::set_color(db::node *n, const int r, const int g, const int b)
 {
 	message_type *data = new message_type[8];
    size_t i(0);
-	
+
 	data[i++] = 7 * sizeof(message_type);
 	data[i++] = SET_COLOR;
    data[i++] = 0;
@@ -746,7 +750,7 @@ void
 sim_sched::gather_next_tuples(db::node *node, simple_tuple_list& ls)
 {
 	sim_node *no((sim_node*)node);
-	
+
 	no->pending.pop_list(ls);
 
    if(state.sim_instr_use) {
@@ -754,7 +758,7 @@ sim_sched::gather_next_tuples(db::node *node, simple_tuple_list& ls)
    }
 
    no->add_delayed_tuples(ls);
-	
+
 #if 0
    for(simple_tuple_list::iterator it(ls.begin()), end(ls.end()); it != end; ++it) {
       simple_tuple *stpl(*it);

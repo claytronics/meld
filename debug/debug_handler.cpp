@@ -538,6 +538,7 @@ namespace debugger {
                     }
                     break;
                 case PAUSE:
+
                     /*sychronization conditions -- if already paused
                      *don't do anything, the master already knows
                      *they are paused*/
@@ -549,7 +550,7 @@ namespace debugger {
                     /*if it never left a pause loop (continue would have been called
                      * and pause message repaused it without leaving loop)*/
                     if (isSystemPaused){
-                        display("CURRENTLY PAUSED",PAUSE);
+                        display("CURRENTLY PAUSED\n",PAUSE);
                         break;
                     }
                     /*pause it otherwise*/
