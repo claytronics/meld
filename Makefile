@@ -87,6 +87,11 @@ SRCS = utils/utils.cpp \
 			 debug/debug_prompt.cpp \
 			 debug/debug_handler.cpp \
 			 debug/debug_list.cpp \
+<<<<<<< HEAD
+=======
+			 api/mpi.cpp
+#			 api/bbsimapi.cpp \
+>>>>>>> ef8c243d3ea946ad91bf5c4d12c2b21b5d15d539
 			 api/mpi.cpp \
 
 
