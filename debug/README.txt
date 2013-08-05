@@ -138,6 +138,20 @@ B.  THE DEBUGGING INTERFACE
 
              >continue
 
+       VII.  changing the debugging modes
+
+            To be mode verbose:
+
+            >mode V
+
+            To go into serialization mode:
+            !!!!!NOT IMPLEMENTED YET!!!!!!!!
+            >mode S
+
+            To do both:
+
+            >mode SV
+
 
       VII.  IMPORTANT NOTES
 
