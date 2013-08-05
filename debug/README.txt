@@ -9,9 +9,6 @@ Dave Campbell --dncswim76@gmail.com
 
 <==============================================================>
 
-7/19/2013
-NOTE:  The debugger currently only works in VM debugging mode, and with -n 2 in
-MPI debugging mode.  The simulator debugging mode is not working yet
 
 ********************************************************************************
 A.   HOW TO RUN THE DEBUGGER
@@ -41,12 +38,14 @@ A.   HOW TO RUN THE DEBUGGER
 
      NOTE: running with -n 2 will be the same as running in VM debugging mode.
 
-     NOTE: Also, to be able to run the boost mpi, you will need to download the
+     NOTE: To be able to run the boost mpi, you will need to download the
      'openmpi-bin' package.
 
      III. SIMULATOR Debugging MODE
 
-        <TO BE DETERMINED>
+        Within the Simulator when executing the VMs, the -D SIM flag should be
+        appended.  The path in the config.xml file should match yours and the
+        debug flag within the xml must be set to true
 
 
 ********************************************************************************
@@ -60,8 +59,7 @@ B.  THE DEBUGGING INTERFACE
                      2. factCon (fact Consumation)
                      3. factRet (fact Retraction)
                      4. sense
-                     5. block
-                     6. action
+                     5. action
 
          To specify that you want to run the break point, type in the command:
 
@@ -155,6 +153,19 @@ B.  THE DEBUGGING INTERFACE
              It is really only applicable to use block@<node#> to specify which
              block you are referring to.
 
+       VIII.  SIMULATION DEBUGGING
+
+           -When in simulation debugging mode, before your type run into
+            the debugger, you must first press 'r' within the simulation
+            to let the simulation know to start.  Then you can tell the
+            system to unpause.
+           -if you add a block while the system is paused, it will not show up
+            until the next time you type run or continue
+
+           There are only specified names that will work for sense and action:
+                 sense:  'tap','accel','shake'
+                 action: 'red','orange','yellow'... (only VM colors)
+
 ********************************************************************************
 C.  HOW THE DEBUGGER IS IMPLEMENTED
 ********************************************************************************
@@ -166,7 +177,7 @@ C.  HOW THE DEBUGGER IS IMPLEMENTED
         as well as print out other information like the fact list.
 
             The function runBreakPoint acts as a filter that checks to see if
-        a breakpoint was reached and is interted into the VM code.
+        a breakpoint was reached and is inserted into the VM code.
 
             In MPI debugging mode, the debugger uses the boost interface to send
         messages across multiple VMs.  When sending to all nodes, the debugger
@@ -190,12 +201,12 @@ C.  HOW THE DEBUGGER IS IMPLEMENTED
               debug/debug_prompt.cpp
               debug/debug_list.cpp
 
+              api/mpi.cpp
+
               vm/exec.cpp (where the factDer and factCon break points are set)
 
               vm/state.cpp (where the factRet break point is placed)
 
-              process/machine.cpp (where action/sense breakpoints are placed)
-                             **NOT IMPLEMENTED YET**
+              process/machine.cpp (where action breakpoints are placed)
 
-              sched/base.cpp (where the block break point will be placed)
-                             **NOT IMPLEMENTED YET**
+             sched/sim.cpp (where sense breakpoints are placed)
