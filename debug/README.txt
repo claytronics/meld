@@ -176,9 +176,14 @@ B.  THE DEBUGGING INTERFACE
            -if you add a block while the system is paused, it will not show up
             until the next time you type run or continue
 
-           There are only specified names that will work for sense and action:
+           -There are only specified names that will work for sense and action:
                  sense:  'tap','accel','shake'
                  action: 'red','orange','yellow'... (only VM colors)
+
+           -If the simulator is running and you want to stop it for debugging mode,
+            you can press p anytime while the system is in exection (after continue
+            or run command) to stop the system to probe.  This is most useful
+            for when the blinky blocks have reached a sort of equilibrium.
 
 ********************************************************************************
 C.  HOW THE DEBUGGER IS IMPLEMENTED
