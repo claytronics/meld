@@ -11,9 +11,11 @@
 #include "sched/serial.hpp"
 #include "msg/msg.hpp"
 #include "debug/debug_handler.hpp"
+#include "vm/determinism.hpp"
 
 using namespace db;
 using namespace vm;
+using namespace vm::determinism;
 using namespace utils;
 using namespace process;
 using namespace debugger;
@@ -35,11 +37,9 @@ using namespace msg;
 #define ACCEL 14
 #define SHAKE 15
 
-#ifdef SIMD
-	#define SET_DETERMINISTIC_MODE	20
-	#define START_COMPUTATION		21
-	#define END_COMPUTATION			22
-#endif
+#define SET_DETERMINISTIC_MODE	20
+#define START_COMPUTATION		21
+#define END_COMPUTATION			22
 
 // debug messages for simulation
 // #define DEBUG
@@ -171,12 +171,10 @@ inline face_t operator++(face_t& f, int) {
   static void handleDebugMessage(utils::byte* reply, size_t totalSize);
   static void sendMessageTCP1(message *m);
 
-#ifdef SIMD
 	static void handleSetDeterministicMode(const deterministic_timestamp ts,
-  const db::node::node_id node);
+  const db::node::node_id node, const simulationMode mode);
 	static void handleStartComputation(const deterministic_timestamp ts,
-  const db::node::node_id node, int duration); 
-#endif
+  const db::node::node_id node, int duration);
 
   static bool ready(false);
 
@@ -218,11 +216,9 @@ inline face_t operator++(face_t& f, int) {
     msgcmd2str[ACCEL] = "ACCEL";
     msgcmd2str[SHAKE] = "SHAKE";
     msgcmd2str[DEBUG] = "DEBUG";
-#ifdef SIMD
     msgcmd2str[SET_DETERMINISTIC_MODE] = "SET_DETERMINISTIC_MODE";
     msgcmd2str[START_COMPUTATION] = "START_COMPUTATION";
     msgcmd2str[END_COMPUTATION] = "END_COMPUTATION";
-#endif
     try{
     /* Calling the connect*/
       initTCP();
@@ -232,10 +228,7 @@ inline face_t operator++(face_t& f, int) {
     } catch(std::exception &e) {
       throw machine_error("can't connect to simulator");
     }
-    #ifdef SIMD
-    sched_state->state.isInDeterministicMode = true;
-    #endif
-  }
+ }
 
 void debugInit(vm::all *all)
 {
@@ -330,7 +323,7 @@ set_color(db::node *n, const int r, const int g, const int b)
   colorMessage->size=7 * sizeof(message_type);
   colorMessage->command=SET_COLOR;
 #ifdef SIMD
-  colorMessage->timestamp=sched_state->state.current_local_time;
+  colorMessage->timestamp=getCurrentLocalTime();
 #else
   colorMessage->timestamp=0;
 #endif  
@@ -346,18 +339,22 @@ set_color(db::node *n, const int r, const int g, const int b)
 
 #ifdef SIMD
   void endComputation(db::node *n, bool hasWork) {
-	if (!sched_state->state.compute) return;
-	sched_state->state.compute = false;
+	cout << "api::endComputation  inside "<< endl;
     message* endComputationMessage=(message*)calloc(5, sizeof(message_type));
+    cout << "instr1" << endl;
     endComputationMessage->size=4 * sizeof(message_type);
+    cout << "instr2" << endl;
     endComputationMessage->command=END_COMPUTATION;
-    endComputationMessage->timestamp=max(sched_state->state.current_local_time, sched_state->state.current_computation_end_time);
-    endComputationMessage->node=(message_type)n->get_id();
+    cout << "instr3" << endl;
+    endComputationMessage->timestamp= (message_type) getCurrentLocalTime();
+    cout << "instr4" << endl;
+    //endComputationMessage->node=(message_type)n->get_id();
+    endComputationMessage->node=(message_type) 0;
+    cout << "instr5" << endl;
     endComputationMessage->data.endComputation.hasWork = (message_type) hasWork;
-    cout << "hasNoWork (bool) " << hasWork << " hasNoWork (uint64_t) " << endComputationMessage->data.endComputation.hasWork << endl;
-    sched_state->state.current_local_time = max(sched_state->state.current_local_time, sched_state->state.current_computation_end_time);
-    cout << "end of computation sent at " << max(sched_state->state.current_local_time, sched_state->state.current_computation_end_time) << endl;
+    cout << "endComputation sends at " << getCurrentLocalTime() << endl;
     sendMessageTCP1(endComputationMessage);
+    cout << "instr6" << endl;
     free(endComputationMessage);
   }
 #endif
@@ -395,7 +392,7 @@ set_color(db::node *n, const int r, const int g, const int b)
    msga->size = (message_type)msg_size;
    msga->command = SEND_MESSAGE;
 #ifdef SIMD
-  msga->timestamp = sched_state->state.current_local_time;
+  msga->timestamp = getCurrentLocalTime();
 #else
   msga->timestamp = 0;
 #endif 
@@ -450,7 +447,7 @@ tcpPool()
 {
   static message_type msg[1024];
 #ifdef SIMD
-	if(sched_state->state.compute) return NULL;
+	if(isComputing()) return NULL;
 #endif
   try {
     if(my_tcp_socket->available())
@@ -555,7 +552,7 @@ sendMessageTCP1(message *msg)
 #ifdef SIMD      
       case SET_DETERMINISTIC_MODE:
 		handleSetDeterministicMode((deterministic_timestamp)reply[2],
-		 (db::node::node_id)reply[3]);
+		 (db::node::node_id)reply[3], (simulationMode)reply[4]);
       break;
       
       case START_COMPUTATION:
@@ -840,15 +837,14 @@ handleShake(const deterministic_timestamp ts, const db::node::node_id node,
 
 #ifdef SIMD
   void handleSetDeterministicMode(const deterministic_timestamp ts,
-    const db::node::node_id node) {
-     sched_state->state.isInDeterministicMode=true;
+    const db::node::node_id node, const simulationMode mode) {
+		setDeterministicMode(mode);
   }
 
   void handleStartComputation(const deterministic_timestamp ts,
     const db::node::node_id node, int duration) {
-	 sched_state->state.compute = true;
-	 sched_state->state.current_computation_end_time=ts+duration;
-	 cout << "will compute till : "<< sched_state->state.current_computation_end_time << endl;
+	 startComputation(ts, duration);
+	 cout << "will compute till : "<< ts+duration << endl;
   }
 #endif
 

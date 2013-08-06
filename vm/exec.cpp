@@ -7,10 +7,10 @@
 #include "vm/exec.hpp"
 #include "vm/tuple.hpp"
 #include "vm/match.hpp"
+#include "vm/determinism.hpp"
 #include "db/tuple.hpp"
 #include "process/machine.hpp"
 #include "debug/debug_handler.hpp"
-#include "api/api.hpp"
 
 //#define DEBUG_SENDS
 //#define DEBUG_INSTRS
@@ -18,6 +18,7 @@
 
 using namespace vm;
 using namespace vm::instr;
+using namespace vm::determinism;
 using namespace std;
 using namespace db;
 using namespace runtime;
@@ -1871,17 +1872,8 @@ execute(pcounter pc, state& state)
    {
 eval_loop:
 #ifdef SIMD
-	if(!CANCOMPUTE) {
-        cout << "can not compute" << endl;
-		if(state.current_computation_end_time != 0)
-			api::endComputation(state.node, true);
-		while(!CANCOMPUTE) {
-			api::pollAndProcess(NULL,NULL);
-            usleep(5000); // to avoid polling to much
-        }
-        cout << "can compute again" << endl;
-	}
-	state.current_local_time += 5; // test purpose
+	checkAndWaitUntilCanCompute();
+	incrCurrentLocalTime(5); // test purpose
 #endif
 
 #ifdef DEBUG_MODE

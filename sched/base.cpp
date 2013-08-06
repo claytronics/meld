@@ -8,6 +8,7 @@
 #include "process/machine.hpp"
 #include "api/api.hpp"
 #include "debug/debug_handler.hpp"
+#include "vm/determinism.hpp"
 
 
 using namespace std;
@@ -60,11 +61,7 @@ base::do_loop(void)
           do_work(node);
           finish_work(node);
           cout << "get_work loop..." << endl;
-      }
-#ifdef SIMD
-		  api::endComputation(state.node, false);
-		  //cout << "get_work end..." << endl;
-#endif   
+      }  
       if (debugger::isInMpiDebuggingMode()||debugger::isInSimDebuggingMode()){
           debugger::receiveMsg();
           if (debugger::isTheSystemPaused()){
@@ -73,7 +70,9 @@ base::do_loop(void)
               debugger::pauseIt();
           }
       }
-
+#ifdef SIMD // TO CHANGE, with haswork
+      vm::determinism::endComputation(false);
+#endif
       bool hasWork = api::pollAndProcess(this, state.all);
       bool ensembleFinished = false;
       if (!hasWork) {       
