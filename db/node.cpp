@@ -4,12 +4,8 @@
 
 #include "db/node.hpp"
 #include "vm/state.hpp"
-#include "db/neighbor_tuple_aggregate.hpp"
 #include "utils/utils.hpp"
-
-#ifdef USE_UI
-#include "ui/macros.hpp"
-#endif
+#include "debug/debug_handler.hpp"
 
 using namespace db;
 using namespace std;
@@ -23,7 +19,7 @@ tuple_trie*
 node::get_storage(const predicate* pred)
 {
    simple_tuple_map::iterator it(tuples.find(pred->get_id()));
-   
+
    if(it == tuples.end()) {
       //cout << "New trie for " << *pred << endl;
       tuple_trie *tr(new tuple_trie(pred));
@@ -34,67 +30,46 @@ node::get_storage(const predicate* pred)
 }
 
 bool
-node::add_tuple(vm::tuple *tpl, ref_count many)
+node::add_tuple(vm::tuple *tpl, const ref_count many, const depth_t depth)
 {
    const predicate* pred(tpl->get_predicate());
    tuple_trie *tr(get_storage(pred));
-   
-   if(pred->is_route_pred() && pred->is_persistent_pred()) {
-      const predicate_id pred_id(pred->get_id());
-      edge_map::iterator it(edge_info.find(pred_id));
-      
-      assert(it != edge_info.end());
-      
-      edge_set& s(it->second);
-      
-      s.insert(tpl->get_node(0));
-   }
-   
-   return tr->insert_tuple(tpl, many);
+  
+   return tr->insert_tuple(tpl, many, depth);
+
 }
 
 node::delete_info
-node::delete_tuple(vm::tuple *tuple, ref_count many)
+node::delete_tuple(vm::tuple *tuple, const ref_count many, const depth_t depth)
 {
    const predicate *pred(tuple->get_predicate());
    tuple_trie *tr(get_storage(pred));
-   
-   return tr->delete_tuple(tuple, many);
+
+   return tr->delete_tuple(tuple, many, depth);
+
 }
 
 agg_configuration*
-node::add_agg_tuple(vm::tuple *tuple, const ref_count many)
+node::add_agg_tuple(vm::tuple *tuple, const ref_count many, const depth_t depth)
 {
    const predicate *pred(tuple->get_predicate());
    predicate_id pred_id(pred->get_id());
    aggregate_map::iterator it(aggs.find(pred_id));
    tuple_aggregate *agg;
-   
+
    if(it == aggs.end()) {
-      // add new
-      
-      if(aggregate_safeness_uses_neighborhood(pred->get_agg_safeness())) {
-         assert(false);
-         const predicate *remote_pred(pred->get_remote_pred());
-         edge_set edges(get_edge_set(remote_pred->get_id()));
-         if(pred->get_agg_safeness() == AGG_NEIGHBORHOOD_AND_SELF) {
-            edges.insert(id);
-         }
-         agg = new neighbor_tuple_aggregate(pred, edges);
-      } else
-         agg = new tuple_aggregate(pred);
-            
+      agg = new tuple_aggregate(pred);
       aggs[pred_id] = agg;
    } else
       agg = it->second;
 
-   return agg->add_to_set(tuple, many);
+   return agg->add_to_set(tuple, many, depth);
 }
 
 agg_configuration*
-node::remove_agg_tuple(vm::tuple *tuple, const ref_count many)
+node::remove_agg_tuple(vm::tuple *tuple, const ref_count many, const depth_t depth)
 {
-   return add_agg_tuple(tuple, -many);
+   return add_agg_tuple(tuple, -many, depth);
 }
 
 simple_tuple_list
@@ -102,18 +77,18 @@ node::end_iteration(void)
 {
    // generate possible aggregates
    simple_tuple_list ret;
-   
+
    for(aggregate_map::iterator it(aggs.begin());
       it != aggs.end();
       ++it)
    {
       tuple_aggregate *agg(it->second);
-      
+
       simple_tuple_list ls(agg->generate());
-      
+
       ret.insert(ret.end(), ls.begin(), ls.end());
    }
-   
+
    return ret;
 }
 
@@ -121,12 +96,12 @@ void
 node::match_predicate(const predicate_id id, tuple_vector& vec) const
 {
    simple_tuple_map::const_iterator it(tuples.find(id));
-   
+
    if(it == tuples.end())
       return;
-   
+
    const tuple_trie *tr(it->second);
-   
+
    tr->match_predicate(vec);
 }
 
@@ -134,12 +109,12 @@ void
 node::match_predicate(const predicate_id id, const match& m, tuple_vector& vec) const
 {
    simple_tuple_map::const_iterator it(tuples.find(id));
-   
+
    if(it == tuples.end())
       return;
-   
+
    const tuple_trie *tr(it->second);
-   
+
    tr->match_predicate(m, vec);
 }
 
@@ -150,22 +125,22 @@ node::delete_all(const predicate*)
 }
 
 void
-node::delete_by_leaf(const predicate *pred, tuple_trie_leaf *leaf)
+node::delete_by_leaf(const predicate *pred, tuple_trie_leaf *leaf, const depth_t depth)
 {
    tuple_trie *tr(get_storage(pred));
 
-   tr->delete_by_leaf(leaf);
+   tr->delete_by_leaf(leaf, depth);
 }
 
 void
 node::delete_by_index(const predicate *pred, const match& m)
 {
    tuple_trie *tr(get_storage(pred));
-   
+
    tr->delete_by_index(m);
-   
+
    aggregate_map::iterator it(aggs.find(pred->get_id()));
-   
+
    if(it != aggs.end()) {
       tuple_aggregate *agg(it->second);
       agg->delete_by_index(m);
@@ -176,12 +151,12 @@ size_t
 node::count_total(const predicate_id id) const
 {
    simple_tuple_map::const_iterator it(tuples.find(id));
-   
+
    if(it == tuples.end())
       return 0;
 
    const tuple_trie *tr(it->second);
-   
+
    return tr->size();
 }
 
@@ -213,7 +188,7 @@ void
 node::dump(ostream& cout) const
 {
    cout << get_id() << endl;
-   
+
    for(simple_tuple_map::const_iterator it(tuples.begin());
       it != tuples.end();
       ++it)
@@ -250,58 +225,40 @@ node::print(ostream& cout) const
 
 	ordered_tries.sort(trie_comparer);
 
-   cout << "--> node " << get_translated_id() << "/(id " << get_id()
+	if( !debugger::isInDebuggingMode()&&!debugger::isInSimDebuggingMode()&&
+        !debugger::isInMpiDebuggingMode()){
+	  cout << "--> node " << get_translated_id() << "/(id " << get_id()
         << ") (" << this << ") <--" << endl;
-   
+	} else {
+	  cout << "CONTENTS AT NODE " << get_translated_id() << ":" << endl;
+	}
+
 	for(list_str_trie::const_iterator it(ordered_tries.begin());
 			it != ordered_tries.end();
 			++it)
 	{
 		tuple_trie *tr(it->second);
-		
+
 		if(!tr->empty())
 			tr->print(cout);
 	}
 }
 
-#ifdef USE_UI
-using namespace json_spirit;
+bool
+node::empty(void) const {
+    for(simple_tuple_map::const_iterator it(tuples.begin());
+        it != tuples.end();
+        ++it) {
+        if(!(it->second)->empty())
+            return false;
+    }
 
-Value
-node::dump_json(void) const
-{
-	Object ret;
-	
-	for(simple_tuple_map::const_iterator it(tuples.begin());
-      it != tuples.end();
-      ++it)
-	{
-		predicate_id pred(it->first);
-		tuple_trie *trie(it->second);
-		Array tpls;
-		
-		for(tuple_trie::const_iterator jt(trie->begin()), end(trie->end()); jt != end; jt++)
-	   {
-			simple_tuple *stpl(*jt);
-			tuple *tpl(stpl->get_tuple());
-			UI_ADD_ELEM(tpls, tpl->dump_json());
-		}
-		
-		UI_ADD_FIELD(ret, to_string((int)pred), tpls);
-	}
-	
-	return ret;
+    return true;
 }
-#endif
 
 void
 node::init(void)
 {
-   for(size_t i(0); i < all->PROGRAM->num_route_predicates(); ++i) {
-      const predicate *pred(all->PROGRAM->get_route_predicate(i));
-      
-      edge_info[pred->get_id()] = edge_set();
-   }
 }
 
 ostream&

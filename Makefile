@@ -1,49 +1,39 @@
-
 OS = $(shell uname -s)
 
 INCLUDE_DIRS = -I.
 LIBRARY_DIRS =
 
-ifeq (exists, $(shell test -d /usr/lib/openmpi/include && echo exists))
-	INCLUDE_DIRS += -I/usr/lib/openmpi/include
-endif
 ifeq (exists, $(shell test -d /opt/local/include && echo exists))
 	INCLUDE_DIRS += -I/opt/local/include
 endif
 ifeq (exists, $(shell test -d /opt/local/lib  && echo exists))
 	LIBRARY_DIRS += -L/opt/local/lib
 endif
-ifeq (exists, $(shell test -d /usr/include/openmpi-x86_64 && echo exists))
-	INCLUDE_DIRS += -I/usr/include/openmpi-x86_64/
-endif
-ifeq (exists, $(shell test -d /opt/local/include/openmpi && echo exists))
-	INCLUDE_DIRS += -I/opt/local/include/openmpi/
-endif
-ifeq (exists, $(shell test -d /usr/lib64/openmpi/lib && echo exists))
-	LIBRARY_DIRS += -L/usr/lib64/openmpi/lib
-endif
 
 PROFILING = #-pg
 OPTIMIZATIONS = -O0
 ARCH = -march=x86-64
-DEBUG = -g
+#DEBUG = -g -DDEBUG_RULES
 WARNINGS = -Wall -Wextra #-Werror
 C0X = -std=c++0x
 UILIBRARIES = #-lwebsocketpp -ljson_spirit
 
 CFLAGS = $(ARCH) $(PROFILING) $(OPTIMIZATIONS) $(WARNINGS) $(DEBUG) $(INCLUDE_DIRS) $(COX)
-LIBRARIES = -pthread -lm -lreadline -lboost_thread-mt -lboost_system-mt \
-				-lboost_date_time-mt -lboost_regex-mt -ldl $(UILIBRARIES)
 
-ifneq ($(COMPILE_MPI),)
-	LIBRARIES += -lmpi -lmpi_cxx -lboost_serialization-mt -lboost_mpi-mt
-	CFLAGS += -DCOMPILE_MPI=1
+LIBRARIES = -pthread -lpthread -lm -lreadline -lboost_thread-mt -lboost_system-mt \
+			-lboost_date_time-mt -lboost_regex-mt $(UILIBRARIES)
+
+LIBRARIES +=  -lboost_serialization-mt -lboost_mpi-mt
+
+MPICPP = $(shell mpic++ --version > /dev/null && echo exists)
+
+ifeq (exists, $(MPICPP))
+	CXX = mpic++
+else
+	CXX = g++
 endif
 
-CXX = g++
-
-GCC_MINOR    := $(shell $(CXX) -v 2>&1 | \
-													grep " version " | cut -d' ' -f3  | cut -d'.' -f2)
+GCC_MINOR    := $(shell $(CXX) -v 2>&1 | grep " version " | cut -d' ' -f3  | cut -d'.' -f2)
 
 ifeq ($(GCC_MINOR),2)
 	CFLAGS += -DTEMPLATE_OPTIMIZERS=1
@@ -73,29 +63,17 @@ SRCS = utils/utils.cpp \
 			 db/tuple.cpp \
 			 db/agg_configuration.cpp \
 			 db/tuple_aggregate.cpp \
-			 db/neighbor_tuple_aggregate.cpp \
 			 db/database.cpp \
 			 db/trie.cpp \
-			 db/neighbor_agg_configuration.cpp \
 			 process/machine.cpp \
-			 process/remote.cpp \
-			 process/router.cpp \
 			 mem/thread.cpp \
 			 mem/center.cpp \
 			 mem/stat.cpp \
 			 sched/base.cpp \
 			 sched/common.cpp \
-			 sched/mpi/message.cpp \
-			 sched/mpi/message_buffer.cpp \
-			 sched/mpi/request.cpp \
 			 sched/serial.cpp \
-			 sched/serial_ui.cpp \
-			 thread/static.cpp \
-			 thread/prio.cpp \
 			 sched/thread/threaded.cpp \
 			 sched/thread/assert.cpp \
-			 sched/mpi/tokenizer.cpp \
-			 sched/mpi/handler.cpp \
 			 external/math.cpp \
 			 external/lists.cpp \
 			 external/utils.cpp \
@@ -105,14 +83,18 @@ SRCS = utils/utils.cpp \
 			 stat/stat.cpp \
 			 stat/slice.cpp \
 			 stat/slice_set.cpp \
-			 ui/manager.cpp \
-			 ui/client.cpp \
 			 interface.cpp \
-			 sched/sim.cpp
+			 debug/debug_prompt.cpp \
+			 debug/debug_handler.cpp \
+			 debug/debug_list.cpp \
+			 api/bbsimapi.cpp \
+			 #api/mpi.cpp \
+
 
 OBJS = $(patsubst %.cpp,%.o,$(SRCS))
 
-all: meld print predicates server simulator
+all: meld print server
+
 	echo $(OBJS)
 
 -include Makefile.externs
@@ -128,14 +110,8 @@ meld: $(OBJS) meld.o
 print: $(OBJS) print.o
 	$(COMPILE) print.o -o print $(LDFLAGS)
 
-predicates: $(OBJS) predicates.o
-	$(COMPILE) predicates.o -o predicates $(LDFLAGS)
-
 server: $(OBJS) server.o
 	$(COMPILE) server.o -o server $(LDFLAGS)
-
-simulator: $(OBJS) simulator.o
-	$(COMPILE) simulator.o -o simulator $(LDFLAGS)
 
 depend:
 	makedepend -- $(CXXFLAGS) -- $(shell find . -name '*.cpp')
@@ -144,4 +120,3 @@ clean:
 	find . -name '*.o' | xargs rm -f
 	rm -f meld predicates print server Makefile.externs
 # DO NOT DELETE
-

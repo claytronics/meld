@@ -9,9 +9,6 @@
 #include <stdexcept>
 #include <ostream>
 
-#include "vm/external.hpp"
-#include "vm/types.hpp"
-#include "utils/types.hpp"    
 #include "vm/predicate.hpp"
 #include "vm/defs.hpp"
 #include "vm/tuple.hpp"
@@ -19,6 +16,7 @@
 #include "vm/function.hpp"
 #include "runtime/string.hpp"
 #include "queue/heap_implementation.hpp"
+#include "vm/import.hpp"
 #ifdef USE_UI
 #include <json_spirit.h>
 #endif
@@ -43,13 +41,16 @@ const size_t ADD_PRIORITY_PREDICATE_ID(5);
 const size_t SCHEDULE_NEXT_PREDICATE_ID(6);
 const size_t SETCOLOR2_PREDICATE_ID(7);
 
-
 class program
 {
 private:
 
-    
    const std::string filename;
+   uint32_t major_version, minor_version;
+
+   std::vector<import*> imported_predicates;
+   std::vector<std::string> exported_predicates;
+
 	size_t num_args;
    size_t number_rules;
 
@@ -82,6 +83,7 @@ private:
    strat_level priority_strat_level;
    field_type priority_type;
    vm::priority_type priority_order;
+   bool priority_static;
    heap_priority initial_priority;
 
    void print_predicate_code(std::ostream&, predicate*) const;
@@ -90,7 +92,6 @@ public:
 
    strat_level MAX_STRAT_LEVEL;
 
-    bool print_code = false;
    inline size_t num_rules(void) const { return number_rules; }
 	inline size_t num_args_needed(void) const { return num_args; }
 
@@ -112,6 +113,7 @@ public:
 	inline bool is_priority_desc(void) const { return priority_order == PRIORITY_DESC; }
 
    inline heap_priority get_initial_priority(void) const { return initial_priority; }
+   inline bool is_static_priority(void) const { return priority_static; }
 	
    predicate *get_predicate_by_name(const std::string&) const;
    
@@ -121,6 +123,8 @@ public:
    
    void print_bytecode(std::ostream&) const;
    void print_predicates(std::ostream&) const;
+   void print_rules(std::ostream&) const;
+   void print_program(std::ostream&) const;
    void print_bytecode_by_predicate(std::ostream&, const std::string&) const;
 #ifdef USE_UI
 	json_spirit::Value dump_json(void) const;
@@ -151,13 +155,6 @@ public:
    inline bool is_data(void) const { return is_data_file; }
 
    bool add_data_file(vm::program&);
-
-   //function to print predicate dependencies
-    void print_predicate_dependency(); 
-    
-    void add_external_function(external_function_ptr ptr,size_t num_args,field_type ret_type,field_type *arg_type);
-
-    ptr_val get_function_pointer(char *lib_path,char* func_name);
    
    explicit program(const std::string&);
    

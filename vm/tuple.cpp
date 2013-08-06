@@ -6,9 +6,6 @@
 #include "utils/utils.hpp"
 #include "vm/state.hpp"
 #include "utils/serialization.hpp"
-#ifdef USE_UI
-#include "ui/macros.hpp"
-#endif
 
 using namespace vm;
 using namespace std;
@@ -151,7 +148,7 @@ print_float(ostream& out, const float_val val)
 static inline void
 print_node(ostream& out, const node_val node)
 {
-   out << "@" << node;
+  out << "@" << node;
 }
 
 void
@@ -198,51 +195,6 @@ tuple::print(ostream& cout) const
    cout << ")";
 }
 
-#ifdef USE_UI
-using namespace json_spirit;
-
-Value
-tuple::dump_json(void) const
-{
-	Object ret;
-
-	UI_ADD_FIELD(ret, "predicate", (int)get_predicate_id());
-	Array fields;
-
-	for(field_num i = 0; i < num_fields(); ++i) {
-		switch(get_field_type(i)) {
-			case FIELD_INT:
-				UI_ADD_ELEM(fields, get_int(i));
-				break;
-			case FIELD_FLOAT:
-				UI_ADD_ELEM(fields, get_float(i));
-				break;
-			case FIELD_NODE:
-				UI_ADD_ELEM(fields, (int)get_node(i));
-				break;
-			case FIELD_STRING:
-				UI_ADD_ELEM(fields, get_string(i));
-				break;
-			case FIELD_LIST_INT: {
-					Array vec;
-					list<int_val> l(int_list::stl_list(get_int_list(i)));
-
-					for(list<int_val>::const_iterator it(l.begin()), end(l.end()); it != end; ++it)
-						UI_ADD_ELEM(vec, *it);
-
-					UI_ADD_ELEM(fields, vec);
-				}
-				break;
-			default:
-				throw type_error("Unrecognized field type " + to_string(i) + " (tuple::dump_json)");
-		}
-	}
-
-	UI_ADD_FIELD(ret, "fields", fields);
-
-	return ret;
-}
-#endif
 
 tuple::~tuple(void)
 {
@@ -251,6 +203,7 @@ tuple::~tuple(void)
          case FIELD_LIST_INT: int_list::dec_refs(get_int_list(i)); break;
          case FIELD_LIST_FLOAT: float_list::dec_refs(get_float_list(i)); break;
          case FIELD_LIST_NODE: node_list::dec_refs(get_node_list(i)); break;
+         case FIELD_STRING: get_string(i)->dec_refs(); break;
          default: break;
       }
    }
@@ -381,6 +334,48 @@ tuple::unpack(byte *buf, const size_t buf_size, int *pos, vm::program *prog)
    
    return ret;
    
+}
+
+void
+tuple::copy_runtime(void)
+{
+   for(field_num i(0); i < num_fields(); ++i) {
+      switch(get_field_type(i)) {
+         case FIELD_LIST_INT: {
+               int_list *old(get_int_list(i));
+               int_list *ne(int_list::copy(old));
+
+               int_list::dec_refs(old);
+               set_int_list(i, ne);
+            }
+            break;
+         case FIELD_LIST_FLOAT: {
+               float_list *old(get_float_list(i));
+               float_list *ne(float_list::copy(old));
+
+               float_list::dec_refs(old);
+               set_float_list(i, ne);
+           }
+           break;
+         case FIELD_LIST_NODE: {
+               node_list *old(get_node_list(i));
+               node_list *ne(node_list::copy(old));
+
+               node_list::dec_refs(old);
+               set_node_list(i, ne);
+           }
+           break;
+         case FIELD_STRING: {
+               rstring::ptr old(get_string(i));
+               rstring::ptr ne(old->copy());
+
+               old->dec_refs();
+               set_string(i, ne);
+            }
+            break;
+         default: break;
+      }
+   }
 }
 
 ostream& operator<<(ostream& cout, const tuple& tuple)

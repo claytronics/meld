@@ -16,17 +16,11 @@
 /* activate this to collect statistics on memory use */
 //#define MEMORY_STATISTICS 1
 
-/* activate tuple matching using the trie structure */
-#define TRIE_MATCHING 1
-
 /* activate debug mode */
 //#define DEBUG_MODE 1
 
 /* activate special code for testing trie matching */
 // #define TRIE_MATCHING_ASSERT 1
-
-/* use old method of counting neighborhood aggregates */
-// #define USE_OLD_NEIGHBOR_CHECK 1
 
 /* gather statistics about the core VM execution */
 //#define CORE_STATISTICS 1
@@ -53,25 +47,6 @@
 
 /* use memory pools for each thread or not */
 const bool USE_ALLOCATOR = true;
-
-/* delay to check if messages were sent (in order to delete them) */
-const size_t MPI_ROUND_TRIP_UPDATE(200);
-/* delay to transmit all messages */
-const size_t MPI_DEFAULT_ROUND_TRIP_SEND(250);
-/* default delay to fetch messages */
-const size_t MPI_DEFAULT_ROUND_TRIP_FETCH(500);
-/* min delay round trip to fetch new messages in MPI */
-const size_t MPI_MIN_ROUND_TRIP_FETCH(10);
-/* delay to decrease the round trip to fetch new messages if a message is found */
-const size_t MPI_DECREASE_ROUND_TRIP_FETCH(10);
-/* delay to increase the round trip to fetch new messages if messages are not found */
-const size_t MPI_INCREASE_ROUND_TRIP_FETCH(10);
-/* max delay round trip to fetch new messages in MPI */
-const size_t MPI_MAX_ROUND_TRIP_FETCH(100000);
-/* size of buffer to send MPI messages */
-const size_t MPI_BUF_SIZE(4096); /* this is the MPI max for Recv */
-/* if a message buffer reaches this size, the buffer is sent */
-const size_t MPI_BUFFER_THRESHOLD(MPI_BUF_SIZE);
 
 /* rounds to delay after we fail to find an active worker */
 const size_t DELAY_STEAL_CYCLE(10);

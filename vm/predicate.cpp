@@ -16,6 +16,7 @@ namespace vm {
 #define PRED_LINEAR 0x08
 #define PRED_ACTION 0x10
 #define PRED_REUSED 0x20
+#define PRED_CYCLE 0x40
 #define PRED_AGG_LOCAL 0x01
 #define PRED_AGG_REMOTE 0x02
 #define PRED_AGG_REMOTE_AND_SELF 0x04
@@ -26,13 +27,13 @@ predicate*
 predicate::make_predicate_from_buf(byte *buf, code_size_t *code_size, const predicate_id id)
 {
    predicate *pred = new predicate();
-   
+
    pred->id = id;
 
    // get code size
    *code_size = (code_size_t)*((code_size_t*)buf);
    buf += sizeof(code_size_t);
-   
+
    // get predicate properties
    byte prop = buf[0];
    if(prop & PRED_AGG)
@@ -44,18 +45,19 @@ predicate::make_predicate_from_buf(byte *buf, code_size_t *code_size, const pred
    pred->is_reverse_route = prop & PRED_REVERSE_ROUTE;
    pred->is_action = prop & PRED_ACTION;
    pred->is_reused = prop & PRED_REUSED;
+   pred->is_cycle = prop & PRED_CYCLE;
    buf++;
 
    // get aggregate information, if any
    if(pred->is_aggregate()) {
       unsigned char agg = buf[0];
-      
+
       pred->agg_info->safeness = AGG_UNSAFE;
       pred->agg_info->field = agg & 0xf;
       pred->agg_info->type = (aggregate_type)((0xf0 & agg) >> 4);
    }
    buf++;
-   
+
    // read stratification level
    pred->level = (strat_level)buf[0];
    buf++;
@@ -63,17 +65,17 @@ predicate::make_predicate_from_buf(byte *buf, code_size_t *code_size, const pred
    // read number of fields
    pred->types.resize((size_t)buf[0]);
    buf++;
-   
+
    // read argument types
    for(size_t i = 0; i < pred->num_fields(); ++i)
       pred->types[i] = (field_type)buf[i];
    buf += PRED_ARGS_MAX;
-   
+
    // read predicate name
    pred->name = string((const char*)buf);
 
    buf += PRED_NAME_SIZE_MAX;
-   
+
    if(pred->is_aggregate()) {
       if(buf[0] == PRED_AGG_LOCAL) {
          buf++;
@@ -95,7 +97,7 @@ predicate::make_predicate_from_buf(byte *buf, code_size_t *code_size, const pred
          pred->agg_info->safeness = AGG_UNSAFE;
       }
    }
-   
+
    return pred;
 }
 
@@ -103,18 +105,18 @@ void
 predicate::build_field_info(void)
 {
    size_t offset = 0;
-   
+
    fields_size.resize(num_fields());
    fields_offset.resize(num_fields());
-   
+
    for(size_t i = 0; i < num_fields(); ++i) {
       const size_t size = field_type_size(types[i]);
-      
+
       fields_size[i] = size;
       fields_offset[i] = offset;
       offset += size;
    }
-   
+
    tuple_size = offset;
 }
 
@@ -156,19 +158,19 @@ predicate::print_simple(ostream& cout) const
 		cout << "!";
 
    cout << name << "(";
-   
+
    for(size_t i = 0; i < num_fields(); ++i) {
       if(i != 0)
          cout << ", ";
 
       const string typ(field_type_string(types[i]));
-      
+
       if(is_aggregate() && agg_info->field == i)
          cout << aggregate_type_string(agg_info->type) << " " << typ;
       else
          cout << typ;
    }
-   
+
    cout << ")";
 }
 
@@ -178,12 +180,12 @@ predicate::print(ostream& cout) const
  	print_simple(cout);
 
 	cout << " [size=" << tuple_size;
-   
+
    if(is_aggregate())
       cout << ",agg";
-      
+
    cout << ",strat_level=" << get_strat_level();
-   
+
    if(is_route)
       cout << ",route";
    if(is_reverse_route)
@@ -194,9 +196,11 @@ predicate::print(ostream& cout) const
       cout << ",action";
    if(is_reused)
       cout << ",reused";
+   if(is_cycle)
+      cout << ",cycle";
    
    cout << "]";
-   
+
    if(is_aggregate()) {
       cout << "[";
       switch(get_agg_safeness()) {

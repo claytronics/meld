@@ -10,10 +10,9 @@ namespace vm {
 typedef unsigned short field_num;
 typedef uint32_t uint_val;
 typedef int32_t int_val;
-typedef float float_val;
+typedef double float_val;
 typedef uint64_t ptr_val;
 typedef uint32_t node_val;
-typedef uint32_t worker_val;
 typedef bool bool_val;
 typedef unsigned char predicate_id;
 typedef unsigned short process_id;
@@ -27,6 +26,7 @@ typedef size_t strat_level;
 typedef size_t argument_id;
 typedef uint_val const_id;
 typedef uint32_t rule_id;
+typedef uint32_t depth_t;
 
 static const ptr_val null_ptr_val = 0;
 

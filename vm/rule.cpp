@@ -11,7 +11,7 @@ namespace vm
 void
 rule::print(ostream& out, const vm::program *const prog) const
 {
-	out << "rule str : "<< str << endl;
+	out << str << endl;
 	
 	for(vector<predicate*>::const_iterator it(predicates.begin()),
 		end(predicates.end());
@@ -22,7 +22,7 @@ rule::print(ostream& out, const vm::program *const prog) const
 
       assert(pred != NULL);
 
-      out <<"pred name : "<< pred->get_name() << endl;
+      out << pred->get_name() << endl;
 		
 	}
    if(is_persistent)

@@ -3,6 +3,7 @@
 #define VM_STATE_HPP
 
 #include <list>
+#include <iostream>
 
 #include "conf.hpp"
 #include "vm/tuple.hpp"
@@ -67,6 +68,7 @@ public:
 	db::simple_tuple *tuple_queue;
    db::node *node;
    ref_count count;
+   vm::depth_t depth;
    sched::base *sched;
    bool is_linear;
    list_linear used_linear_tuples;
@@ -86,15 +88,6 @@ public:
 	vm::strat_level current_level;
    bool persistent_only; // we are running one persistent tuple (not a rule)
    vm::all *all;
-#ifdef USE_UI
-   static bool UI;
-#endif
-#ifdef USE_SIM
-   static bool SIM;
-   deterministic_timestamp sim_instr_counter;
-   deterministic_timestamp sim_instr_limit;
-   bool sim_instr_use;
-#endif
 
 #ifdef CORE_STATISTICS
    size_t stat_rules_ok;
@@ -165,13 +158,17 @@ public:
 
 	void copy_reg2const(const reg_num&, const const_id&);
    
-   inline void add_float_list(runtime::float_list *ls) { free_float_list.push_back(ls); }
-   inline void add_int_list(runtime::int_list *ls) { free_int_list.push_back(ls); }
-   inline void add_node_list(runtime::node_list *ls) { free_node_list.push_back(ls); }
-	inline void add_string(runtime::rstring::ptr str) { free_rstring.push_back(str); }
+   inline void add_float_list(runtime::float_list *ls) { ls->inc_refs();
+                                                         free_float_list.push_back(ls); }
+   inline void add_int_list(runtime::int_list *ls) { ls->inc_refs();
+                                                     free_int_list.push_back(ls); }
+   inline void add_node_list(runtime::node_list *ls) { ls->inc_refs();
+                                                       free_node_list.push_back(ls); }
+	inline void add_string(runtime::rstring::ptr str) { str->inc_refs();
+                                                       free_rstring.push_back(str); }
    inline void add_generated_tuple(db::simple_tuple *tpl) { tpl->set_generated_run(true); generated_tuples.push_back(tpl); }
    
-	bool add_fact_to_node(vm::tuple *, vm::ref_count count = 1);
+	bool add_fact_to_node(vm::tuple *, const vm::ref_count count = 1, const vm::depth_t depth = 0);
 	
 #ifndef USE_RULE_COUNTING
 	void mark_predicate_rules(const vm::predicate *);
@@ -179,19 +176,21 @@ public:
 	bool check_if_rule_predicate_activated(vm::rule *);
 #endif
 	
-	void mark_predicate_to_run(const vm::predicate *);
-	void mark_active_rules(void);
+   void mark_predicate_to_run(const vm::predicate *);
+   void mark_active_rules(void);
    void add_to_aggregate(db::simple_tuple *);
    bool do_persistent_tuples(void);
    void process_persistent_tuple(db::simple_tuple *, vm::tuple *);
-	void process_consumed_local_tuples(void);
-#ifdef USE_SIM
-   bool check_instruction_limit(void) const;
-#endif
-	void process_others(void);
+   void process_consumed_local_tuples(void);
+   void print_local_tuples(std::ostream& cout);
+   void print_generated_tuples(std::ostream& cout);
+
+   void process_others(void);
    vm::strat_level mark_rules_using_local_tuples(db::simple_tuple_list&);
+
 	void run_node(db::node *);
-   void setup(vm::tuple*, db::node*, const ref_count);
+   void setup(vm::tuple*, db::node*, const vm::ref_count, const vm::depth_t);
+
    void cleanup(void);
    bool linear_tuple_can_be_used(db::tuple_trie_leaf *) const;
    void using_new_linear_tuple(db::tuple_trie_leaf *);

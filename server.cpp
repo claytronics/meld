@@ -5,21 +5,14 @@
 #include <string>
 #include <vector>
 #include <exception>
-#ifdef USE_UI
-#include <readline/readline.h>
-#include <readline/history.h>
-#endif
 #include <boost/algorithm/string.hpp>
 #include <boost/thread.hpp>
 
 #include "process/machine.hpp"
 #include "utils/utils.hpp"
-#include "process/router.hpp"
 #include "interface.hpp"
 #include "version.hpp"
 #include "utils/atomic.hpp"
-#include "ui/client.hpp"
-#include "ui/manager.hpp"
 
 using namespace utils;
 using namespace process;
@@ -27,10 +20,6 @@ using namespace std;
 using namespace sched;
 using namespace boost;
 using namespace utils;
-#ifdef USE_UI
-using namespace websocketpp;
-using namespace ui;
-#endif
 
 static char *progname = NULL;
 static int port = 0;
@@ -158,79 +147,10 @@ parse_command(string cmd)
 	return COMMAND_NONE;
 }
 
-#ifdef USE_UI
-static void
-show_status(void)
-{
-	show_version();
-	cout << "Port: " << port << endl;
-	cout << "# Users: " << man->num_clients() << endl;
-   man->print_clients();
-}
-
-static void
-run_server(void)
-{
-   server::handler::ptr h(man);
-   server endpoint(h);
-
-   endpoint.listen(port);
-}
-#endif
-
 int
 main(int argc, char **argv)
 {
-#ifdef USE_UI
-   read_arguments(argc, argv);
 
-	if(sched_type == SCHED_UNKNOWN) {
-		cerr << "Error: please provide a scheduler" << endl;
-		return EXIT_FAILURE;
-	}
-	
-	const int readline_ret(rl_initialize());
-	
-	if(readline_ret != 0) {
-		cerr << "Failure to initialize readline" << endl;
-		return EXIT_FAILURE;
-	}
-	
-	try {
-      man = new ui::manager();
-
-		show_version();
-
-      thread aux(run_server);
-			
-		while (true) {
-			char *input(readline("\n>> "));
-		
-			if(input == NULL)
-				continue;
-		
-			command_type cmd(parse_command(string(input)));
-
-      	add_history(input);
-      	delete input;
-
-			switch(cmd) {
-				case COMMAND_EXIT: return EXIT_SUCCESS;
-				case COMMAND_VERSION: show_version(); break;
-				case COMMAND_HELP: show_inter_help(); break;
-				case COMMAND_STATUS: show_status(); break;
-				case COMMAND_NONE: cout << "Command not recognized" << endl; break;
-				default: break;
-			}
-		}
-	} catch(std::exception& e) {
-		cerr << "Failed to initiate server: " << e.what() << endl;
-		return EXIT_FAILURE;
-	}
-
-   return EXIT_SUCCESS;
-#else
 	cerr << "No UI was compiled" << endl;
 	return EXIT_FAILURE;
-#endif
 }

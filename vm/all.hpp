@@ -2,6 +2,7 @@
 #ifndef VM_ALL_HPP
 #define VM_ALL_HPP
 
+#include <boost/mpi.hpp>
 #include "vm/program.hpp"
 
 #define MAX_CONSTS 32
@@ -14,7 +15,6 @@ namespace db {
 namespace process {
    class remote;
    class machine;
-   class router;
 }
 
 namespace sched {
@@ -26,6 +26,7 @@ namespace vm
 
 typedef std::vector<std::string> machine_arguments;
 
+/* state of the virtual machine */
 class all
 {
    private:
@@ -38,13 +39,11 @@ class all
    
    db::database *DATABASE;
    process::machine *MACHINE;
-   //process::remote *REMOTE;
-   process::router *ROUTER;
    size_t NUM_THREADS;
    size_t NUM_NODES_PER_PROCESS;
 	machine_arguments ARGUMENTS;
    static const double TASK_STEALING_FACTOR = 0.2;
-   std::vector<sched::base*> ALL_THREADS;
+   std::vector<sched::base*> ALL_THREADS; /* schedulers */
 
    inline void set_const(const const_id& id, const tuple_field d) { consts[id] = d; }
 
