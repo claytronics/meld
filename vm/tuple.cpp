@@ -6,6 +6,7 @@
 #include "utils/utils.hpp"
 #include "vm/state.hpp"
 #include "utils/serialization.hpp"
+#include "debug/debug_handler.hpp"
 
 using namespace vm;
 using namespace std;
@@ -15,9 +16,9 @@ using namespace boost;
 
 namespace vm
 {
-   
+
 tuple::tuple(const predicate* _pred):
-   pred((predicate*)_pred), fields(allocator<tuple_field>().allocate(pred->num_fields())) 
+   pred((predicate*)_pred), fields(allocator<tuple_field>().allocate(pred->num_fields()))
 {
    assert(pred != NULL);
    memset(fields, 0, sizeof(tuple_field) * pred->num_fields());
@@ -32,7 +33,7 @@ bool
 tuple::field_equal(const tuple& other, const field_num i) const
 {
    assert(i < num_fields());
-   
+
    switch(get_field_type(i)) {
       case FIELD_INT:
          if(get_int(i) != other.get_int(i))
@@ -61,7 +62,7 @@ tuple::field_equal(const tuple& other, const field_num i) const
       default:
          throw type_error("Unrecognized field type " + to_string((int)i) + ": " + to_string(get_field_type(i)));
    }
-   
+
    return true;
 }
 
@@ -74,7 +75,7 @@ tuple::operator==(const tuple& other) const
    for(field_num i = 0; i < num_fields(); ++i)
       if(!field_equal(other, i))
          return false;
-   
+
    return true;
 }
 
@@ -109,12 +110,12 @@ tuple*
 tuple::copy(void) const
 {
    assert(pred != NULL);
-   
+
    tuple *ret(new tuple(get_predicate()));
-   
+
    for(size_t i(0); i < num_fields(); ++i)
       copy_field(ret, i);
-   
+
    return ret;
 }
 
@@ -122,14 +123,14 @@ tuple*
 tuple::copy_except(const field_num field) const
 {
    assert(pred != NULL);
-   
+
    tuple *ret(new tuple(get_predicate()));
-   
+
    for(size_t i(0); i < num_fields(); ++i) {
       if(i != field)
          copy_field(ret, i);
    }
-   
+
    return ret;
 }
 
@@ -148,7 +149,10 @@ print_float(ostream& out, const float_val val)
 static inline void
 print_node(ostream& out, const node_val node)
 {
-  out << "@" << node;
+
+    /*debugger used to correct dumping*/
+    out << "@" << debugger::all->
+        DATABASE-> translate_fake_to_real_id((db::node::node_id)node);
 }
 
 void
@@ -158,13 +162,13 @@ tuple::print(ostream& cout) const
 
 	if(is_persistent())
 		cout << "!";
-   
+
    cout << pred_name() << "(";
-   
+
    for(field_num i = 0; i < num_fields(); ++i) {
       if(i != 0)
          cout << ", ";
-         
+
       switch(get_field_type(i)) {
          case FIELD_INT:
             print_int(cout, get_int(i));
@@ -191,7 +195,7 @@ tuple::print(ostream& cout) const
             throw type_error("Unrecognized field type " + to_string(i) + " (print)");
       }
    }
-   
+
    cout << ")";
 }
 
@@ -207,7 +211,7 @@ tuple::~tuple(void)
          default: break;
       }
    }
-   
+
    allocator<tuple_field>().deallocate(fields, pred->num_fields());
 }
 
@@ -237,7 +241,7 @@ tuple::get_storage_size(void) const
             throw type_error("unsupport field type in tuple::get_storage_size");
       }
    }
-   
+
    return ret;
 }
 
@@ -245,11 +249,11 @@ void
 tuple::pack(byte *buf, const size_t buf_size, int *pos) const
 {
    const predicate_id id(get_predicate_id());
-   
+
    assert(*pos <= (int)buf_size);
    utils::pack<predicate_id>((void*)&id, 1, buf, buf_size, pos);
    assert(*pos <= (int)buf_size);
-   
+
    for(field_num i(0); i < num_fields(); ++i) {
       switch(get_field_type(i)) {
          case FIELD_INT: {
@@ -325,15 +329,15 @@ tuple*
 tuple::unpack(byte *buf, const size_t buf_size, int *pos, vm::program *prog)
 {
    predicate_id pred_id;
-   
+
    utils::unpack<predicate_id>(buf, buf_size, pos, &pred_id, 1);
-   
+
    tuple *ret(new tuple(prog->get_predicate(pred_id)));
-   
+
    ret->load(buf, buf_size, pos);
-   
+
    return ret;
-   
+
 }
 
 void
