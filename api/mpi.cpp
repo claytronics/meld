@@ -74,7 +74,7 @@ namespace api {
     }
 
     inline int nextProcess(void) {
-        /*note skips over master debugging process in
+        /*note- skips over master debugging process in
           debugging mode*/
         if (world->rank() == world->size()-1)
             return RING_ORIGIN;

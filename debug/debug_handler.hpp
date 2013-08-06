@@ -38,6 +38,8 @@ namespace debugger {
     const int PRINTLIST = 11;
     const int RUN = 12;
     const int MODE = 13;
+    const int CONCHE = 14;
+    const int ENDSER = 15;
 
     extern std::queue<api::message_type*> *messageQueue;
     extern int numberExpected;
@@ -79,6 +81,7 @@ namespace debugger {
     void receiveMsg(void);
     void sendMsg(int destination, int msgType,
                  std::string content, bool broadcast = false);
+    void serializedPause(void);
 }
 
 #endif

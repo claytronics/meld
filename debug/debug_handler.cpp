@@ -54,7 +54,7 @@ namespace debugger {
     static bool isDebug = false;
     static bool isSimDebug = false;
     static bool isMpiDebug = false;
-
+    static bool hasTheConche = false;
 
     /*different mode settings for debugger*/
     bool verboseMode = false;
@@ -294,7 +294,6 @@ namespace debugger {
         if (nodeID!="")
             msg <<  "\tNode: " << nodeID << endl;
 
-
         display(msg.str(),PRINTCONTENT);
 
     }
@@ -358,7 +357,7 @@ namespace debugger {
     /*PAUSEIT--pause the VM until further notice
      * if in Sim or MPI debugging mode check for messages
      * to tell it what to do*/
-    void pauseIt(){
+    void pauseIt(void){
 
         isSystemPaused = true;
         while(isSystemPaused) {
@@ -376,6 +375,33 @@ namespace debugger {
             } else {
                 sleep(1);
             }
+        }
+    }
+
+
+    inline int nextProcess(void) {
+        /*note- skips over master debugging process in
+          debugging mode*/
+        if (api::world->rank() == api::world->size()-1)
+            return 1;
+        else
+            return api::world->rank() + 1;
+    }
+
+
+    /*SERIALIZED PAUSE -- to be impemented in sched/base.cpp
+     * allows only one process to execute at a time, else
+     * it will wait for the previous process to let it know
+     * continue */
+    void serializedPause(void){
+        ostringstream spec;
+        spec << nextProcess();
+        if (hasTheConche){
+            sendMsg(MASTER, CONCHE,spec.str());
+            hasTheConche = false;
+            while(!hasTheConche&&serializationMode)
+                receiveMsg();
+
         }
     }
 
@@ -425,6 +451,9 @@ namespace debugger {
             } else if ((uint)specification[i] == 'S'){
                 msg << "-serialzation mode set" << endl;
                 serializationMode = true;
+                if (isInMpiDebuggingMode()&&api::world->rank() == 1)
+                    //let begging process execute in serialization
+                    hasTheConche = true;
             }
         }
         if ((isInMpiDebuggingMode()&&api::world->rank()!=MASTER)
@@ -539,6 +568,11 @@ namespace debugger {
                     break;
                 case PAUSE:
 
+                    if (serializationMode&&!hasTheConche){
+                        display("PAUSED DUE TO SERIALIZATION\n",PAUSE);
+                        break;
+                    }
+
                     /*sychronization conditions -- if already paused
                      *don't do anything, the master already knows
                      *they are paused*/
@@ -606,6 +640,12 @@ namespace debugger {
                     /*turn on different modes*/
                     setFlags(specification);
                     break;
+                case CONCHE:
+                    if (atoi(specification.c_str()) == api::world->rank())
+                        hasTheConche = true;
+                    break;
+                case ENDSER:
+                    serializationMode = false;
 
 
             }
@@ -635,6 +675,8 @@ namespace debugger {
         } else if (instruction == TERMINATE){
 
             printf("PROGRAM FINISHED\n");
+            if (serializationMode)
+                sendMsg(-1,ENDSER,"",BROADCAST);
             api::end();
             exit(0);
 
@@ -804,9 +846,13 @@ namespace debugger {
             /*if the controlling process is recieving a message*/
             if (isInMpiDebuggingMode()&&api::world->rank()==MASTER){
 
-                debugMasterController(instruction,spec);
-                if (!anotherIndicator)
-                    numberExpected--;
+                if (instruction == CONCHE){
+                    sendMsg(-1,CONCHE,specification,BROADCAST);
+                } else {
+                    debugMasterController(instruction,spec);
+                    if (!anotherIndicator)
+                        numberExpected--;
+                }
 
             /*if a slave process (any vm) is receiving the message*/
             } else {
