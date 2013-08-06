@@ -62,7 +62,7 @@ namespace msg{
       
       // CMD_END_COMPUTATION (DETERMINISM)
       struct {
-		  message_type hasNoWork;
+		  message_type hasWork;
 	  } endComputation;
 
       message_type units[MAX_MSG];

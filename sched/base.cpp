@@ -62,7 +62,7 @@ base::do_loop(void)
           cout << "get_work loop..." << endl;
       }
 #ifdef SIMD
-		  api::endComputation(state.node, true);
+		  api::endComputation(state.node, false);
 		  //cout << "get_work end..." << endl;
 #endif   
       if (debugger::isInMpiDebuggingMode()||debugger::isInSimDebuggingMode()){

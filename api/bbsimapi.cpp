@@ -345,7 +345,7 @@ set_color(db::node *n, const int r, const int g, const int b)
 }
 
 #ifdef SIMD
-  void endComputation(db::node *n, bool hasNoWork) {
+  void endComputation(db::node *n, bool hasWork) {
 	if (!sched_state->state.compute) return;
 	sched_state->state.compute = false;
     message* endComputationMessage=(message*)calloc(5, sizeof(message_type));
@@ -353,10 +353,10 @@ set_color(db::node *n, const int r, const int g, const int b)
     endComputationMessage->command=END_COMPUTATION;
     endComputationMessage->timestamp=max(sched_state->state.current_local_time, sched_state->state.current_computation_end_time);
     endComputationMessage->node=(message_type)n->get_id();
-    endComputationMessage->data.endComputation.hasNoWork = (message_type) hasNoWork;
-    //cout << "hasNoWork (bool) " << hasNoWork << " hasNoWork (uint64_t) " << endComputationMessage->data.endComputation.hasNoWork << endl;
+    endComputationMessage->data.endComputation.hasWork = (message_type) hasWork;
+    cout << "hasNoWork (bool) " << hasWork << " hasNoWork (uint64_t) " << endComputationMessage->data.endComputation.hasWork << endl;
     sched_state->state.current_local_time = max(sched_state->state.current_local_time, sched_state->state.current_computation_end_time);
-    //cout << "end of computation sent at " << max(sched_state->state.current_local_time, sched_state->state.current_computation_end_time) << endl;
+    cout << "end of computation sent at " << max(sched_state->state.current_local_time, sched_state->state.current_computation_end_time) << endl;
     sendMessageTCP1(endComputationMessage);
     free(endComputationMessage);
   }
