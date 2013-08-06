@@ -150,7 +150,7 @@ static inline void
 print_node(ostream& out, const node_val node)
 {
 
-    /*debugger used to correct dumping*/
+    /*debugger used to correct dumping -- Dave*/
     out << "@" << debugger::all->
         DATABASE-> translate_fake_to_real_id((db::node::node_id)node);
 }
