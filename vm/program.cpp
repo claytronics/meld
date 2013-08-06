@@ -3,6 +3,7 @@
 #include <sys/stat.h>
 #include <iostream>
 #include <boost/static_assert.hpp>
+#include<dlfcn.h>
 
 #include "vm/program.hpp"
 #include "db/tuple.hpp"
@@ -218,7 +219,10 @@ program::program(const string& _filename):
          functions[i] = new vm::function(fun_code, fun_size);
       }
 
-      if(major_version > 0 || minor_version >= 7) {
+    //init functions defined in external namespace
+    init_external_functions();
+
+if(major_version > 0 || minor_version >= 7) {
          // get external functions definitions
          uint_val n_externs;
 
@@ -240,19 +244,35 @@ program::program(const string& _filename):
 
             READ_CODE(&skip_ptr, sizeof(skip_ptr));
 
+            //dlopen call
+            //dlsym call
+            skip_ptr = get_function_pointer(skip_filename,extern_name);
+
             uint_val num_args;
 
             READ_CODE(&num_args, sizeof(num_args));
 
-            //cout << "Id " << extern_id << " " << extern_name << " ";
+            byte b;
+            READ_CODE(&b,sizeof(byte)); 
+            field_type ret_type = (field_type)b;
 
-            for(uint_val j(0); j != num_args + 1; ++j) {
-               byte b;
-               READ_CODE(&b, sizeof(byte));
-               //field_type type = (field_type)b;
-               //cout << field_type_string(type) << " ";
-            }
-            //cout << endl;
+            cout << "Id " << extern_id << " " << extern_name << " ";
+            cout <<"Num_args "<<num_args<<endl;
+
+            field_type arg_type[num_args];
+            if(num_args){
+
+                for(uint_val j(0); j != num_args; ++j) {
+                    byte b;
+                    READ_CODE(&b, sizeof(byte));
+                    arg_type[j] = (field_type)b;
+                    cout << field_type_string(arg_type[j]) << " ";
+                }
+
+            add_external_function((external_function_ptr)skip_ptr,num_args,ret_type,arg_type);             
+            }else
+            add_external_function((external_function_ptr)skip_ptr,0,ret_type,NULL);
+            cout << endl;
          }
       }
    }
@@ -396,6 +416,69 @@ program::~program(void)
       delete imported_predicates[i];
    }
    MAX_STRAT_LEVEL = 0;
+}
+
+void 
+program::add_external_function(external_function_ptr ptr,size_t num_args,field_type
+        ret,field_type *arg){
+
+#define EXTERN(NAME) (external_function_ptr) NAME
+#define EXTERNAL0(NAME, RET) external0(EXTERN(NAME), RET)
+#define EXTERNAL1(NAME, RET, ARG1) external1(EXTERN(NAME), RET, ARG1)
+#define EXTERNAL2(NAME, RET, ARG1, ARG2) external2(EXTERN(NAME), RET, ARG1, ARG2)
+#define EXTERNAL3(NAME, RET, ARG1, ARG2, ARG3) external3(EXTERN(NAME), RET, ARG1, ARG2, ARG3)
+
+    switch(num_args){
+
+        case 0 : cout<<"arg0 register_func_id :"<<register_external_function(EXTERNAL0(ptr,ret));
+                 cout<<endl;
+                 break;
+
+        case 1 :  cout<<"arg1 register_func_id:"<< register_external_function(EXTERNAL1(ptr, ret, arg[0]));
+                  cout<<endl;  
+                  break;  
+
+        case 2 : cout<<"arg2 register_func_id:"<<register_external_function(EXTERNAL2(ptr,ret,arg[0],arg[1]));
+                 cout<<endl;
+                 break;
+
+        case 3 :cout<<"arg3 register_func_id:"<<register_external_function(EXTERNAL3(ptr,ret,arg[0],arg[1],arg[2]));
+                 cout<<endl;   
+                 break;
+
+        default : break;
+    }
+
+}
+
+ptr_val 
+program::get_function_pointer(char *lib_path,char* func_name){
+
+    cout<<"Opening shared object file..."<<lib_path<<endl;
+    void *handle = dlopen(lib_path,RTLD_LAZY);
+
+    if(!handle){
+        cerr<<"Cannot Open Library : "<<dlerror()<<endl;
+        return 1;
+    }
+
+    cout<<"Loading symbol..."<<func_name<<endl;
+    typedef void (*func_t)();
+
+    //reset errors
+    dlerror();
+
+    func_t func = (func_t)dlsym(handle,func_name);
+    const char *dlsym_error = dlerror();
+
+    if(dlsym_error){
+        cerr<<"Cannot load symbol..."<<dlsym_error<<endl;
+        dlclose(handle);
+        return 0;
+    }
+
+    return (ptr_val)func;
+
 }
 
 predicate*

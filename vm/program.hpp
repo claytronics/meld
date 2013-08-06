@@ -9,6 +9,9 @@
 #include <stdexcept>
 #include <ostream>
 
+#include "vm/external.hpp"
+#include "vm/types.hpp"
+#include "utils/types.hpp"
 #include "vm/predicate.hpp"
 #include "vm/defs.hpp"
 #include "vm/tuple.hpp"
@@ -155,6 +158,9 @@ public:
    inline bool is_data(void) const { return is_data_file; }
 
    bool add_data_file(vm::program&);
+
+    void add_external_function(external_function_ptr ptr,size_t num_args,field_type ret_type,field_type *arg_type);
+    ptr_val get_function_pointer(char *lib_path,char* func_name);
    
    explicit program(const std::string&);
    

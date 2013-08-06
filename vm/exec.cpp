@@ -1750,6 +1750,89 @@ execute_call(pcounter pc, state& state)
 }
 
 static inline void
+execute_calle(pcounter pc, state& state)
+{
+   #define REGISTER_OFFSET 38 
+   pcounter m(pc + CALL_BASE);
+   const external_function_id id(call_extern_id(pc) + REGISTER_OFFSET);
+   const size_t num_args(call_num_args(pc));
+   const reg_num reg(call_dest(pc));
+   external_function *f(lookup_external_function(id));
+   const field_type ret_type(f->get_return_type());
+   argument args[num_args];
+   
+   for(size_t i(0); i < num_args; ++i)
+      read_call_arg(args[i], f->get_arg_type(i), m, state);
+   
+   assert(num_args == f->get_num_args());
+   
+   argument ret;
+   
+   // call function
+   switch(num_args) {
+      case 0:
+         ret = f->get_fun_ptr()();
+         break;
+      case 1:
+         ret = ((external_function_ptr1)f->get_fun_ptr())(args[0]);
+         break;
+      case 2:
+         ret = ((external_function_ptr2)f->get_fun_ptr())(args[0], args[1]);
+         break;
+      case 3:
+         ret = ((external_function_ptr3)f->get_fun_ptr())(args[0], args[1], args[2]);
+         break;
+      default:
+         throw vm_exec_error("vm does not support external functions with more than 3 arguments");
+   }
+   
+   switch(ret_type) {
+      case FIELD_INT:
+         state.set_int(reg, ret.int_field);
+         break;
+      case FIELD_FLOAT:
+         state.set_float(reg, ret.float_field);
+         break;
+      case FIELD_NODE:
+         state.set_node(reg, ret.node_field);
+         break;
+		case FIELD_STRING: {
+			rstring::ptr s((rstring::ptr)ret.ptr_field);
+			
+			state.set_string(reg, s);
+			state.add_string(s);
+			
+			break;
+		}
+      case FIELD_LIST_FLOAT: {
+         float_list *l((float_list *)ret.ptr_field);
+
+         state.set_float_list(reg, l);
+         if(!float_list::is_null(l))
+            state.add_float_list(l);
+         break;
+      }
+      case FIELD_LIST_INT: {
+         int_list *l((int_list *)ret.ptr_field);
+         state.set_int_list(reg, l);
+
+         if(!int_list::is_null(l))
+            state.add_int_list(l);
+         break;
+      }
+		case FIELD_LIST_NODE: {
+			node_list *l((node_list *)ret.ptr_field);
+			state.set_node_list(reg, l);
+			if(!node_list::is_null(l))
+				state.add_node_list(l);
+			break;
+		}
+      default:
+         throw vm_exec_error("invalid return type in call (execute_calle)");
+   }
+}
+
+static inline void
 execute_rule(const pcounter& pc, state& state)
 {
    const size_t rule_id(rule_get_id(pc));
@@ -2044,6 +2127,11 @@ eval_loop:
 
          case CALL_INSTR:
             execute_call(pc, state);
+            break;
+
+         case CALLE_INSTR:
+            cout<<"CALLE_INSTR"<<endl;
+            execute_calle(pc, state);
             break;
 
          case RULE_INSTR:
