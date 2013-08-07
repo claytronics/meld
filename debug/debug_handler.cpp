@@ -55,10 +55,12 @@ namespace debugger {
     static bool isSimDebug = false;
     static bool isMpiDebug = false;
     static bool hasTheConche = false;
+    static bool okayToSetConche = true;
 
     /*different mode settings for debugger*/
     bool verboseMode = false;
     bool serializationMode = false;
+
 
     /*the pointer to the list of break points*/
     static debugList factBreakList = NULL;
@@ -294,6 +296,10 @@ namespace debugger {
         if (nodeID!="")
             msg <<  "\tNode: " << nodeID << endl;
 
+        if (isInMpiDebuggingMode()&&api::world->rank() != 1){
+            display(msg.str(),PAUSE);
+            return;
+        }
         display(msg.str(),PRINTCONTENT);
 
     }
@@ -446,14 +452,27 @@ namespace debugger {
         ostringstream msg;
         for (int i = 0; i < specification.length(); i++){
             if ((uint)specification[i] == 'V'){
+                if (!verboseMode)
+                    msg << "-verbose mode set" << endl;
+                else
+                    msg << "-already in verbode mode" << endl;
                 verboseMode = true;
-                msg << "-verbose mode set" << endl;
             } else if ((uint)specification[i] == 'S'){
-                msg << "-serialzation mode set" << endl;
-                serializationMode = true;
+                if (!isInSimDebuggingMode()){
+                    if (!serializationMode)
+                        msg << "-serialization mode set" << endl;
+                    else
+                        msg << "-already in serialization mode" << endl;
+                    serializationMode = true;
+                } else {
+                    msg << "-cannot go into serialization mode" << endl;
+                }
                 if (isInMpiDebuggingMode()&&api::world->rank() == 1)
                     //let begging process execute in serialization
-                    hasTheConche = true;
+                    if (okayToSetConche){
+                        hasTheConche = true;
+                        okayToSetConche = false;
+                    }
             }
         }
         if ((isInMpiDebuggingMode()&&api::world->rank()!=MASTER)
@@ -568,11 +587,6 @@ namespace debugger {
                     break;
                 case PAUSE:
 
-                    if (serializationMode&&!hasTheConche){
-                        display("PAUSED DUE TO SERIALIZATION\n",PAUSE);
-                        break;
-                    }
-
                     /*sychronization conditions -- if already paused
                      *don't do anything, the master already knows
                      *they are paused*/
@@ -587,6 +601,13 @@ namespace debugger {
                         display("CURRENTLY PAUSED\n",PAUSE);
                         break;
                     }
+
+                    /*let the mast know that child is not being executed*/
+                    if (serializationMode&&!hasTheConche){
+                        display("PAUSED DUE TO SERIALIZATION\n",PAUSE);
+                        break;
+                    }
+
                     /*pause it otherwise*/
                     isSystemPaused = true;
                     break;

@@ -192,7 +192,7 @@ namespace debugger {
 
     cout << "\t-mode <parameter> - change the debugger mode" << endl;
     cout << "\t\t - <parameter> - V - verbose mode" << endl;
-    cout << "\t\t               - S - serialized mode" << endl;
+    cout << "\t\t                 S - serialized mode" << endl;
     cout << "\t-print - print the breakpoint list" << endl;
     cout << "\t-continue or c - continue execution" << endl;
     cout << "\t-run or r - start the program" << endl;
