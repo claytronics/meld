@@ -187,6 +187,7 @@ inline face_t operator++(face_t& f, int) {
   vm::predicate* shake_pred(NULL);
   vm::predicate* vacant_pred(NULL);
   bool stop_all(false);
+  //bool MessageReceived(false);
   static db::node::node_id id(0); 
 
   using namespace std;
@@ -490,7 +491,10 @@ sendMessageTCP1(message *msg)
   {
     printf("%d:Processing %s %lud bytes for %lud\n",id, msgcmd2str[reply[1]], reply[0], reply[3]);
     assert(reply!=NULL);
-
+#ifdef SIMD
+	if (reply[1] != DEBUG)
+		setCurrentLocalTime((deterministic_timestamp)reply[2]);
+#endif
     switch(reply[1]) {
   /*Initilize the blocks's ID*/
       case SETID: 

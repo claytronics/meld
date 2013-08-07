@@ -43,7 +43,19 @@ namespace vm {
 		}
 
 		bool canCompute() {
-				return (mode == REALTIME) || (currentLocalTime < currentComputationEndTime);
+			switch(mode) {
+				case REALTIME:
+					return true;
+					break;
+				case DETERMINISTIC1:
+					return true;
+					break;
+				case DETERMINISTIC2:
+					return (currentLocalTime < currentComputationEndTime);
+					break;
+				default:
+					return true;
+			}
 		}
 		
 		void checkAndWaitUntilCanCompute() {
@@ -64,18 +76,38 @@ namespace vm {
 		}
 		
 		void startComputation(deterministic_timestamp ts, int d) {
-			computing = true;
-			currentComputationEndTime = ts + d;
-			cout << "start computation till " << currentComputationEndTime <<endl;
+			switch(mode) {
+				case REALTIME:
+					break;
+				case DETERMINISTIC1:
+					break;
+				case DETERMINISTIC2:
+					computing = true;
+					currentComputationEndTime = ts + d;
+					cout << "start computation till " << currentComputationEndTime <<endl;
+					break;
+				default:
+					return;
+			}
 		}
 		
 		void endComputation(bool hasWork) {
-			if (!computing) {
-				return;
+			switch(mode) {
+				case REALTIME:
+					break;
+				case DETERMINISTIC1:
+					break;
+				case DETERMINISTIC2:
+					if (!computing) {
+						return;
+					}
+					computing = false;
+					cout << "end computation at "<< currentLocalTime;
+					setCurrentLocalTime(currentComputationEndTime);
+					break;
+				default:
+					return;
 			}
-			computing = false;
-			cout << "end computation at "<< currentLocalTime;
-			setCurrentLocalTime(currentComputationEndTime);
 			cout << " ajusted to " << currentLocalTime << endl;
 			cout << "api::endComputation..." << endl;
 			api::endComputation(NULL, hasWork);
@@ -91,9 +123,20 @@ namespace vm {
 		}
 		
 		void setCurrentLocalTime(deterministic_timestamp time) {
-			if (mode == DETERMINISTIC1) {
-				currentLocalTime = max(currentLocalTime, time);
+			switch(mode) {
+				case REALTIME:
+					break;
+				case DETERMINISTIC1:
+					currentLocalTime = max(currentLocalTime, time);
+					break;
+				case DETERMINISTIC2:
+					currentLocalTime = max(currentLocalTime, time);
+					break;
+				default:
+					return;
 			}
 		}
+		
+		
 	}
 }

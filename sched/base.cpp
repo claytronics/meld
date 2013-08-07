@@ -51,7 +51,8 @@ void
 base::do_loop(void)
 {
   db::node *node(NULL);
-
+  bool hasComputed = false;
+  
   while(true) {
 	  //cout << "while loop" << endl;
       if (debugger::serializationMode)
@@ -60,6 +61,7 @@ base::do_loop(void)
           // Current VM has local work, process work
           do_work(node);
           finish_work(node);
+          hasComputed = true;
           cout << "get_work loop..." << endl;
       }  
       if (debugger::isInMpiDebuggingMode()||debugger::isInSimDebuggingMode()){
@@ -71,7 +73,10 @@ base::do_loop(void)
           }
       }
 #ifdef SIMD // TO CHANGE, with haswork
-      vm::determinism::endComputation(false);
+	  if (hasComputed) {
+		vm::determinism::endComputation(false);
+		hasComputed = false;
+	  }
 #endif
       bool hasWork = api::pollAndProcess(this, state.all);
       bool ensembleFinished = false;
