@@ -53,8 +53,11 @@ base::do_loop(void)
 
   while(true) {
 
-      if (debugger::serializationMode)
-          api::serializeBeginExec();
+      if (debugger::serializationMode){
+          debugger::serializedPause();
+      }
+
+          //api::serializeBeginExec();
       while ((node = get_work())) {
           // Current VM has local work, process work
           do_work(node);
@@ -74,8 +77,7 @@ base::do_loop(void)
       bool ensembleFinished = false;
       if (!hasWork)
           ensembleFinished = api::ensembleFinished(this);
-      if (debugger::serializationMode)
-          api::serializeEndExec();
+          //api::serializeEndExec();
       if (ensembleFinished)
           break;
   }

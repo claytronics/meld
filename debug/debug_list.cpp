@@ -50,19 +50,24 @@ void listFree(debugList L){
 //object must be dynamically allocated
 void insertBreak(debugList L, char* type, char* name, int  nodeID){
 
-    /*insert the data*/
-    L->back->type = type;
-    L->back->name = name;
-    L->back->nodeID = nodeID;
 
-    /*instantiate a tailing blank node*/
-    L->back->next = (struct debugnode*)malloc(sizeof(struct debugnode));
-    L->back->next->prev = L->back;
-    L->back->next->next = NULL;
-    L->back->next->type = NULL;
-    L->back->next->nodeID = -1;
-    L->back->next->name = NULL;
-    L->back = L->back->next;
+    if (!isInBreakPointList(L,type,name,nodeID)){
+
+        /*insert the data*/
+        L->back->type = type;
+        L->back->name = name;
+        L->back->nodeID = nodeID;
+
+        /*instantiate a tailing blank node*/
+        L->back->next = (struct debugnode*)malloc(sizeof(struct debugnode));
+        L->back->next->prev = L->back;
+        L->back->next->next = NULL;
+        L->back->next->type = NULL;
+        L->back->next->nodeID = -1;
+        L->back->next->name = NULL;
+        L->back = L->back->next;
+
+    }
 
 }
 
