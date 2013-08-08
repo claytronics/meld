@@ -149,12 +149,16 @@ print_float(ostream& out, const float_val val)
 static inline void
 print_node(ostream& out, const node_val node)
 {
-
+   if(debugger::isInMpiDebuggingMode()||debugger::isInSimDebuggingMode()||debugger::isInDebuggingMode()){
     /*debugger used to correct dumping -- Dave*/
     out << "@" << debugger::all->
+    
         DATABASE-> translate_fake_to_real_id((db::node::node_id)node);
+   }
+   else{
+      out<<"@"<<node;
+   }
 }
-
 void
 tuple::print(ostream& cout) const
 {
