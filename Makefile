@@ -21,7 +21,7 @@ UILIBRARIES = #-lwebsocketpp -ljson_spirit
 CFLAGS = $(ARCH) $(PROFILING) $(OPTIMIZATIONS) $(WARNINGS) $(DEBUG) $(INCLUDE_DIRS) $(COX)
 
 LIBRARIES = -pthread -lpthread -lm -lreadline -lboost_thread-mt -lboost_system-mt \
-			-lboost_date_time-mt -lboost_regex-mt $(UILIBRARIES)
+			-lboost_date_time-mt -lboost_regex-mt -ldl $(UILIBRARIES)
 
 LIBRARIES +=  -lboost_serialization-mt -lboost_mpi-mt
 
@@ -88,9 +88,17 @@ SRCS = utils/utils.cpp \
 			 debug/debug_handler.cpp \
 			 debug/debug_list.cpp \
 			 api/bbsimapi.cpp \
+<<<<<<< HEAD
 			 #api/mpi.cpp \
 
 
+||||||| merged common ancestors
+#			 api/mpi.cpp \
+			
+=======
+			 #api/mpi.cpp \
+
+>>>>>>> linker
 
 OBJS = $(patsubst %.cpp,%.o,$(SRCS))
 

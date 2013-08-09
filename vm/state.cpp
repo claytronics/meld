@@ -703,7 +703,9 @@ state::run_node(db::node *no)
 		use_local_tuples = true;
       persistent_only = false;
 		execute_rule(rule, *this);
-        process_consumed_local_tuples();
+
+       process_consumed_local_tuples();
+
       /* move from generated tuples to local_tuples */
       local_tuples.splice(local_tuples.end(), generated_tuples);
       if(!do_persistent_tuples()) {
