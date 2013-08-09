@@ -294,6 +294,8 @@ onLocalVM(const db::node::node_id id){
   return false;
 }
 
+bool receivedMsg = false;
+uint64_t nb = 0;
 
 /*Polls the socket for any message and processes the message*/
  bool 
@@ -308,6 +310,7 @@ onLocalVM(const db::node::node_id id){
     else
       return true;
   }
+  receivedMsg=true;
   processMessage(reply);
   return true;
 }
@@ -352,7 +355,7 @@ set_color(db::node *n, const int r, const int g, const int b)
     //endComputationMessage->node=(message_type)n->get_id();
     endComputationMessage->node=(message_type) 0;
     cout << "instr5" << endl;
-    endComputationMessage->data.endComputation.hasWork = (message_type) hasWork;
+    endComputationMessage->data.endComputation.hasWork = nb;
     cout << "endComputation sends at " << getCurrentLocalTime() << endl;
     sendMessageTCP1(endComputationMessage);
     cout << "instr6" << endl;
@@ -457,6 +460,7 @@ tcpPool()
       //cout<<"getting message of length "<< length<<endl;
       length = my_tcp_socket->read_some(boost::asio::buffer(msg + 1,  msg[0]));
       //cout<<"Returning message of length "<< msg[0]<<endl;
+      nb++;
       return msg;   
     }
   } catch(std::exception &e) {

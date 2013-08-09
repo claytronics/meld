@@ -72,13 +72,15 @@ base::do_loop(void)
               debugger::pauseIt();
           }
       }
+      
+      api::receivedMsg=false;
+      bool hasWork = api::pollAndProcess(this, state.all);
 #ifdef SIMD // TO CHANGE, with haswork
-	  if (hasComputed) {
+	  if (hasComputed && !api::receivedMsg) {
 		vm::determinism::endComputation(false);
 		hasComputed = false;
 	  }
 #endif
-      bool hasWork = api::pollAndProcess(this, state.all);
       bool ensembleFinished = false;
       if (!hasWork) {       
           ensembleFinished = api::ensembleFinished(this);      
