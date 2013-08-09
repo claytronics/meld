@@ -88,17 +88,7 @@ SRCS = utils/utils.cpp \
 			 debug/debug_handler.cpp \
 			 debug/debug_list.cpp \
 			 api/bbsimapi.cpp \
-<<<<<<< HEAD
-			 #api/mpi.cpp \
-
-
-||||||| merged common ancestors
-#			 api/mpi.cpp \
-			
-=======
-			 #api/mpi.cpp \
-
->>>>>>> linker
+			 #api/mpi.cpp /
 
 OBJS = $(patsubst %.cpp,%.o,$(SRCS))
 
