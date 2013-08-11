@@ -60,14 +60,14 @@ namespace vm {
 		
 		void checkAndWaitUntilCanCompute() {
 			if(!canCompute()) {
-				cout << "can not compute" << endl;
+				//cout << "can not compute" << endl;
 				if(currentComputationEndTime != 0)
 					endComputation(true);
 				while(!canCompute()) {
 					api::pollAndProcess(NULL,NULL);
 					usleep(5000); // to avoid polling to much
 				}
-			cout << "can compute again" << endl;
+			//cout << "can compute again" << endl;
 			}
 		}
 		
@@ -83,8 +83,8 @@ namespace vm {
 					break;
 				case DETERMINISTIC2:
 					computing = true;
-					currentComputationEndTime = ts + d;
-					cout << "start computation till " << currentComputationEndTime <<endl;
+					currentComputationEndTime = currentLocalTime + d;
+					//cout << "start computation till " << currentComputationEndTime <<endl;
 					break;
 				default:
 					return;
@@ -102,16 +102,16 @@ namespace vm {
 						return;
 					}
 					computing = false;
-					cout << "end computation at "<< currentLocalTime;
+					//cout << "end computation at "<< currentLocalTime;
 					setCurrentLocalTime(currentComputationEndTime);
 					break;
 				default:
 					return;
 			}
-			cout << " ajusted to " << currentLocalTime << endl;
-			cout << "api::endComputation..." << endl;
+			//cout << " ajusted to " << currentLocalTime << endl;
+			//cout << "api::endComputation..." << endl;
 			api::endComputation(NULL, hasWork);
-			cout << "ok" << endl;
+			//cout << "ok" << endl;
 		}
 		
 		deterministic_timestamp getCurrentLocalTime() {

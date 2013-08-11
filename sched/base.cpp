@@ -51,7 +51,7 @@ void
 base::do_loop(void)
 {
   db::node *node(NULL);
-  bool hasComputed = false;
+  bool hasComputed = true; // case no node has work; 
   
   while(true) {
 	  //cout << "while loop" << endl;
@@ -76,10 +76,11 @@ base::do_loop(void)
       api::receivedMsg=false;
       bool hasWork = api::pollAndProcess(this, state.all);
 #ifdef SIMD // TO CHANGE, with haswork
-	  if (hasComputed && !api::receivedMsg) {
+	if (hasComputed && !api::receivedMsg) { // MODE 1
+	//if ( !api::receivedMsg) { // MODE 2
 		vm::determinism::endComputation(false);
 		hasComputed = false;
-	  }
+	 }
 #endif
       bool ensembleFinished = false;
       if (!hasWork) {       

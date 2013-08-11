@@ -343,22 +343,23 @@ set_color(db::node *n, const int r, const int g, const int b)
 
 #ifdef SIMD
   void endComputation(db::node *n, bool hasWork) {
-	cout << "api::endComputation  inside "<< endl;
+	//cout << "api::endComputation  inside "<< endl;
     message* endComputationMessage=(message*)calloc(5, sizeof(message_type));
-    cout << "instr1" << endl;
+   // cout << "instr1" << endl;
     endComputationMessage->size=4 * sizeof(message_type);
-    cout << "instr2" << endl;
+   // cout << "instr2" << endl;
     endComputationMessage->command=END_COMPUTATION;
-    cout << "instr3" << endl;
+   // cout << "instr3" << endl;
     endComputationMessage->timestamp= (message_type) getCurrentLocalTime();
-    cout << "instr4" << endl;
+   // cout << "instr4" << endl;
     //endComputationMessage->node=(message_type)n->get_id();
     endComputationMessage->node=(message_type) 0;
-    cout << "instr5" << endl;
-    endComputationMessage->data.endComputation.hasWork = nb;
-    cout << "endComputation sends at " << getCurrentLocalTime() << endl;
+    //cout << "instr5" << endl;
+    endComputationMessage->data.endComputation.hasWork = nb; //MODE 1
+	//endComputationMessage->data.endComputation.hasWork = (message_type) hasWork; // Mode 2
+    //cout << "endComputation sends at " << getCurrentLocalTime() << endl;
     sendMessageTCP1(endComputationMessage);
-    cout << "instr6" << endl;
+    //cout << "instr6" << endl;
     free(endComputationMessage);
   }
 #endif
