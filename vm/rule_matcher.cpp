@@ -86,11 +86,14 @@ rule_matcher::deregister_tuple(tuple *tpl, const ref_count count)
 	bool ret(false);
 	
 #ifdef DEBUG_RULES
-	cout<<api::getNodeID() << ":Remove tuple " << *tpl << endl;
-#endif
-   assert(predicate_count[id] >= count);
 
-   if(predicate_count[id] == count) {
+	cout<<api::getNodeID() << "Remove tuple " << *tpl << " " << count << " " << predicate_count[id] << endl;
+
+#endif
+   assert(count > 0);
+   assert(predicate_count[id] >= (ref_count_plus)count);
+
+   if(predicate_count[id] == (ref_count_plus)count) {
 		ret = true;
 		register_predicate_unavailability(tpl->get_predicate());
    }
