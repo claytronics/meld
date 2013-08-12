@@ -498,7 +498,7 @@ namespace debugger {
      * if a valid flag, turn mode on and notify user*/
     void setFlags(string specification){
         ostringstream msg;
-        for (int i = 0; i < specification.length(); i++){
+        for (int i = 0; (uint)i < specification.length(); i++){
 
             if ((uint)specification[i] == 'V'){
 
@@ -822,7 +822,7 @@ namespace debugger {
         string partition;
         int priority = 1;
         /*if too big*/
-        while (content.length() + 1 > getMaxCharArraySize()){
+        while (content.length() + 1 > (uint)getMaxCharArraySize()){
 
             /*pack the broken message and put it in the list*/
             partition = content.substr(0,getMaxCharArraySize());
@@ -862,8 +862,6 @@ namespace debugger {
         api::message_type msgSize = bufSize-SIZE;//according to message spec
         api::message_type timeStamp = 0;
         api::message_type nodeId = api::getNodeID();
-
-        int currentSize = 0;
 
         /*message size in bytes*/
         utils::pack<api::message_type>(&msgSize,1,msg,bufSize,&pos);
@@ -1055,7 +1053,6 @@ namespace debugger {
     void insertMsg(string content, int priority, int instruction, int node){
 
          std::list<struct msgListContainer*>::const_iterator it;
-         std::list<struct msgListElem*>* msgList;
          struct msgListElem* elem;
          struct msgListContainer* contain;
 
@@ -1111,7 +1108,7 @@ namespace debugger {
                 /*find the header and check if it is done if the size expected
                  *matches the size of the list*/
                 if (elem->priority == 0 &&
-                    atoi(elem->content.c_str()) == msgList->size()){
+                    (uint)atoi(elem->content.c_str()) == (uint)msgList->size()){
                     return contain;
                 }
             }
@@ -1162,7 +1159,6 @@ namespace debugger {
 
         ostringstream msg;
 
-        int priority = 0;
         std::list<struct msgListElem*>::iterator it;
         struct msgListElem* elem;
         std::list<struct msgListElem*>* msgList = container->msglist;

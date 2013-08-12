@@ -588,11 +588,11 @@ state::process_persistent_tuple(db::simple_tuple *stpl, vm::tuple *tpl)
          	deleter();
 		debugger::runBreakPoint("factRet",
 			      "Fact has been removed from database",
-			      (char*)tpl->pred_name().c_str(),
+                                (char*)tpl->pred_name().c_str(),
 			      (int)node->get_translated_id());
       	} else{
 	  debugger::runBreakPoint("factRet","Fact has been retracted",
-			(char*)tpl->pred_name().c_str(),
+                              (char*)tpl->pred_name().c_str(),
 			(int)node->get_translated_id());
          	delete tpl;
 	}
