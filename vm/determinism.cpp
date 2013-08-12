@@ -59,15 +59,25 @@ namespace vm {
 		}
 		
 		void checkAndWaitUntilCanCompute() {
-			if(!canCompute()) {
-				//cout << "can not compute" << endl;
-				if(currentComputationEndTime != 0)
-					endComputation(true);
-				while(!canCompute()) {
-					api::pollAndProcess(NULL,NULL);
-					usleep(5000); // to avoid polling to much
-				}
-			//cout << "can compute again" << endl;
+			switch(mode) {
+				case REALTIME:
+					break;
+				case DETERMINISTIC1:
+					if (currentLocalTime%30 == 0)
+						api::timeInfo(NULL);
+					break;
+				case DETERMINISTIC2:
+					if(!canCompute()) {
+						//cout << "can not compute" << endl;
+						if(currentComputationEndTime != 0)
+							endComputation(true);
+						while(!canCompute()) {
+							api::pollAndProcess(NULL,NULL);
+							usleep(5000); // to avoid polling to much
+						}
+						//cout << "can compute again" << endl;
+					}
+					break;
 			}
 		}
 		

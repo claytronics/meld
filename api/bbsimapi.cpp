@@ -40,6 +40,7 @@ using namespace msg;
 #define SET_DETERMINISTIC_MODE	20
 #define START_COMPUTATION		21
 #define END_COMPUTATION			22
+#define TIME_INFO				23
 
 // debug messages for simulation
 // #define DEBUG
@@ -360,6 +361,16 @@ set_color(db::node *n, const int r, const int g, const int b)
     //cout << "endComputation sends at " << getCurrentLocalTime() << endl;
     sendMessageTCP1(endComputationMessage);
     //cout << "instr6" << endl;
+    free(endComputationMessage);
+  }
+  
+  void timeInfo(db::node *n) {
+    message* endComputationMessage=(message*)calloc(4, sizeof(message_type));
+    endComputationMessage->size=3 * sizeof(message_type);
+    endComputationMessage->command=TIME_INFO;
+    endComputationMessage->timestamp= (message_type) getCurrentLocalTime();
+    endComputationMessage->node=(message_type) 0;
+    sendMessageTCP1(endComputationMessage);
     free(endComputationMessage);
   }
 #endif

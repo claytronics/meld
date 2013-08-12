@@ -86,6 +86,7 @@ namespace api {
     extern void set_color(db::node *n, const int r, const int g, const int b);
     extern void debugGetMsgs(void);
     extern void endComputation(db::node *n, bool hasWork);
+    extern void timeInfo(db::node *n);
     
 } // namespace api
 #endif
