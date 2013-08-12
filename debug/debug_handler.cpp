@@ -27,7 +27,9 @@ namespace debugger {
 
     /*****************************************************************/
 
-    /*GLOBAL STORED VARS: debug handling specific*/
+    /*
+     *  GLOBAL VARIABLES/POINTERS
+     *   -to store information about the system*/
 
     /****************************************************************/
 
@@ -54,6 +56,8 @@ namespace debugger {
     static bool isDebug = false;
     static bool isSimDebug = false;
     static bool isMpiDebug = false;
+
+    /*for serializationMode*/
     static bool hasTheConche = false;
     static bool okayToSetConche = true;
 
@@ -71,9 +75,34 @@ namespace debugger {
     /*used to store the state of the system to dump/print system*/
     vm::all* all;
 
+    /*cache ...rcvMessageList holds containters for
+     * different lists of broken messages*/
+    std::list<struct msgListContainer*>* rcvMessageList;
+
+    /*BROKEN UP MESSAGE CONTAINERS TO BE STORED IN CACHE*/
+
+    /*rcvMessageList Elems -- contains a list that holds incoming messages
+     * from a certain node*/
+    struct msgListContainer {
+        int instruction;
+        int node;
+        std::list<struct msgListElem*>* msglist;
+    };
+
+    /*msgListElems -- holds the information necessary to reconstruct the
+     * the message*/
+    struct msgListElem{
+        int priority;
+        string content;
+    };
+
     /******************************************************************/
 
-    /*DEBUG INITIALIZERS*/
+    /*
+     * DEBUG INITIALIZERS
+     *  -functions to setup the debugger for use
+     *   mostly implemented in interface.cpp
+     */
 
     /******************************************************************/
 
@@ -91,6 +120,7 @@ namespace debugger {
         if (api::world->rank()!=MASTER){
             setupFactList();
         }
+        rcvMessageList = new std::list<struct msgListContainer*>();
     }
 
     /*set up the list to store break points*/
@@ -116,7 +146,11 @@ namespace debugger {
 
     /*********************************************************************/
 
-    /*SYSTEM STATE FUNCTIONS*/
+    /*
+     *   SYSTEM STATE FUNCTIONS
+     *    -return facts about the debugging system
+     *       for different modes
+     */
 
     /*********************************************************************/
 
@@ -148,7 +182,11 @@ namespace debugger {
 
     /**********************************************************************/
 
-    /* I/0 SPECIFICATION PARSING */
+    /*
+     *    I/0 SPECIFICATION PARSING
+     *     -extract different parts of the
+     *      specification messge
+     */
 
     /*********************************************************************/
 
@@ -239,14 +277,18 @@ namespace debugger {
 
     /*********************************************************************/
 
-    /*DEBUGGER HANDLING FUNCTIONS*/
+    /*
+     *   DEBUGGER HANDLING FUNCTIONS
+     *    -controlls the debugger
+     */
 
     /*********************************************************************/
 
 
 
 
-    /*ACTIVATEBREAKBOINT--given the specification, turn the breakPoint on by inserting
+    /*ACTIVATEBREAKBOINT--given the specification,
+     * turn the breakPoint on by inserting
      * it into the breakpoint list*/
     void activateBreakPoint(string specification){
 
@@ -300,6 +342,7 @@ namespace debugger {
             display(msg.str(),PAUSE);
             return;
         }
+
         display(msg.str(),PRINTCONTENT);
 
     }
@@ -314,12 +357,15 @@ namespace debugger {
         /*if normal- pass on the normal cout*/
         if (isInDebuggingMode())
             cout << msg;
+
+        /*simulation*/
         else if (isInSimDebuggingMode()) {
            MSG << "<=======VM#" <<
                 api::getNodeID()
                 << "===================================================>"
                 << endl << msg;
             sendMsg(api::getNodeID(),type,MSG.str());
+
         /*if is in MPI debugging mode, send to master to display/handle
          *the message*/
         } else if (isInMpiDebuggingMode()){
@@ -360,7 +406,7 @@ namespace debugger {
     }
 
 
-    /*PAUSEIT--pause the VM until further notice
+    /*PAUSE IT--pause the VM until further notice
      * if in Sim or MPI debugging mode check for messages
      * to tell it what to do*/
     void pauseIt(void){
@@ -385,12 +431,14 @@ namespace debugger {
     }
 
 
+    /*NEXT PROCESS --when in Mpi debugging mode, find the next process*/
     inline int nextProcess(void) {
         /*note- skips over master debugging process in
           debugging mode*/
-        if (api::world->rank() == api::world->size()-1)
+
+        if (api::world->rank() == api::world->size()-1){
             return 1;
-        else
+        } else
             return api::world->rank() + 1;
     }
 
@@ -402,18 +450,24 @@ namespace debugger {
     void serializedPause(void){
         ostringstream spec;
         spec << nextProcess();
+
         if (hasTheConche){
+
+            /*tell master to let next process execute*/
             sendMsg(MASTER, CONCHE,spec.str());
             hasTheConche = false;
-            while(!hasTheConche&&serializationMode)
+
+            /*wait till it gets the conche again*/
+            while(!hasTheConche&&serializationMode){
                 receiveMsg();
+            }
 
         }
     }
 
 
 
-    /*DUMPSYSTEMSTATE--display the contents of VM
+    /*DUMP SYSTEM STATE--display the contents of VM
      * by calling VM database functions */
     void dumpSystemState(int nodeNumber){
 
@@ -430,19 +484,13 @@ namespace debugger {
     }
 
 
-    /*CONTINUEEXECUTION--resume a paused system*/
+    /*CONTINUE EXECUTION--resume a paused system*/
     void continueExecution(){
         /*setting this will break it out of a while loop
          *from pauseIt function*/
         isSystemPaused = false;
     }
 
-
-    /**********************************************************************/
-
-    /*SIMULATION DEBUGGING FUNCTIONS*/
-
-    /*********************************************************************/
 
 
     /*SETFLAGS -- parse input for different debugging mode flags.
@@ -451,13 +499,18 @@ namespace debugger {
     void setFlags(string specification){
         ostringstream msg;
         for (int i = 0; i < specification.length(); i++){
+
             if ((uint)specification[i] == 'V'){
+
                 if (!verboseMode)
                     msg << "-verbose mode set" << endl;
                 else
                     msg << "-already in verbode mode" << endl;
                 verboseMode = true;
+
+
             } else if ((uint)specification[i] == 'S'){
+
                 if (!isInSimDebuggingMode()){
                     if (!serializationMode)
                         msg << "-serialization mode set" << endl;
@@ -465,16 +518,20 @@ namespace debugger {
                         msg << "-already in serialization mode" << endl;
                     serializationMode = true;
                 } else {
+                    /*no serialization in simulation debugging*/
                     msg << "-cannot go into serialization mode" << endl;
                 }
                 if (isInMpiDebuggingMode()&&api::world->rank() == 1)
-                    //let begging process execute in serialization
+                    //let begining process execute in serialization
                     if (okayToSetConche){
+                        /*only able to set conche once*/
                         hasTheConche = true;
                         okayToSetConche = false;
                     }
+
             }
         }
+
         if ((isInMpiDebuggingMode()&&api::world->rank()!=MASTER)
             ||isInSimDebuggingMode())
             display(msg.str(),PRINTCONTENT);
@@ -514,6 +571,7 @@ namespace debugger {
 
             } else if (instruction == RUN) {
 
+                /*same as continue -- reserved if funcionality need to be changed*/
                 okayToBroadcastPause = true;
                 sendMsg(-1,RUN,"",BROADCAST);
                 numberExpected = api::world->size()-1;
@@ -602,7 +660,7 @@ namespace debugger {
                         break;
                     }
 
-                    /*let the mast know that child is not being executed*/
+                    /*let the master know that child is not being executed*/
                     if (serializationMode&&!hasTheConche){
                         display("PAUSED DUE TO SERIALIZATION\n",PAUSE);
                         break;
@@ -613,12 +671,15 @@ namespace debugger {
                     break;
                 case UNPAUSE:
                 case CONTINUE:
+
                     /*unleash all bounds to system*/
                     isPausedAtBreakpoint = false;
                     isPausedInWorkLoop = false;
                     continueExecution();
                     break;
+
                 case REMOVE:
+
                     /*remove breakpoint from list*/
                     type = getType(specification);
                     name = getName(specification);
@@ -631,10 +692,14 @@ namespace debugger {
                         display("Breakpoint removed\n",PRINTCONTENT);
                     }
                     break;
+
                 case BREAKPOINT:
+
                     activateBreakPoint(specification);
                     break;
+
                 case TERMINATE:
+
                     /*if quit command was specified*/
                     if (isInMpiDebuggingMode())
                         api::end();
@@ -642,6 +707,7 @@ namespace debugger {
                     delete messageQueue;
                     exit(0);
                     break;
+
                 case PRINTLIST:
                 {
                     /*print the debugging breakpoint list*/
@@ -651,31 +717,40 @@ namespace debugger {
                 }
                     break;
                 case RUN:
+
                     /*similar to continue--set aside if
                      *want to run a certain way*/
                     isPausedAtBreakpoint = false;
                     isPausedInWorkLoop = false;
                     continueExecution();
                     break;
+
                 case MODE:
+
                     /*turn on different modes*/
                     setFlags(specification);
                     break;
+
                 case CONCHE:
-                    if (atoi(specification.c_str()) == api::world->rank())
+
+                    /*if match for next conche, retrieve it*/
+                    if (atoi(specification.c_str()) == api::world->rank()){
                         hasTheConche = true;
+                    }
                     break;
+
                 case ENDSER:
                     serializationMode = false;
-
+                    break;
 
             }
         }
     }
 
 
-    /*DEBUGMASTERCONTROLLER-the controller for the master MPI debugger-called when messages are
-    *received*/
+    /*DEBUGMASTERCONTROLLER-the controller for
+     * the master MPI debugger-called when messages are
+     * received*/
     void debugMasterController(int instruction, string specification){
 
         /*print the output and then tell all other VMs to pause*/
@@ -714,35 +789,77 @@ namespace debugger {
 
     /***************************************************************************/
 
-    /*DEBUG MESSAGE SENDING*/
+    /*DEBUG MESSAGE SENDING - send message over a connection
+     *  -messages are first broken into packets, attatched with a header
+     *   when sent
+     *  -the reciever stores the packets in a cache until the whole message can
+     *   be reconsructed and processed*/
 
     /***************************************************************************/
 
 
-    /*GETSIZE--return the size of a packed array stored with content of an unkown size*/
-    inline int getSize(string content){
+    /*GET MAX CHAR ARRAY SIZE--return the size of the maximum char array size*/
+    inline int getMaxCharArraySize(){
 
         /*will always return an integer*/
-        return  content.length()+1+
-            sizeof(utils::byte)+2*sizeof(api::message_type)+sizeof(size_t)
-            +sizeof(int);
+        return api::MAXLENGTH*SIZE -
+            (sizeof(int)+4*sizeof(api::message_type)+sizeof(size_t)
+             +sizeof(int)+8);
     }
 
 
+    /*PACK LIST --break message into parts while
+     *it is longer than the buffer size and store
+     * it in a list to be ready to be sent.
+     * Attatch a header to know how many messages the
+     * list contains including the header*/
+    std::list<api::message_type*>* packList(int msgEncode, string content){
+
+        std::list<api::message_type*>* msgList = new std::list<api::message_type*>();
+
+        api::message_type* msg;
+
+        string partition;
+        int priority = 1;
+        /*if too big*/
+        while (content.length() + 1 > getMaxCharArraySize()){
+
+            /*pack the broken message and put it in the list*/
+            partition = content.substr(0,getMaxCharArraySize());
+            content = content.substr(getMaxCharArraySize()+1);
+            msg = pack(msgEncode,partition,priority);
+            msgList->push_back(msg);
+            priority++;
+        }
+
+        /*put the last message that is smaller than buffer*/
+        ostringstream convert;
+        convert << priority + 1;
+        msgList->push_back(pack(msgEncode,content,priority));
+
+        /*attatch the header with priority 0, and the number of messages
+         * as the content*/
+        msgList->push_back(pack(msgEncode,convert.str(),0));
+        return msgList;
+    }
+
+
+
+
     /*PACK--given the type encoding and content, pack the information into
-     *a sendable messeage*/
-    std::list<api::message_type*> pack(int msgEncode, string content){
+     * a sendable messeage.
+     * priority is the number in a message group*/
+    api::message_type* pack(int msgEncode, string content, int priority){
+
 
         utils::byte* msg = (utils::byte*)new api::message_type[api::MAXLENGTH];
         int pos = 0;
 
-        std::list<api::message_type*> msgList;
 
         api::message_type debugFlag =  DEBUG;
         size_t contentSize = content.length() + 1;
         size_t bufSize = api::MAXLENGTH*SIZE;//bytes
-        api::message_type msgSize = bufSize-SIZE;
-        utils::byte anotherIndicator = 0;
+        api::message_type msgSize = bufSize-SIZE;//according to message spec
         api::message_type timeStamp = 0;
         api::message_type nodeId = api::getNodeID();
 
@@ -760,8 +877,8 @@ namespace debugger {
         /*VM id*/
         utils::pack<api::message_type>(&nodeId,1,msg,bufSize,&pos);
 
-        /*indicate if another message is coming*/
-        utils::pack<utils::byte>(&anotherIndicator,1,msg,bufSize,&pos);
+        /*priority of the message*/
+        utils::pack<int>(&priority,1,msg,bufSize,&pos);
 
         /*debug command encoding*/
         utils::pack<int>(&msgEncode,1,msg,bufSize,&pos);
@@ -773,9 +890,7 @@ namespace debugger {
         utils::pack<char>((char*)content.c_str(),content.size()+1,
                                  msg,bufSize,&pos);
 
-        msgList.push_back((api::message_type*)msg);
-
-        return msgList;
+        return (api::message_type*)msg;
 
     }
 
@@ -789,31 +904,40 @@ namespace debugger {
 
          /*length of array*/
             size_t msgSize = api::MAXLENGTH;
-            /*pack the message*/
-            std::list<api::message_type*> msgList = pack(msgType,content);
+            /*pack the message into a broken list*/
+            std::list<api::message_type*>* msgList = packList(msgType,content);
             api::message_type* msg;
 
-            msg = msgList.front();
-            msgList.pop_front();
+            /*send all the messages in the list*/
+            while (!msgList->empty()){
 
-            if (broadcast){
+                msg = msgList->front();
+                msgList->pop_front();
 
-                /*send to all*/
-                api::debugBroadcastMsg(msg,msgSize);
 
-            } else {
 
-                /*send to the master debugging process*/
-                if (destination == MASTER){
-                    api::debugSendMsg(MASTER,msg,
+                if (broadcast){
+
+                    /*send to all*/
+                    api::debugBroadcastMsg(msg,msgSize);
+
+                } else {
+
+                    /*send to the master debugging process*/
+                    if (destination == MASTER){
+                        api::debugSendMsg(MASTER,msg,
+                                          msgSize);
+                        continue;
+                    }
+
+                    /*send the message through api layer*/
+                    api::debugSendMsg(destination,msg,
                                       msgSize);
-                    return;
                 }
 
-                /*send the message through api layer*/
-                api::debugSendMsg(destination,msg,
-                                  msgSize);
             }
+
+            delete msgList;
 
     }
 
@@ -829,7 +953,9 @@ namespace debugger {
         int pos = 0;
         api::message_type size,debugFlag,timeStamp,NodeId;
         size_t specSize;
-        utils::byte anotherIndicator;
+        int priority;
+
+        struct msgListContainer* msgContainer;
 
         /*load the message queue with messages*/
         api::debugGetMsgs();
@@ -852,9 +978,9 @@ namespace debugger {
             /*place msg came from*/
             utils::unpack<api::message_type>(msg,api::MAXLENGTH*SIZE,
                                              &pos,&NodeId,1);
-            /*if another message is coming*/
-            utils::unpack<utils::byte>(msg,api::MAXLENGTH*SIZE,
-                                       &pos,&anotherIndicator,1);
+            /*priority*/
+            utils::unpack<int>(msg,api::MAXLENGTH*SIZE,
+                                       &pos,&priority,1);
             /*command encoding*/
             utils::unpack<int>(msg,api::MAXLENGTH*SIZE,&pos,&instruction,1);
             /*content size*/
@@ -864,15 +990,42 @@ namespace debugger {
                                 &specification,specSize);
 
             string spec(specification);
+
+            /*insert the message into a cache to be checked if the
+             *broken message in pieces has been completed*/
+            insertMsg(spec, priority, instruction, NodeId);
+
+            /*check to see if a total message has been sent*/
+            msgContainer = checkAndGet();
+
+            /*messages are ready to be processed*/
+            if (msgContainer!= NULL){
+                instruction = msgContainer->instruction;
+                spec = buildString(msgContainer);
+
+            /*no messages completed*/
+            } else {
+
+                /* resetup*/
+                memset(specification,0,api::MAXLENGTH*SIZE);
+                messageQueue->pop();
+                memset(msg,0,api::MAXLENGTH*SIZE);
+                pos = 0;
+                continue;
+            }
+
             /*if the controlling process is recieving a message*/
             if (isInMpiDebuggingMode()&&api::world->rank()==MASTER){
 
+                /*broadcast new conche owner specified by old conche owner*/
                 if (instruction == CONCHE){
-                    sendMsg(-1,CONCHE,specification,BROADCAST);
+
+                    sendMsg(-1,CONCHE,spec,BROADCAST);
+
+                /*do normal message handling*/
                 } else {
                     debugMasterController(instruction,spec);
-                    if (!anotherIndicator)
-                        numberExpected--;
+                    numberExpected--;
                 }
 
             /*if a slave process (any vm) is receiving the message*/
@@ -890,8 +1043,149 @@ namespace debugger {
     }
 
 
-}//namespace debugger
+    /************************************************************************/
 
+    /*RECONSTRUCTING/STORING PARTITIONED MESSAGES
+     *  -Receiving and constructing broken apart message algorithms*/
+
+    /************************************************************************/
+
+
+    /*INSERT MESSAGE--insert the a parted message into the cache (a list of lists)*/
+    void insertMsg(string content, int priority, int instruction, int node){
+
+         std::list<struct msgListContainer*>::const_iterator it;
+         std::list<struct msgListElem*>* msgList;
+         struct msgListElem* elem;
+         struct msgListContainer* contain;
+
+         for (it = rcvMessageList->begin();it!=rcvMessageList->end();it++){
+
+             contain = *it;
+
+             /*a message that matches already came from a node, insert it with
+              * that node*/
+             if (contain->instruction == instruction && contain->node == node){
+                 elem = new struct msgListElem;
+                 elem->priority = priority;
+                 elem->content = content;
+                 contain->msglist->push_back(elem);
+                 return;
+             }
+         }
+
+
+         /*if no message like it exist yet create a new list in the cache*/
+         contain = new struct msgListContainer;
+         contain->instruction = instruction;
+         contain->node = node;
+         contain->msglist = new std::list<struct msgListElem*>();
+         elem = new struct msgListElem;
+         elem->priority = priority;
+         elem->content = content;
+         contain->msglist->push_back(elem);
+         rcvMessageList->push_back(contain);
+    }
+
+
+    /*CHECK AND GET -- check to see if any lists in the cache have completed
+     * i.e.  all broken partitioned messages for a command have been sent*/
+    struct msgListContainer* checkAndGet(void){
+
+        std::list<struct msgListElem*>* msgList;
+        std::list<struct msgListElem*>::iterator iter;
+        std::list<struct msgListContainer*>::iterator it;
+        struct msgListContainer* contain;
+        struct msgListElem* elem;
+
+        /*iterate through cache*/
+        for (it = rcvMessageList->begin();
+             it!=rcvMessageList->end();it++){
+            contain = *it;
+            msgList = contain->msglist;
+
+            /*iterate through list within cache*/
+            for (iter = msgList->begin();iter!=msgList->end();iter++){
+                elem = *iter;
+
+                /*find the header and check if it is done if the size expected
+                 *matches the size of the list*/
+                if (elem->priority == 0 &&
+                    atoi(elem->content.c_str()) == msgList->size()){
+                    return contain;
+                }
+            }
+        }
+
+        /*no commands have been completed*/
+        return NULL;
+    }
+
+    /*PRINT RECIEVED-- print the cache (used for debugging the debugger :) ) */
+    void printRcv(void){
+
+        std::list<struct msgListElem*>* msgList;
+        std::list<struct msgListElem*>::iterator iter;
+        std::list<struct msgListContainer*>::iterator it;
+        struct msgListContainer* contain;
+        struct msgListElem* elem;
+
+        ostringstream msg;
+
+        msg << "#######################################" << endl <<endl;
+
+        for (it = rcvMessageList->begin();
+             it!=rcvMessageList->end();it++){
+            contain = *it;
+            msg << "========================" << endl;
+            msg << "instruction: " << contain->instruction << endl;
+            msg << "node: " << contain->node << endl;
+            msg << "========================" << endl;
+            msgList = contain->msglist;
+            for (iter = msgList->begin();iter!=msgList->end();iter++){
+                elem = *iter;
+                msg << "\t*****************" << endl;
+                msg << "\tpriority: " << elem->priority << endl;
+                msg << "\tcontent: " << elem->content << endl;
+                msg << "\t*****************" << endl;
+            }
+            msg << "========================" << endl;
+        }
+
+        printf("%s",msg.str().c_str());
+    }
+
+
+    /*BUILD STRING -- rebuild a broken message that is ready to
+     * be completed*/
+    string buildString(struct msgListContainer* container){
+
+        ostringstream msg;
+
+        int priority = 0;
+        std::list<struct msgListElem*>::iterator it;
+        struct msgListElem* elem;
+        std::list<struct msgListElem*>* msgList = container->msglist;
+
+
+
+        for (it = msgList->begin(); it!=msgList->end(); it++){
+            elem = *it;
+            /*ignore the header and reconstruct the full content*/
+            if (elem->priority!=0)
+                msg << elem->content;
+            delete elem;
+        }
+
+        rcvMessageList->remove(container);
+        delete container;
+
+        return msg.str();
+    }
+
+
+
+}//namespace debugger
 
 
 
