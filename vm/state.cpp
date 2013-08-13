@@ -599,34 +599,14 @@ state::process_persistent_tuple(db::simple_tuple *stpl, vm::tuple *tpl)
 
 		debugger::runBreakPoint("factRet",
 			      "Fact has been removed from database",
-			      (char*)tpl->pred_name().c_str(),
+                                (char*)tpl->pred_name().c_str(),
 			      (int)node->get_translated_id());
-
-      	} else if(tpl->is_cycle()) {
-            depth_counter *dc(deleter.get_depth_counter());
-            assert(dc != NULL);
-
-            if(dc->get_count(stpl->get_depth()) == 0) {
-               vm::ref_count deleted(deleter.delete_depths_above(stpl->get_depth()));
-               if(deleter.to_delete()) {
-                  setup(tpl, node, stpl->get_count(), stpl->get_depth());
-                  persistent_only = true;
-                  use_local_tuples = false;
-                  execute_bytecode(all->PROGRAM->get_predicate_bytecode(tuple->get_predicate_id()), *this);
-                  deleter();
-                               debugger::runBreakPoint("factRet","Fact has been retracted",
-         (char*)tpl->pred_name().c_str(),
-         (int)node->get_translated_id());
-               }
-            }
          } else{
-             debugger::runBreakPoint("factRet","Fact has been retracted",
-         (char*)tpl->pred_name().c_str(),
-         (int)node->get_translated_id());
-            delete tpl;
+	  debugger::runBreakPoint("factRet","Fact has been retracted",
+                              (char*)tpl->pred_name().c_str(),
+			(int)node->get_translated_id());
+         	delete tpl;
          }
-         delete stpl;
-
 		}
 
    }
@@ -697,7 +677,7 @@ state::run_node(db::node *no)
 		node->matcher.clear_dropped_rules();
 #endif
       start_matching();
-		
+
 		setup(NULL, node, 1, 0);
 
 		use_local_tuples = true;
