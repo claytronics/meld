@@ -111,6 +111,7 @@ namespace debugger {
         all = debugAll;
         setupFactList();
         messageQueue = new std::queue<api::message_type*>();
+        rcvMessageList = new std::list<struct msgListContainer*>();
     }
 
     /*setup MPI debugging mode*/
@@ -993,11 +994,13 @@ namespace debugger {
              *broken message in pieces has been completed*/
             insertMsg(spec, priority, instruction, NodeId);
 
+
             /*check to see if a total message has been sent*/
             msgContainer = checkAndGet();
 
             /*messages are ready to be processed*/
             if (msgContainer!= NULL){
+
                 instruction = msgContainer->instruction;
                 spec = buildString(msgContainer);
 
@@ -1094,6 +1097,7 @@ namespace debugger {
         std::list<struct msgListContainer*>::iterator it;
         struct msgListContainer* contain;
         struct msgListElem* elem;
+
 
         /*iterate through cache*/
         for (it = rcvMessageList->begin();
