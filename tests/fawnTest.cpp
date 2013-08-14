@@ -37,8 +37,8 @@ int main(int argc, char* argv[])
     mpi::environment env(argc, argv);
     mpi::communicator world;
 
-    string msg1,msg2;
-    string str = "hello";
+    //string msg1,msg2;
+    //string str = "hello";
 
     int sum = 0;
     for (int i = 0; i < L; i++){
@@ -47,16 +47,16 @@ int main(int argc, char* argv[])
         }
         sum = 0;
 
-        world.send(nextProcess(world), SENDNEXT, str);
-        world.irecv(prevProcess(world), SENDNEXT, msg1);
-	
-
-        if (rdvs){
-            world.send(prevProcess(world),WAIT,str);
-            world.probe(nextProcess(world),WAIT);
-            world.recv(nextProcess(world),WAIT,msg2);
-        }
+	if (rdvs){
+        	world.send(nextProcess(world), SENDNEXT);
+        	world.recv(prevProcess(world), SENDNEXT);
+	}
     }
 
+    if (!rdvs){
+	while(world.iprobe(prevProcess(world),SENDNEXT)){
+		world.recv(prevProcess(world),SENDNEXT);
+	}
+    }
     return 0;
 }
