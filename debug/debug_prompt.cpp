@@ -140,6 +140,7 @@ namespace debugger {
   /*recognizes and sets different modes for the debugger*/
   int handle_command(string command, debugList& factList){
 
+      (void) factList;
     int retVal;
 
     if (command == "break"){

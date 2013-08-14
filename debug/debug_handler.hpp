@@ -52,6 +52,9 @@ namespace debugger {
 
     const int MASTER = 0;
 
+
+
+
     void activateBreakPoint(std::string specification);
     void runBreakPoint(char* type, std::string msg, char* name, int nodeID);
     void pauseIt(void);
@@ -82,6 +85,11 @@ namespace debugger {
     void sendMsg(int destination, int msgType,
                  std::string content, bool broadcast = false);
     void serializedPause(void);
+    api::message_type* pack(int msgEncode, std::string content, int proirity);
+    void insertMsg(std::string content, int priority, int instruction, int node);
+    std::string buildString(struct msgListContainer* container);
+    struct msgListContainer* checkAndGet(void);
+    void printRcv();
 }
 
 #endif

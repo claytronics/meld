@@ -599,8 +599,9 @@ state::process_persistent_tuple(db::simple_tuple *stpl, vm::tuple *tpl)
 
 		debugger::runBreakPoint("factRet",
 			      "Fact has been removed from database",
-			      (char*)tpl->pred_name().c_str(),
+                                (char*)tpl->pred_name().c_str(),
 			      (int)node->get_translated_id());
+
 
       	} else if(tpl->is_cycle()) {
 #ifdef USE_RULE_COUNTING
