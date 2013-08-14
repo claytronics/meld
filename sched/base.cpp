@@ -72,15 +72,19 @@ base::do_loop(void)
               debugger::pauseIt();
           }
       }
-      
-      api::receivedMsg=false;
-      bool hasWork = api::pollAndProcess(this, state.all);
-#ifdef SIMD // TO CHANGE, with haswork
-	if (hasComputed && !api::receivedMsg) { // MODE 1
-	//if ( !api::receivedMsg) { // MODE 2
-		vm::determinism::endComputation(false);
-		hasComputed = false;
-	 }
+
+#ifdef SIMD
+    uint nb = api::nbReceivedMsg;
+    bool hasWork = api::pollAndProcess(this, state.all);
+    if (nb == api::nbReceivedMsg) {
+		if( (determinism::getSimulationMode() == determinism::DETERMINISTIC2) || 
+			(hasComputed && (determinism::getSimulationMode() == determinism::DETERMINISTIC1))) {
+			determinism::workEnd();
+			hasComputed = false;
+		}
+	}
+#else
+	  bool hasWork = api::pollAndProcess(this, state.all);
 #endif
       bool ensembleFinished = false;
       if (!hasWork) {       

@@ -34,12 +34,17 @@ namespace vm {
 	
 		static deterministic_timestamp currentLocalTime = 0;
 		static deterministic_timestamp currentComputationEndTime = 0;
-		//static simulationMode mode = REALTIME;
-		static simulationMode mode = DETERMINISTIC1;
+		static simulationMode mode = REALTIME;
+		//static simulationMode mode = DETERMINISTIC2;
 		static bool computing = false;
 
 		void setDeterministicMode(simulationMode m) {
 			mode = m;
+			cout << "setDeterminismMode: " << m << endl;
+		}
+		
+		simulationMode getSimulationMode() {
+			return mode;
 		}
 
 		bool canCompute() {
@@ -63,29 +68,27 @@ namespace vm {
 				case REALTIME:
 					break;
 				case DETERMINISTIC1:
-					if (currentLocalTime%30 == 0)
-						api::timeInfo(NULL);
+					//if (currentLocalTime%50 == 0)
+					//	api::timeInfo(NULL);
 					break;
 				case DETERMINISTIC2:
 					if(!canCompute()) {
-						//cout << "can not compute" << endl;
 						if(currentComputationEndTime != 0)
-							endComputation(true);
+							computationPause();
 						while(!canCompute()) {
 							api::pollAndProcess(NULL,NULL);
-							usleep(5000); // to avoid polling to much
+							usleep(10);
 						}
-						//cout << "can compute again" << endl;
 					}
 					break;
 			}
 		}
 		
-		bool isComputing() {
-			return computing;
+		bool mustQueueMessages() {
+			return ((mode == DETERMINISTIC2) && computing);
 		}
 		
-		void startComputation(deterministic_timestamp ts, int d) {
+		void resumeComputation(deterministic_timestamp ts, int d) {
 			switch(mode) {
 				case REALTIME:
 					break;
@@ -94,34 +97,48 @@ namespace vm {
 				case DETERMINISTIC2:
 					computing = true;
 					currentComputationEndTime = currentLocalTime + d;
-					//cout << "start computation till " << currentComputationEndTime <<endl;
+					cout << "start Computation at "<< currentLocalTime << "till " << currentComputationEndTime << endl;
 					break;
 				default:
 					return;
 			}
 		}
 		
-		void endComputation(bool hasWork) {
+		void computationPause() {
+			switch(mode) {
+				case REALTIME:
+				case DETERMINISTIC1:
+					break;
+				case DETERMINISTIC2:
+					if (computing) {
+						computing = false;
+						setCurrentLocalTime(currentComputationEndTime);
+						api::computationPause();						
+						cout << "computationPause" << endl;
+					}
+					break;
+				default:
+					break;
+			}
+		}
+		
+		void workEnd() {
 			switch(mode) {
 				case REALTIME:
 					break;
 				case DETERMINISTIC1:
 					break;
 				case DETERMINISTIC2:
-					if (!computing) {
-						return;
-					}
+					if (!computing) { return; }
 					computing = false;
-					//cout << "end computation at "<< currentLocalTime;
 					setCurrentLocalTime(currentComputationEndTime);
+					cout << "WorkEnd" << endl;
 					break;
 				default:
-					return;
+					break;
 			}
-			//cout << " ajusted to " << currentLocalTime << endl;
-			//cout << "api::endComputation..." << endl;
-			api::endComputation(NULL, hasWork);
-			//cout << "ok" << endl;
+			api::workEnd();
+			cout << "WorkEnd sent" << endl;
 		}
 		
 		deterministic_timestamp getCurrentLocalTime() {
@@ -146,7 +163,5 @@ namespace vm {
 					return;
 			}
 		}
-		
-		
 	}
 }

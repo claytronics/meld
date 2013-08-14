@@ -60,10 +60,10 @@ namespace msg{
         message_type face;
       } delNeighbor;
       
-      // CMD_END_COMPUTATION (DETERMINISM)
+      // CMD_WORK_END (DETERMINISM)
       struct {
-		  message_type hasWork;
-	  } endComputation;
+		message_type nbRecMsg;
+	  } workEnd;
 
       message_type units[MAX_MSG];
 

@@ -25,9 +25,6 @@ namespace api {
     extern boost::mpi::communicator *world;
     extern boost::asio::ip::tcp::socket *tcp_socket;
 
-	extern bool receivedMsg;
-	extern uint64_t nb;
-
     /* Given a node destination, compute the process id that the node
      * belongs to, serialize the data for MPI and send the data
      */
@@ -85,8 +82,12 @@ namespace api {
    
     extern void set_color(db::node *n, const int r, const int g, const int b);
     extern void debugGetMsgs(void);
-    extern void endComputation(db::node *n, bool hasWork);
-    extern void timeInfo(db::node *n);
+    
+    /* Deterministic Simulation */
+    extern void computationPause();
+    extern void workEnd();
+    extern void timeInfo();
+    extern uint nbReceivedMsg;
     
 } // namespace api
 #endif

@@ -7,16 +7,18 @@ namespace vm {
 	
 	namespace determinism {
 		typedef size_t deterministic_timestamp;
-		enum simulationMode {REALTIME = 0, DETERMINISTIC1 = 1, DETERMINISTIC2 = 2};
-
+		enum simulationMode {DETERMINISTIC1 = 1, DETERMINISTIC2 = 2, REALTIME = 3};
+		
 		void setDeterministicMode(simulationMode mode);
+		simulationMode getSimulationMode();
 		//bool isInDeterministicMode();
 		bool canCompute();
 		void checkAndWaitUntilCanCompute();
-		bool isComputing();
+		bool mustQueueMessages();
 
-		void startComputation(deterministic_timestamp ts, int d);
-		void endComputation(bool hasWork);
+		void resumeComputation(deterministic_timestamp ts, int d);
+		void computationPause();
+		void workEnd();
 
 		deterministic_timestamp getCurrentLocalTime();
 		void incrCurrentLocalTime(deterministic_timestamp time);

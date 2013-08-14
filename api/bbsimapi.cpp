@@ -37,17 +37,17 @@ using namespace msg;
 #define ACCEL 14
 #define SHAKE 15
 
-#define SET_DETERMINISTIC_MODE	20
-#define START_COMPUTATION		21
-#define END_COMPUTATION			22
-#define TIME_INFO				23
+#define SET_DETERMINISTIC_MODE		20
+#define RESUME_COMPUTATION			21
+#define COMPUTATION_PAUSE			22
+#define	WORK_END					23
+#define TIME_INFO					24
 
 // debug messages for simulation
 // #define DEBUG
 
 namespace api
 {
-
 
   enum face_t {
    INVALID_FACE = -1,
@@ -174,7 +174,7 @@ inline face_t operator++(face_t& f, int) {
 
 	static void handleSetDeterministicMode(const deterministic_timestamp ts,
   const db::node::node_id node, const simulationMode mode);
-	static void handleStartComputation(const deterministic_timestamp ts,
+	static void handleResumeComputation(const deterministic_timestamp ts,
   const db::node::node_id node, int duration);
 
   static bool ready(false);
@@ -205,7 +205,7 @@ inline face_t operator++(face_t& f, int) {
   { 
     if (schedular == NULL) return;
 
-    for (int i=0; i<23; i++) 
+    for (int i=0; i<25; i++) 
     msgcmd2str[i] = NULL;
     msgcmd2str[SETID] = "SETID";
     msgcmd2str[STOP] = "STOP";
@@ -219,8 +219,9 @@ inline face_t operator++(face_t& f, int) {
     msgcmd2str[SHAKE] = "SHAKE";
     msgcmd2str[DEBUG] = "DEBUG";
     msgcmd2str[SET_DETERMINISTIC_MODE] = "SET_DETERMINISTIC_MODE";
-    msgcmd2str[START_COMPUTATION] = "START_COMPUTATION";
-    msgcmd2str[END_COMPUTATION] = "END_COMPUTATION";
+    msgcmd2str[RESUME_COMPUTATION] = "RESUME_COMPUTATION";
+    msgcmd2str[COMPUTATION_PAUSE] = "COMPUTATION_PAUSE";
+    msgcmd2str[WORK_END] = "WORK_END";
     try{
     /* Calling the connect*/
       initTCP();
@@ -295,9 +296,6 @@ onLocalVM(const db::node::node_id id){
   return false;
 }
 
-bool receivedMsg = false;
-uint64_t nb = 0;
-
 /*Polls the socket for any message and processes the message*/
  bool 
  pollAndProcess(sched::base *sched, vm::all *all)
@@ -311,7 +309,6 @@ uint64_t nb = 0;
     else
       return true;
   }
-  receivedMsg=true;
   processMessage(reply);
   return true;
 }
@@ -342,38 +339,48 @@ set_color(db::node *n, const int r, const int g, const int b)
   free(colorMessage);
 }
 
-#ifdef SIMD
-  void endComputation(db::node *n, bool hasWork) {
-	//cout << "api::endComputation  inside "<< endl;
-    message* endComputationMessage=(message*)calloc(5, sizeof(message_type));
-   // cout << "instr1" << endl;
-    endComputationMessage->size=4 * sizeof(message_type);
-   // cout << "instr2" << endl;
-    endComputationMessage->command=END_COMPUTATION;
-   // cout << "instr3" << endl;
-    endComputationMessage->timestamp= (message_type) getCurrentLocalTime();
-   // cout << "instr4" << endl;
-    //endComputationMessage->node=(message_type)n->get_id();
-    endComputationMessage->node=(message_type) 0;
-    //cout << "instr5" << endl;
-    endComputationMessage->data.endComputation.hasWork = nb; //MODE 1
-	//endComputationMessage->data.endComputation.hasWork = (message_type) hasWork; // Mode 2
-    //cout << "endComputation sends at " << getCurrentLocalTime() << endl;
-    sendMessageTCP1(endComputationMessage);
-    //cout << "instr6" << endl;
-    free(endComputationMessage);
+
+  uint nbReceivedMsg = 0;
+  void computationPause() {
+    message* pauseComputationMessage = (message*)calloc(4, sizeof(message_type));
+    pauseComputationMessage->size = 3 * sizeof(message_type);
+    pauseComputationMessage->command = COMPUTATION_PAUSE;
+    pauseComputationMessage->timestamp = (message_type) getCurrentLocalTime();
+	pauseComputationMessage->node = 0; //(message_type)n->get_id();
+    sendMessageTCP1(pauseComputationMessage);
+    free(pauseComputationMessage);
+  }
+  
+   void workEnd() {
+    message* workEndMessage = (message*)calloc(5, sizeof(message_type));
+    workEndMessage->size = 4 * sizeof(message_type);
+    workEndMessage->command = WORK_END;
+    workEndMessage->timestamp = (message_type) getCurrentLocalTime();
+	workEndMessage->node = 0; //(message_type)n->get_id();
+	workEndMessage->data.workEnd.nbRecMsg = nbReceivedMsg;
+    sendMessageTCP1(workEndMessage);
+    free(workEndMessage);
   }
   
   void timeInfo(db::node *n) {
-    message* endComputationMessage=(message*)calloc(4, sizeof(message_type));
-    endComputationMessage->size=3 * sizeof(message_type);
-    endComputationMessage->command=TIME_INFO;
-    endComputationMessage->timestamp= (message_type) getCurrentLocalTime();
-    endComputationMessage->node=(message_type) 0;
-    sendMessageTCP1(endComputationMessage);
-    free(endComputationMessage);
+    message* timeInfoMessage=(message*)calloc(4, sizeof(message_type));
+    timeInfoMessage->size=3 * sizeof(message_type);
+    timeInfoMessage->command = TIME_INFO;
+    timeInfoMessage->timestamp = (message_type) getCurrentLocalTime();
+    timeInfoMessage->node = 0; //(message_type)n->get_id();
+    sendMessageTCP1(timeInfoMessage);
+    free(timeInfoMessage);
   }
-#endif
+  
+  void handleSetDeterministicMode(const deterministic_timestamp ts,
+    const db::node::node_id node, const simulationMode mode) {
+		setDeterministicMode(mode);
+  }
+
+  void handleResumeComputation(const deterministic_timestamp ts,
+    const db::node::node_id node, int duration) {
+	 resumeComputation(ts, duration);
+  }
 
 /*Returns the node id for bbsimAPI*/
   int 
@@ -463,7 +470,7 @@ tcpPool()
 {
   static message_type msg[1024];
 #ifdef SIMD
-	if(isComputing()) return NULL;
+	if(mustQueueMessages()) return NULL;
 #endif
   try {
     if(my_tcp_socket->available())
@@ -472,7 +479,7 @@ tcpPool()
       //cout<<"getting message of length "<< length<<endl;
       length = my_tcp_socket->read_some(boost::asio::buffer(msg + 1,  msg[0]));
       //cout<<"Returning message of length "<< msg[0]<<endl;
-      nb++;
+      nbReceivedMsg++;
       return msg;   
     }
   } catch(std::exception &e) {
@@ -575,8 +582,8 @@ sendMessageTCP1(message *msg)
 		 (db::node::node_id)reply[3], (simulationMode)reply[4]);
       break;
       
-      case START_COMPUTATION:
-		 handleStartComputation((deterministic_timestamp)reply[2],
+      case RESUME_COMPUTATION:
+		 handleResumeComputation((deterministic_timestamp)reply[2],
 		  (db::node::node_id)reply[3], (int)reply[4]);
       break;
 #endif
@@ -854,19 +861,6 @@ handleShake(const deterministic_timestamp ts, const db::node::node_id node,
   addReceivedTuple(no, ts, stpl);
 }
 }
-
-#ifdef SIMD
-  void handleSetDeterministicMode(const deterministic_timestamp ts,
-    const db::node::node_id node, const simulationMode mode) {
-		setDeterministicMode(mode);
-  }
-
-  void handleStartComputation(const deterministic_timestamp ts,
-    const db::node::node_id node, int duration) {
-	 startComputation(ts, duration);
-	 cout << "will compute till : "<< ts+duration << endl;
-  }
-#endif
 
 /*Helper functions end*/
 
