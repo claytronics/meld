@@ -612,7 +612,7 @@ trie::sanity_check(void) const
 
 // inserts the data inside the trie
 trie_node*
-trie::check_insert(void *data, const ref_count many, const depth_t depth, val_stack& vals, type_stack& typs, bool& found)
+trie::check_insert(void *data, const derivation_count many, const depth_t depth, val_stack& vals, type_stack& typs, bool& found)
 {
    if(vals.empty()) {
       // 0-arity tuple
@@ -742,7 +742,7 @@ trie::check_insert(void *data, const ref_count many, const depth_t depth, val_st
 }
 
 void
-trie::commit_delete(trie_node *node, const ref_count_plus many)
+trie::commit_delete(trie_node *node, const ref_count many)
 {
    assert(node->is_leaf());
 
@@ -770,7 +770,7 @@ trie::delete_by_leaf(trie_leaf *leaf, const depth_t depth)
 
 // we assume that number_of_references was decrement previous to this
 void
-trie::inner_delete_by_leaf(trie_leaf *leaf, const ref_count count, const depth_t depth)
+trie::inner_delete_by_leaf(trie_leaf *leaf, const derivation_count count, const depth_t depth)
 {
    if(count != 0) {
       assert(count > 0);
@@ -907,7 +907,7 @@ trie::~trie(void)
 }
 
 trie_node*
-tuple_trie::check_insert(vm::tuple *tpl, const ref_count many, const depth_t depth, bool& found)
+tuple_trie::check_insert(vm::tuple *tpl, const derivation_count many, const depth_t depth, bool& found)
 {
    //cout << "Starting insertion of " << *tpl << endl;
 
@@ -926,7 +926,7 @@ tuple_trie::check_insert(vm::tuple *tpl, const ref_count many, const depth_t dep
 }
 
 bool
-tuple_trie::insert_tuple(vm::tuple *tpl, const ref_count many, const depth_t depth)
+tuple_trie::insert_tuple(vm::tuple *tpl, const derivation_count many, const depth_t depth)
 {
    sanity_check();
 
@@ -963,7 +963,7 @@ tuple_trie::insert_tuple(vm::tuple *tpl, const ref_count many, const depth_t dep
 }
 
 trie::delete_info
-tuple_trie::delete_tuple(vm::tuple *tpl, const ref_count many, const depth_t depth)
+tuple_trie::delete_tuple(vm::tuple *tpl, const derivation_count many, const depth_t depth)
 {
    assert(many > 0);
    basic_invariants();

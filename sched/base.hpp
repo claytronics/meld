@@ -57,16 +57,16 @@ namespace sched
 
 #endif
 
-      void do_loop(void);
-      void loop(void);
-      void do_work(db::node *);
-      void do_agg_tuple_add(db::node *, vm::tuple *, const vm::ref_count);
-      void do_tuple_add(db::node *, vm::tuple *, const vm::ref_count);
-
-      virtual bool terminate_iteration(void) = 0;
-
-      inline void node_iteration(db::node *node)
-      {
+   void do_loop(void);
+   void loop(void);
+   void do_work(db::node *);
+   void do_agg_tuple_add(db::node *, vm::tuple *, const vm::derivation_count);
+   void do_tuple_add(db::node *, vm::tuple *, const vm::derivation_count);
+   
+   virtual bool terminate_iteration(void) = 0;
+   
+   inline void node_iteration(db::node *node)
+   {
          db::simple_tuple_list ls(node->end_iteration());
 
          for(db::simple_tuple_list::iterator it(ls.begin());
@@ -75,7 +75,7 @@ namespace sched
          {
             new_work_agg(node, *it);
          }
-      }
+   }
 
    public:
 

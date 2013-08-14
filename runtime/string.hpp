@@ -29,7 +29,7 @@ public:
 private:
 	
 	const std::string content;
-	utils::atomic<size_t> refs;
+	utils::atomic<vm::ref_count> refs;
 	
 	explicit rstring(const std::string& _content, const size_t _refs):
 		content(_content), refs(_refs)

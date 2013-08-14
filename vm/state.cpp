@@ -135,7 +135,7 @@ state::copy_reg2const(const reg_num& reg_from, const const_id& cid)
 }
 
 void
-state::setup(vm::tuple *tpl, db::node *n, const ref_count count, const depth_t depth)
+state::setup(vm::tuple *tpl, db::node *n, const derivation_count count, const depth_t depth)
 {
    this->use_local_tuples = false;
    this->tuple = tpl;
@@ -260,7 +260,7 @@ state::mark_active_rules(void)
 }
 
 bool
-state::add_fact_to_node(vm::tuple *tpl, const vm::ref_count count, const vm::depth_t depth)
+state::add_fact_to_node(vm::tuple *tpl, const vm::derivation_count count, const vm::depth_t depth)
 {
 	return node->add_tuple(tpl, count, depth);
 }
@@ -529,7 +529,7 @@ state::add_to_aggregate(db::simple_tuple *stpl)
 {
    vm::tuple *tpl(stpl->get_tuple());
    const predicate *pred(tpl->get_predicate());
-   vm::ref_count count(stpl->get_count());
+   vm::derivation_count count(stpl->get_count());
    agg_configuration *agg(NULL);
 
    if(count < 0) {
@@ -611,7 +611,7 @@ state::process_persistent_tuple(db::simple_tuple *stpl, vm::tuple *tpl)
             assert(dc != NULL);
 
             if(dc->get_count(stpl->get_depth()) == 0) {
-               vm::ref_count deleted(deleter.delete_depths_above(stpl->get_depth()));
+               vm::derivation_count deleted(deleter.delete_depths_above(stpl->get_depth()));
                if(deleter.to_delete()) {
                   setup(tpl, node, stpl->get_count(), stpl->get_depth());
                   persistent_only = true;
@@ -774,10 +774,10 @@ state::init_core_statistics(void)
       stat_instructions_executed = 0;
       stat_moves_executed = 0;
       stat_ops_executed = 0;
-      stat_predicate_proven = new size_t[PROGRAM->num_predicates()];
-      stat_predicate_applications = new size_t[PROGRAM->num_predicates()];
-      stat_predicate_success = new size_t[PROGRAM->num_predicates()];
-      for(size_t i(0); i < PROGRAM->num_predicates(); ++i) {
+      stat_predicate_proven = new size_t[all->PROGRAM->num_predicates()];
+      stat_predicate_applications = new size_t[all->PROGRAM->num_predicates()];
+      stat_predicate_success = new size_t[all->PROGRAM->num_predicates()];
+      for(size_t i(0); i < all->PROGRAM->num_predicates(); ++i) {
          stat_predicate_proven[i] = 0;
          stat_predicate_applications[i] = 0;
          stat_predicate_success[i] = 0;
@@ -832,14 +832,14 @@ state::~state(void)
 		cout << "\tmoves: " << stat_moves_executed << endl;
 		cout << "\tops: " << stat_ops_executed << endl;
       cout << "Proven predicates:" << endl;
-      for(size_t i(0); i < PROGRAM->num_predicates(); ++i)
-         cout << "\t" << PROGRAM->get_predicate(i)->get_name() << " " << stat_predicate_proven[i] << endl;
+      for(size_t i(0); i < all->PROGRAM->num_predicates(); ++i)
+         cout << "\t" << all->PROGRAM->get_predicate(i)->get_name() << " " << stat_predicate_proven[i] << endl;
       cout << "Applications predicate:" << endl;
-      for(size_t i(0); i < PROGRAM->num_predicates(); ++i)
-         cout << "\t" << PROGRAM->get_predicate(i)->get_name() << " " << stat_predicate_applications[i] << endl;
+      for(size_t i(0); i < all->PROGRAM->num_predicates(); ++i)
+         cout << "\t" << all->PROGRAM->get_predicate(i)->get_name() << " " << stat_predicate_applications[i] << endl;
       cout << "Successes predicate:" << endl;
-      for(size_t i(0); i < PROGRAM->num_predicates(); ++i)
-         cout << "\t" << PROGRAM->get_predicate(i)->get_name() << " " << stat_predicate_success[i] << endl;
+      for(size_t i(0); i < all->PROGRAM->num_predicates(); ++i)
+         cout << "\t" << all->PROGRAM->get_predicate(i)->get_name() << " " << stat_predicate_success[i] << endl;
       delete []stat_predicate_proven;
       delete []stat_predicate_applications;
       delete []stat_predicate_success;
