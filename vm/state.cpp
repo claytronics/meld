@@ -556,8 +556,6 @@ state::process_persistent_tuple(db::simple_tuple *stpl, vm::tuple *tpl)
    if(stpl->get_count() > 0) {
 		const bool is_new(add_fact_to_node(tpl, stpl->get_count(), stpl->get_depth()));
 
-
-
       if(is_new) {
          setup(tpl, node, stpl->get_count(), stpl->get_depth());
          use_local_tuples = false;
@@ -618,14 +616,14 @@ state::process_persistent_tuple(db::simple_tuple *stpl, vm::tuple *tpl)
                   use_local_tuples = false;
                   execute_bytecode(all->PROGRAM->get_predicate_bytecode(tuple->get_predicate_id()), *this);
                   deleter();
-                               debugger::runBreakPoint("factRet","Fact has been retracted",
+         debugger::runBreakPoint("factRet","Fact has been retracted",
          (char*)tpl->pred_name().c_str(),
          (int)node->get_translated_id());
                }
             }
 
          } else{
-             debugger::runBreakPoint("factRet","Fact has been retracted",
+         debugger::runBreakPoint("factRet","Fact has been retracted",
          (char*)tpl->pred_name().c_str(),
          (int)node->get_translated_id());
 
