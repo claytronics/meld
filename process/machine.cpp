@@ -17,7 +17,6 @@
 #include "debug/debug_prompt.hpp"
 //#include "sched/serial_ui.hpp"
 //#include "sched/serial_ui.hpp"
-//#include "sched/sim.hpp"
 //#include "thread/threads.hpp"
 //#include "thread/prio.hpp"
 
