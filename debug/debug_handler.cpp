@@ -1,5 +1,36 @@
 /*INTERFACE TO HANDLE BREAKPOINTS, DUMPS, AND CONTINUES*/
+/* David Campbell - dncswim76@gmail.com*/
 
+/* HOW THE DEBUGGER IS IMPLEMENTED */
+
+/* The debugger has three different modes: normal, mpi, and simulation.
+   These different modes are set within from the command line when meld
+   is executed in which a debugger global var is used to indicate the mode.
+   These are set in meld.cpp
+
+   In each mode a command line prompt is initiated in which the user
+   can input specific commands to controll the VM.  In MPI debugging mode,
+   this prompt is the 0th process setup by boost MPI, and in SIM debugging
+   mode, it is a thread that is embedded within the simulator itself.
+   In normal debugging mode, it is a thread that is run in the VM itself.
+   In debug_prompt.cpp, this is the prompt code that will parse and send
+   the input to the debugging controller to react to the input.
+
+   The controller will then send a message to the respective VMs running
+   alongside it, else it will print to cout if not running more than one
+   process.  The messages are sent through the api layer.
+
+   When a breakpoint is specified, the controller will tell the VMs to insert
+   the breakpoint into their list of breakpoints.  The VMs are initially paused
+   when the program begins, waiting for feedback.  When the user specifies to
+   run the program, if a breakpoint is in the breakpoint list and its a match
+   at key points in the program the system will be paused again.
+
+   When a breakpoint is hit, the VM lets the controller know a breakpoint was
+   reached and the controller may pause all VMs (if no one reached a breakpoint)
+   before it.  Since there are many VMs running loose
+
+*/
 
 #include <string.h>
 #include <pthread.h>
