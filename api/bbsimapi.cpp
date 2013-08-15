@@ -571,7 +571,7 @@ sendMessageTCP(message *msg)
       break;
 
       case DEBUG:
-       handleDebugMessage((utils::byte*)reply, (size_t)reply[0]);
+      handleDebugMessage((utils::byte*)reply, (size_t)reply[0]);
       break;
 
       case STOP:

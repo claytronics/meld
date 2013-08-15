@@ -111,6 +111,7 @@ namespace debugger {
         all = debugAll;
         setupFactList();
         messageQueue = new std::queue<api::message_type*>();
+        rcvMessageList = new std::list<struct msgListContainer*>();
     }
 
     /*setup MPI debugging mode*/
@@ -992,6 +993,7 @@ namespace debugger {
             /*insert the message into a cache to be checked if the
              *broken message in pieces has been completed*/
             insertMsg(spec, priority, instruction, NodeId);
+            printRcv();
 
             /*check to see if a total message has been sent*/
             msgContainer = checkAndGet();
