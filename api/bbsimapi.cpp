@@ -175,7 +175,7 @@ inline face_t operator++(face_t& f, int) {
 	static void handleSetDeterministicMode(const deterministic_timestamp ts,
   const db::node::node_id node, const simulationMode mode);
 	static void handleResumeComputation(const deterministic_timestamp ts,
-  const db::node::node_id node, int duration);
+  const db::node::node_id node, deterministic_timestamp duration);
 
   static bool ready(false);
 
@@ -378,7 +378,7 @@ set_color(db::node *n, const int r, const int g, const int b)
   }
 
   void handleResumeComputation(const deterministic_timestamp ts,
-    const db::node::node_id node, int duration) {
+    const db::node::node_id node, deterministic_timestamp duration) {
 	 resumeComputation(ts, duration);
   }
 
@@ -584,7 +584,7 @@ sendMessageTCP1(message *msg)
       
       case RESUME_COMPUTATION:
 		 handleResumeComputation((deterministic_timestamp)reply[2],
-		  (db::node::node_id)reply[3], (int)reply[4]);
+		  (db::node::node_id)reply[3], (deterministic_timestamp)reply[4]);
       break;
 #endif
       default: cerr << "Unrecognized message " << reply[1] << endl;

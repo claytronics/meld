@@ -16,7 +16,7 @@ namespace vm {
 		void checkAndWaitUntilCanCompute();
 		bool mustQueueMessages();
 
-		void resumeComputation(deterministic_timestamp ts, int d);
+		void resumeComputation(deterministic_timestamp ts, deterministic_timestamp d);
 		void computationPause();
 		void workEnd();
 

@@ -88,7 +88,7 @@ namespace vm {
 			return ((mode == DETERMINISTIC2) && computing);
 		}
 		
-		void resumeComputation(deterministic_timestamp ts, int d) {
+		void resumeComputation(deterministic_timestamp ts, deterministic_timestamp d) {
 			switch(mode) {
 				case REALTIME:
 					break;
@@ -160,7 +160,7 @@ namespace vm {
 					currentLocalTime = max(currentLocalTime, time);
 					break;
 				default:
-					return;
+					break;
 			}
 		}
 	}

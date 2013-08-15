@@ -62,7 +62,6 @@ base::do_loop(void)
           do_work(node);
           finish_work(node);
           hasComputed = true;
-          cout << "get_work loop..." << endl;
       }  
       if (debugger::isInMpiDebuggingMode()||debugger::isInSimDebuggingMode()){
           debugger::receiveMsg();
