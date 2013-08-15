@@ -514,5 +514,10 @@ namespace api {
  * Unimplemented functions in MPI
  */
     void set_color(db::node *n, const int r, const int g, const int b) {}
-
+    /* Deterministic Simulation */
+    void computationPause() {}
+    void workEnd() {}
+    void timeInfo() {}
+    uint nbReceivedMsg = 0;
+    
 } /* namespace api */
