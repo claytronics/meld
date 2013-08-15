@@ -23,6 +23,12 @@ namespace msg{
         message_type dest_nodeID;
       }send_message;
 
+  //CMD RECEIVE_MESSAGE
+      struct{
+        message_type face;
+        message_type from;
+      }receiveMessage;   
+
     // CMD_COLOR
       struct {
         message_type r;
@@ -64,6 +70,10 @@ namespace msg{
       struct {
 		message_type nbRecMsg;
 	  } workEnd;
+
+    //CMD TAP
+      struct{
+      }tap;
 
       message_type units[MAX_MSG];
 

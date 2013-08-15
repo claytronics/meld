@@ -140,6 +140,7 @@ namespace debugger {
   /*recognizes and sets different modes for the debugger*/
   int handle_command(string command, debugList& factList){
 
+      (void) factList;
     int retVal;
 
     if (command == "break"){
@@ -179,15 +180,21 @@ namespace debugger {
     cout << endl;
     cout << "DEBUGGER HELP" << endl;
     cout << "\t-break <Specification>- set break point at specified place" << endl;
+    cout << "\t-rm <Specification> - remove a breakpoint at specified place" << endl;
     cout << "\t\t-Specification Format:" << endl;
     cout << "\t\t  <type>:<name>@<node> OR" << endl;
     cout << "\t\t  <type>:<name>        OR" << endl;
     cout << "\t\t  <type>@<node>" << endl;
-    cout << "\t\t    -type - [factRet|factDer|factCon|action|sense|block]" << endl;
+    cout << "\t\t    -type - [factRet|factDer|factCon|action|sense]" << endl;
     cout << "\t\t\t-a type MUST be specified" << endl;
     cout << "\t\t    -name - the name of certain type ex. the name of a fact" << endl;
     cout << "\t\t    -node - the number of the node" << endl;
     cout << "\t-dump or d <nodeID> <all> - dump the state of the system" << endl;
+
+    cout << "\t-mode <parameter> - change the debugger mode" << endl;
+    cout << "\t\t - <parameter> - V - verbose mode" << endl;
+    cout << "\t\t                 S - serialized mode" << endl;
+    cout << "\t-print - print the breakpoint list" << endl;
     cout << "\t-continue or c - continue execution" << endl;
     cout << "\t-run or r - start the program" << endl;
     cout << "\t-quit - exit debugger" << endl;

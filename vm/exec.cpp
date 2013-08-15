@@ -15,6 +15,7 @@
 //#define DEBUG_SENDS
 //#define DEBUG_INSTRS
 //#define DEBUG_RULES
+//#define DEBUG_REMOVE
 
 using namespace vm;
 using namespace vm::instr;
@@ -382,7 +383,7 @@ execute_send_self(tuple *tuple, state& state)
      * execute_send_self sends a tuple to the current node
      */
 #if defined(DEBUG_MODE) || defined(DEBUG_SENDS)
-   cout << "\t" << *tuple << " " << state.count << " -> self " << state.node->get_id() << endl;
+   cout << "\t" << *tuple << " " << state.count << " -> self " << state.node->get_id() << " (" << state.depth << ")" << endl;
 #endif
    if(tuple->is_action()) {
       if(state.count > 0)
@@ -397,15 +398,15 @@ execute_send_self(tuple *tuple, state& state)
       const predicate *pred(tuple->get_predicate());
 
       if(pred->get_strat_level() != state.current_level) {
-         simple_tuple *stuple(new simple_tuple(tuple, state.count));
+         simple_tuple *stuple(new simple_tuple(tuple, state.count, state.depth));
          assert(stuple->can_be_consumed());
          state.generated_other_level.push_back(stuple);
       } else {
          if(tuple->is_persistent()) {
-            simple_tuple *stuple(new simple_tuple(tuple, state.count));
+            simple_tuple *stuple(new simple_tuple(tuple, state.count, state.depth));
             state.generated_persistent_tuples.push_back(stuple);
          } else {
-            simple_tuple *stuple(new simple_tuple(tuple, state.count));
+            simple_tuple *stuple(new simple_tuple(tuple, state.count, state.depth));
             if(tuple->is_reused()) // push into persistent list, since it is a reused tuple
                state.generated_persistent_tuples.push_back(stuple);
             else
@@ -418,7 +419,7 @@ execute_send_self(tuple *tuple, state& state)
          }
       }
    } else {
-      simple_tuple *stuple(new simple_tuple(tuple, state.count));
+      simple_tuple *stuple(new simple_tuple(tuple, state.count, state.depth));
       state.all->MACHINE->route_self(state.sched, state.node, stuple);
       state.add_generated_tuple(stuple);
    }
@@ -454,13 +455,13 @@ execute_send(const pcounter& pc, state& state)
      execute_send_self(tuple, state);
    } else {
 #if defined(DEBUG_MODE) || defined(DEBUG_SENDS)
-      cout << "\t" << *tuple << " " << state.count << " -> " << dest_val << endl;
+      cout << "\t" << *tuple << " " << state.count << " -> " << dest_val << " (" << state.depth << ")" << endl;
 #endif
+
       debugMsg << "\t-" << *tuple << " -> Node: "
 	       << state.get_node(dest) << endl;
-      simple_tuple *stuple(new simple_tuple(tuple, state.count));
-      state.all->MACHINE->route(state.node, state.sched,
-				(node::node_id)dest_val, stuple);
+      simple_tuple *stuple(new simple_tuple(tuple, state.count, state.depth));
+      state.all->MACHINE->route(state.node, state.sched, (node::node_id)dest_val, stuple);
    }
 
    debugMsg << "\t-Fact has been derived" << endl;
@@ -481,7 +482,7 @@ execute_send_delay(const pcounter& pc, state& state)
    state.stat_predicate_proven[tuple->get_predicate_id()]++;
 #endif
 
-   simple_tuple *stuple(new simple_tuple(tuple, state.count));
+   simple_tuple *stuple(new simple_tuple(tuple, state.count, state.depth));
 
    if(msg == dest) {
 #ifdef DEBUG_MODE
@@ -1068,7 +1069,7 @@ execute_iter(pcounter pc, const utils::byte options, const utils::byte options_a
 		pcounter first, state& state, tuple_vector& tuples, const predicate *pred)
 {
    const bool old_is_linear = state.is_linear;
-	const bool this_is_linear = (pred->is_linear_pred() && !state.persistent_only);
+	const bool this_is_linear = (pred->is_linear_pred() && !state.persistent_only && iter_options_to_delete(options));
 
 #ifndef NDEBUG
    if(pred->is_linear_pred() && state.persistent_only) {
@@ -1076,22 +1077,28 @@ execute_iter(pcounter pc, const utils::byte options, const utils::byte options_a
    }
 #endif
 
-#define PUSH_CURRENT_STATE(TUPLE, TUPLE_LEAF, TUPLE_QUEUE)		\
-	tuple *old_tuple = state.tuple;										\
-   tuple_trie_leaf *old_tuple_leaf = state.tuple_leaf;			\
-	simple_tuple *old_tuple_queue = state.tuple_queue;				\
-																					\
-   state.tuple = TUPLE;														\
-   state.tuple_leaf = TUPLE_LEAF;										\
-	state.tuple_queue = TUPLE_QUEUE;										\
-	state.is_linear = this_is_linear || state.is_linear
+	
+#define PUSH_CURRENT_STATE(TUPLE, TUPLE_LEAF, TUPLE_QUEUE, NEW_DEPTH)		\
+	tuple *old_tuple = state.tuple;										            \
+   tuple_trie_leaf *old_tuple_leaf = state.tuple_leaf;		            	\
+	simple_tuple *old_tuple_queue = state.tuple_queue;				            \
+   const depth_t old_depth = state.depth;                                  \
+																					            \
+   state.tuple = TUPLE;													            	\
+   state.tuple_leaf = TUPLE_LEAF;										            \
+	state.tuple_queue = TUPLE_QUEUE;										            \
+	state.is_linear = this_is_linear || state.is_linear;                    \
+   state.depth = !pred->is_cycle_pred() ? state.depth : max((NEW_DEPTH)+1, state.depth)
+	
 
 #define POP_STATE()								\
 	state.tuple = old_tuple;					\
    state.tuple_leaf = old_tuple_leaf;		\
 	state.tuple_queue = old_tuple_queue;	\
-   state.is_linear = old_is_linear
-\
+   state.is_linear = old_is_linear;       \
+   state.depth = old_depth
+
+
    if(state.persistent_only) {
       // do nothing
    } else if(iter_options_random(options)) {
@@ -1101,6 +1108,7 @@ execute_iter(pcounter pc, const utils::byte options, const utils::byte options_a
 		typedef vector<iter_object, mem::allocator<iter_object> > vector_of_everything;
       vector_of_everything everything;
 
+#if 0
       if(true) {
          simple_tuple_vector queue_tuples(state.sched->gather_active_tuples(state.node, pred->get_id()));
 
@@ -1111,6 +1119,7 @@ execute_iter(pcounter pc, const utils::byte options, const utils::byte options_a
                everything.push_back(iter_object(ITER_QUEUE, (void*)*it));
          }
       }
+#endif
 
 		if(state.use_local_tuples) {
 			for(db::simple_tuple_list::iterator it(state.local_tuples.begin()), end(state.local_tuples.end());
@@ -1158,7 +1167,7 @@ execute_iter(pcounter pc, const utils::byte options, const utils::byte options_a
 			      tuple *match_tuple(tuple_leaf->get_underlying_tuple());
                assert(match_tuple != NULL);
 
-					PUSH_CURRENT_STATE(match_tuple, tuple_leaf, NULL);
+					PUSH_CURRENT_STATE(match_tuple, tuple_leaf, NULL, tuple_leaf->get_min_depth());
 
 			      ret = execute(first, state);
 
@@ -1168,6 +1177,7 @@ execute_iter(pcounter pc, const utils::byte options, const utils::byte options_a
 			         state.no_longer_using_linear_tuple(tuple_leaf); // not used during derivation
 				}
 				break;
+#if 0
 				case ITER_QUEUE: {
 					simple_tuple *stpl((simple_tuple*)p.second);
 					tuple *match_tuple(stpl->get_tuple());
@@ -1175,7 +1185,9 @@ execute_iter(pcounter pc, const utils::byte options, const utils::byte options_a
 					if(!stpl->can_be_consumed())
 						continue;
 
-					PUSH_CURRENT_STATE(match_tuple, NULL, stpl);
+						
+					PUSH_CURRENT_STATE(match_tuple, NULL, stpl, stpl->get_depth());
+
 
 					if(iter_options_to_delete(options))
 						stpl->will_delete(); // this will avoid future gathers of this tuple!
@@ -1189,6 +1201,7 @@ execute_iter(pcounter pc, const utils::byte options, const utils::byte options_a
 					}
 				}
 				break;
+#endif
 				case ITER_LOCAL: {
 					simple_tuple *stpl((simple_tuple*)p.second);
 					tuple *match_tuple(stpl->get_tuple());
@@ -1196,7 +1209,8 @@ execute_iter(pcounter pc, const utils::byte options, const utils::byte options_a
 					if(!stpl->can_be_consumed())
 						continue;
 
-					PUSH_CURRENT_STATE(match_tuple, NULL, stpl);
+					
+					PUSH_CURRENT_STATE(match_tuple, NULL, stpl, stpl->get_depth());
 
 					if(iter_options_to_delete(options)) {
 						stpl->will_delete();
@@ -1229,7 +1243,7 @@ execute_iter(pcounter pc, const utils::byte options, const utils::byte options_a
    {
       tuple_trie_leaf *tuple_leaf(*it);
 
-      if(this_is_linear) {
+      if(pred->is_linear_pred()) {
          if(!state.linear_tuple_can_be_used(tuple_leaf))
             continue;
          state.using_new_linear_tuple(tuple_leaf);
@@ -1246,7 +1260,8 @@ execute_iter(pcounter pc, const utils::byte options, const utils::byte options_a
       (void)pc;
 #endif
 
-		PUSH_CURRENT_STATE(match_tuple, tuple_leaf, NULL);
+
+		PUSH_CURRENT_STATE(match_tuple, tuple_leaf, NULL, tuple_leaf->get_min_depth());
 
       return_type ret;
 
@@ -1262,11 +1277,18 @@ execute_iter(pcounter pc, const utils::byte options, const utils::byte options_a
          return RETURN_DERIVED;
       }
 
-      if(ret != RETURN_LINEAR && ret != RETURN_DERIVED && this_is_linear) {
-         state.no_longer_using_linear_tuple(tuple_leaf); // not consumed
+      if(pred->is_linear_pred()) {
+         if(ret != RETURN_LINEAR && ret != RETURN_DERIVED) {
+            state.no_longer_using_linear_tuple(tuple_leaf); // not consumed because nothing was derived
+         }
+
+         if(!iter_options_to_delete(options)) {
+            state.no_longer_using_linear_tuple(tuple_leaf); // cannot be consumed because it would get generated again
+         }
       }
    }
 
+#if 0
 	// tuples from current queue
 	if(this_is_linear) {
       assert(!state.persistent_only);
@@ -1286,7 +1308,8 @@ execute_iter(pcounter pc, const utils::byte options, const utils::byte options_a
       	if(!do_matches(pc, match_tuple, state))
 				continue;
 
-			PUSH_CURRENT_STATE(match_tuple, NULL, stpl);
+		
+			PUSH_CURRENT_STATE(match_tuple, NULL, stpl, stpl->get_depth());
 
 			if(iter_options_to_delete(options) || this_is_linear) {
 				assert(this_is_linear);
@@ -1315,6 +1338,8 @@ execute_iter(pcounter pc, const utils::byte options, const utils::byte options_a
 		}
 	}
 
+#endif
+	
 	// current set of tuples
    if(!state.persistent_only) {
 		/* XXXX
@@ -1336,10 +1361,11 @@ execute_iter(pcounter pc, const utils::byte options, const utils::byte options_a
       	if(!do_matches(pc, match_tuple, state))
 				continue;
 
-			PUSH_CURRENT_STATE(match_tuple, NULL, stpl);
+		
+			PUSH_CURRENT_STATE(match_tuple, NULL, stpl, stpl->get_depth());
 
-			if(iter_options_to_delete(options) || this_is_linear) {
-				assert(this_is_linear);
+			if(iter_options_to_delete(options) || pred->is_linear_pred()) {
+
 				stpl->will_delete(); // this will avoid future uses of this tuple!
 			}
 
@@ -1348,18 +1374,22 @@ execute_iter(pcounter pc, const utils::byte options, const utils::byte options_a
 
 			POP_STATE();
 
-			if(!(ret == RETURN_LINEAR || ret == RETURN_DERIVED)) { // tuple not consumed
-				if(this_is_linear || iter_options_to_delete(options)) {
-					stpl->will_not_delete(); // oops, revert
+         if(pred->is_linear_pred()) {
+            if(!(ret == RETURN_LINEAR || ret == RETURN_DERIVED)) { // tuple not consumed
+               stpl->will_not_delete(); // oops, revert
             }
-			}
 
+            if(!iter_options_to_delete(options)) {
+               // the tuple cannot be deleted
+               // we have just marked it for deletion in order to lock it
+               stpl->will_not_delete();
+            }
 
-         if(!iter_options_to_delete(options) && this_is_linear) {
-            stpl->will_not_delete();
          }
 
-			if(ret == RETURN_LINEAR) {
+
+			if(ret == RETURN_LINEAR) { 
+
 				return ret;
          }
 			if(state.is_linear && ret == RETURN_DERIVED) {
@@ -1620,7 +1650,7 @@ execute_remove(pcounter pc, state& state)
 
 #ifdef USE_RULE_COUNTING
 	if(state.use_local_tuples) {
-#ifdef DEBUG_MODE
+#if defined(DEBUG_MODE) or defined(DEBUG_REMOVE)
       cout << "\tdelete " << *tpl << endl;
 #endif
       debugMsg << "\t-delete " << *tpl << endl;
@@ -1636,13 +1666,13 @@ execute_remove(pcounter pc, state& state)
     assert(tpl != NULL);
 
    if(tpl->is_reused() && state.use_local_tuples) {
-		state.generated_persistent_tuples.push_back(new simple_tuple(tpl, -1));
+		state.generated_persistent_tuples.push_back(new simple_tuple(tpl, -1, state.depth));
 		if(is_a_leaf)
 			state.leaves_for_deletion.push_back(make_pair((predicate*)tpl->get_predicate(), state.get_leaf(reg)));
 	} else {
 		if(is_a_leaf) { // tuple was fetched from database
 			//cout << "Remove " << *state.get_tuple(reg) << endl;
-   		state.node->delete_by_leaf(tpl->get_predicate(), state.get_leaf(reg));
+   		state.node->delete_by_leaf(tpl->get_predicate(), state.get_leaf(reg), 0);
 		} else {
 			// tuple was marked before, it will be deleted after this round
 		}
@@ -1734,6 +1764,89 @@ execute_call(pcounter pc, state& state)
 		}
       default:
          throw vm_exec_error("invalid return type in call (execute_call)");
+   }
+}
+
+static inline void
+execute_calle(pcounter pc, state& state)
+{
+   #define REGISTER_OFFSET 38 
+   pcounter m(pc + CALL_BASE);
+   const external_function_id id(call_extern_id(pc) + REGISTER_OFFSET);
+   const size_t num_args(call_num_args(pc));
+   const reg_num reg(call_dest(pc));
+   external_function *f(lookup_external_function(id));
+   const field_type ret_type(f->get_return_type());
+   argument args[num_args];
+   
+   for(size_t i(0); i < num_args; ++i)
+      read_call_arg(args[i], f->get_arg_type(i), m, state);
+   
+   assert(num_args == f->get_num_args());
+   
+   argument ret;
+   
+   // call function
+   switch(num_args) {
+      case 0:
+         ret = f->get_fun_ptr()();
+         break;
+      case 1:
+         ret = ((external_function_ptr1)f->get_fun_ptr())(args[0]);
+         break;
+      case 2:
+         ret = ((external_function_ptr2)f->get_fun_ptr())(args[0], args[1]);
+         break;
+      case 3:
+         ret = ((external_function_ptr3)f->get_fun_ptr())(args[0], args[1], args[2]);
+         break;
+      default:
+         throw vm_exec_error("vm does not support external functions with more than 3 arguments");
+   }
+   
+   switch(ret_type) {
+      case FIELD_INT:
+         state.set_int(reg, ret.int_field);
+         break;
+      case FIELD_FLOAT:
+         state.set_float(reg, ret.float_field);
+         break;
+      case FIELD_NODE:
+         state.set_node(reg, ret.node_field);
+         break;
+		case FIELD_STRING: {
+			rstring::ptr s((rstring::ptr)ret.ptr_field);
+			
+			state.set_string(reg, s);
+			state.add_string(s);
+			
+			break;
+		}
+      case FIELD_LIST_FLOAT: {
+         float_list *l((float_list *)ret.ptr_field);
+
+         state.set_float_list(reg, l);
+         if(!float_list::is_null(l))
+            state.add_float_list(l);
+         break;
+      }
+      case FIELD_LIST_INT: {
+         int_list *l((int_list *)ret.ptr_field);
+         state.set_int_list(reg, l);
+
+         if(!int_list::is_null(l))
+            state.add_int_list(l);
+         break;
+      }
+		case FIELD_LIST_NODE: {
+			node_list *l((node_list *)ret.ptr_field);
+			state.set_node_list(reg, l);
+			if(!node_list::is_null(l))
+				state.add_node_list(l);
+			break;
+		}
+      default:
+         throw vm_exec_error("invalid return type in call (execute_calle)");
    }
 }
 
@@ -2035,6 +2148,11 @@ eval_loop:
 
          case CALL_INSTR:
             execute_call(pc, state);
+            break;
+
+         case CALLE_INSTR:
+            cout<<"CALLE_INSTR"<<endl;
+            execute_calle(pc, state);
             break;
 
          case RULE_INSTR:

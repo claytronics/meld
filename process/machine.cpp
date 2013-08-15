@@ -17,7 +17,6 @@
 #include "debug/debug_prompt.hpp"
 //#include "sched/serial_ui.hpp"
 //#include "sched/serial_ui.hpp"
-//#include "sched/sim.hpp"
 //#include "thread/threads.hpp"
 //#include "thread/prio.hpp"
 
@@ -227,8 +226,7 @@ machine::execute_const_code(void)
 	state st(all);
 
 	// no node or tuple whatsoever
-	st.setup(NULL, NULL, 0);
-
+	st.setup(NULL, NULL, 0, 0);
 	execute_bytecode(all->PROGRAM->get_const_bytecode(), st);
 }
 

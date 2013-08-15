@@ -63,7 +63,7 @@ namespace api {
     /* Output the database in a synchronized manner */
     extern void dumpDB(std::ostream &out, const db::database::map_nodes &nodes);
     extern void printDB(std::ostream &out, const db::database::map_nodes &nodes);
-
+    extern bool hasToken;
     /* === Debugger Functions === */
 
     /* initialize the debugger through the api */
@@ -79,7 +79,7 @@ namespace api {
     extern void debugWaitMsg(void);
 
     /*populate a debugger queue with incomming messages*/
-   
+
     extern void set_color(db::node *n, const int r, const int g, const int b);
     extern void debugGetMsgs(void);
     

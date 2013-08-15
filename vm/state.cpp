@@ -135,13 +135,21 @@ state::copy_reg2const(const reg_num& reg_from, const const_id& cid)
 }
 
 void
-state::setup(vm::tuple *tpl, db::node *n, const ref_count count)
+state::setup(vm::tuple *tpl, db::node *n, const derivation_count count, const depth_t depth)
 {
    this->use_local_tuples = false;
    this->tuple = tpl;
    this->tuple_leaf = NULL;
    this->node = n;
    this->count = count;
+   if(tpl != NULL) {
+      if(tpl->is_cycle())
+         this->depth = depth + 1;
+      else
+         this->depth = 0;
+   } else {
+      this->depth = 0;
+   }
 	if(tpl != NULL)
    	this->is_linear = tpl->is_linear();
 	else
@@ -252,9 +260,9 @@ state::mark_active_rules(void)
 }
 
 bool
-state::add_fact_to_node(vm::tuple *tpl, vm::ref_count count)
+state::add_fact_to_node(vm::tuple *tpl, const vm::derivation_count count, const vm::depth_t depth)
 {
-	return node->add_tuple(tpl, count);
+	return node->add_tuple(tpl, count, depth);
 }
 
 static inline bool
@@ -390,13 +398,13 @@ state::do_persistent_tuples(void)
 
       if(tuple_for_assertion(stpl)) {
 #ifdef DEBUG_RULES
-      cout << ">>>>>>>>>>>>> Running process for " << node->get_id() << " " << *stpl << endl;
+      cout << ">>>>>>>>>>>>> Running process for " << node->get_id() << " " << *stpl << " (" << stpl->get_depth() << ")" << endl;
 #endif
          process_persistent_tuple(stpl, tpl);
       } else {
          // aggregate
 #ifdef DEBUG_RULES
-      cout << ">>>>>>>>>>>>> Adding aggregate " << node->get_id() << " " << *stpl << endl;
+      cout << ">>>>>>>>>>>>> Adding aggregate " << node->get_id() << " " << *stpl << " (" << stpl->get_depth() << ")" << endl;
 #endif
          add_to_aggregate(stpl);
       }
@@ -409,7 +417,8 @@ state::do_persistent_tuples(void)
 
 		leaves_for_deletion.pop_front();
 
-		node->delete_by_leaf(pred, leaf);
+		node->delete_by_leaf(pred, leaf, 0);
+
 	}
 
 	assert(leaves_for_deletion.empty());
@@ -520,13 +529,13 @@ state::add_to_aggregate(db::simple_tuple *stpl)
 {
    vm::tuple *tpl(stpl->get_tuple());
    const predicate *pred(tpl->get_predicate());
-   vm::ref_count count(stpl->get_count());
+   vm::derivation_count count(stpl->get_count());
    agg_configuration *agg(NULL);
 
    if(count < 0) {
-      agg = node->remove_agg_tuple(tpl, -count);
+      agg = node->remove_agg_tuple(tpl, -count, stpl->get_depth());
    } else {
-      agg = node->add_agg_tuple(tpl, count);
+      agg = node->add_agg_tuple(tpl, count, stpl->get_depth());
    }
 
    simple_tuple_list list;
@@ -545,12 +554,10 @@ void
 state::process_persistent_tuple(db::simple_tuple *stpl, vm::tuple *tpl)
 {
    if(stpl->get_count() > 0) {
-		const bool is_new(add_fact_to_node(tpl));
-
-
+		const bool is_new(add_fact_to_node(tpl, stpl->get_count(), stpl->get_depth()));
 
       if(is_new) {
-         setup(tpl, node, stpl->get_count());
+         setup(tpl, node, stpl->get_count(), stpl->get_depth());
          use_local_tuples = false;
          persistent_only = true;
          execute_bytecode(all->PROGRAM->get_predicate_bytecode(tpl->get_predicate_id()), *this);
@@ -568,34 +575,66 @@ state::process_persistent_tuple(db::simple_tuple *stpl, vm::tuple *tpl)
       delete stpl;
    } else {
 		if(tpl->is_reused()) {
-			setup(tpl, node, stpl->get_count());
+			setup(tpl, node, stpl->get_count(), stpl->get_depth());
 			persistent_only = true;
 			use_local_tuples = false;
 			execute_bytecode(all->PROGRAM->get_predicate_bytecode(tuple->get_predicate_id()), *this);
          delete stpl;
 		} else {
-      	node::delete_info deleter(node->delete_tuple(tpl, -stpl->get_count()));
+      	node::delete_info deleter(node->delete_tuple(tpl, -stpl->get_count(), stpl->get_depth()));
 
+         if(!deleter.is_valid()) {
+            // do nothing... it does not exist
+         } else if(deleter.to_delete()) { // to be removed
 #ifdef USE_RULE_COUNTING
-      	node->matcher.deregister_tuple(tpl, stpl->get_count());
+            node->matcher.deregister_tuple(tpl, -stpl->get_count());
 #endif
-
-      	if(deleter.to_delete()) { // to be removed
-         	setup(tpl, node, stpl->get_count());
+         	setup(tpl, node, stpl->get_count(), stpl->get_depth());
          	persistent_only = true;
          	use_local_tuples = false;
          	execute_bytecode(all->PROGRAM->get_predicate_bytecode(tuple->get_predicate_id()), *this);
          	deleter();
+
 		debugger::runBreakPoint("factRet",
 			      "Fact has been removed from database",
-			      (char*)tpl->pred_name().c_str(),
+                                (char*)tpl->pred_name().c_str(),
 			      (int)node->get_translated_id());
-      	} else{
-	  debugger::runBreakPoint("factRet","Fact has been retracted",
-			(char*)tpl->pred_name().c_str(),
-			(int)node->get_translated_id());
-         	delete tpl;
-	}
+
+
+      	} else if(tpl->is_cycle()) {
+#ifdef USE_RULE_COUNTING
+            node->matcher.deregister_tuple(tpl, -stpl->get_count());
+#endif
+            depth_counter *dc(deleter.get_depth_counter());
+            assert(dc != NULL);
+
+            if(dc->get_count(stpl->get_depth()) == 0) {
+               vm::derivation_count deleted(deleter.delete_depths_above(stpl->get_depth()));
+               if(deleter.to_delete()) {
+                  setup(tpl, node, stpl->get_count(), stpl->get_depth());
+                  persistent_only = true;
+                  use_local_tuples = false;
+                  execute_bytecode(all->PROGRAM->get_predicate_bytecode(tuple->get_predicate_id()), *this);
+                  deleter();
+         debugger::runBreakPoint("factRet","Fact has been retracted",
+         (char*)tpl->pred_name().c_str(),
+         (int)node->get_translated_id());
+               }
+            }
+
+         } else{
+         debugger::runBreakPoint("factRet","Fact has been retracted",
+         (char*)tpl->pred_name().c_str(),
+         (int)node->get_translated_id());
+
+#ifdef USE_RULE_COUNTING
+            node->matcher.deregister_tuple(tpl, -stpl->get_count());
+#endif
+
+            delete tpl;
+         }
+         delete stpl;
+
 		}
 
    }
@@ -632,16 +671,21 @@ state::run_node(db::node *no)
    bool aborted(false);
 
 	this->node = no;
+	
+#ifdef DEBUG_RULES
+   cout << "Node " << node->get_id() << " (is " << node->get_translated_id() << ")" << endl;
+#endif
+
 
    assert(local_tuples.empty());
    // Gather_next_tuples is implementation specific
    sched->gather_next_tuples(node, local_tuples);
    start_matching();
 	current_level = mark_rules_using_local_tuples(local_tuples);
+
 #ifdef DEBUG_RULES
 	cout<<node->get_id() << ":Strat level: " << current_level << " got " << local_tuples.size() << " tuples " << endl;
 #endif
-
 
    if(do_persistent_tuples()) {
       mark_active_rules();
@@ -666,12 +710,15 @@ state::run_node(db::node *no)
 		node->matcher.clear_dropped_rules();
 #endif
       start_matching();
+		
+		setup(NULL, node, 1, 0);
 
-		setup(NULL, node, 1);
 		use_local_tuples = true;
       persistent_only = false;
 		execute_rule(rule, *this);
-		process_consumed_local_tuples();
+
+       process_consumed_local_tuples();
+
       /* move from generated tuples to local_tuples */
       local_tuples.splice(local_tuples.end(), generated_tuples);
       if(!do_persistent_tuples()) {
@@ -694,7 +741,7 @@ state::run_node(db::node *no)
          if(aborted) {
             assert(false);
          } else {
-            add_fact_to_node(tpl);
+            add_fact_to_node(tpl, stpl->get_count(), stpl->get_depth());
             delete stpl;
          }
 		} else {
@@ -725,10 +772,10 @@ state::init_core_statistics(void)
       stat_instructions_executed = 0;
       stat_moves_executed = 0;
       stat_ops_executed = 0;
-      stat_predicate_proven = new size_t[PROGRAM->num_predicates()];
-      stat_predicate_applications = new size_t[PROGRAM->num_predicates()];
-      stat_predicate_success = new size_t[PROGRAM->num_predicates()];
-      for(size_t i(0); i < PROGRAM->num_predicates(); ++i) {
+      stat_predicate_proven = new size_t[all->PROGRAM->num_predicates()];
+      stat_predicate_applications = new size_t[all->PROGRAM->num_predicates()];
+      stat_predicate_success = new size_t[all->PROGRAM->num_predicates()];
+      for(size_t i(0); i < all->PROGRAM->num_predicates(); ++i) {
          stat_predicate_proven[i] = 0;
          stat_predicate_applications[i] = 0;
          stat_predicate_success[i] = 0;
@@ -784,14 +831,14 @@ state::~state(void)
 		cout << "\tmoves: " << stat_moves_executed << endl;
 		cout << "\tops: " << stat_ops_executed << endl;
       cout << "Proven predicates:" << endl;
-      for(size_t i(0); i < PROGRAM->num_predicates(); ++i)
-         cout << "\t" << PROGRAM->get_predicate(i)->get_name() << " " << stat_predicate_proven[i] << endl;
+      for(size_t i(0); i < all->PROGRAM->num_predicates(); ++i)
+         cout << "\t" << all->PROGRAM->get_predicate(i)->get_name() << " " << stat_predicate_proven[i] << endl;
       cout << "Applications predicate:" << endl;
-      for(size_t i(0); i < PROGRAM->num_predicates(); ++i)
-         cout << "\t" << PROGRAM->get_predicate(i)->get_name() << " " << stat_predicate_applications[i] << endl;
+      for(size_t i(0); i < all->PROGRAM->num_predicates(); ++i)
+         cout << "\t" << all->PROGRAM->get_predicate(i)->get_name() << " " << stat_predicate_applications[i] << endl;
       cout << "Successes predicate:" << endl;
-      for(size_t i(0); i < PROGRAM->num_predicates(); ++i)
-         cout << "\t" << PROGRAM->get_predicate(i)->get_name() << " " << stat_predicate_success[i] << endl;
+      for(size_t i(0); i < all->PROGRAM->num_predicates(); ++i)
+         cout << "\t" << all->PROGRAM->get_predicate(i)->get_name() << " " << stat_predicate_success[i] << endl;
       delete []stat_predicate_proven;
       delete []stat_predicate_applications;
       delete []stat_predicate_success;

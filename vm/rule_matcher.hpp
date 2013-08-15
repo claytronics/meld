@@ -41,10 +41,10 @@ public:
 
 #ifdef USE_RULE_COUNTING
    /* returns true if we did not have any tuples of this predicate */
-	bool register_tuple(tuple *, const ref_count, const bool is_new = true);
+	bool register_tuple(tuple *, const derivation_count, const bool is_new = true);
 
 	/* returns true if now we do not have any tuples of this predicate */
-	bool deregister_tuple(tuple *, const ref_count);
+	bool deregister_tuple(tuple *, const derivation_count);
 
 	void clear_dropped_rules(void)
 	{

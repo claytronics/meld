@@ -54,9 +54,9 @@ base::do_loop(void)
   bool hasComputed = true; // case no node has work; 
   
   while(true) {
-	  //cout << "while loop" << endl;
-      if (debugger::serializationMode)
-          api::serializeBeginExec();
+      if (debugger::serializationMode){
+          debugger::serializedPause();
+      }
       while ((node = get_work())) {
           // Current VM has local work, process work
           do_work(node);
@@ -86,11 +86,9 @@ base::do_loop(void)
 	  bool hasWork = api::pollAndProcess(this, state.all);
 #endif
       bool ensembleFinished = false;
-      if (!hasWork) {       
-          ensembleFinished = api::ensembleFinished(this);      
-	  }
-      if (debugger::serializationMode)
-          api::serializeEndExec();
+      if (!hasWork)
+          ensembleFinished = api::ensembleFinished(this);
+          //api::serializeEndExec();
       if (ensembleFinished)
           break;
   }
@@ -128,7 +126,7 @@ base::start(void)
        // Main thread
   thread = new boost::thread();
   loop();
-}
+ }
 }
 
 base::~base(void)

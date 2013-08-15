@@ -22,7 +22,7 @@ UILIBRARIES = #-lwebsocketpp -ljson_spirit
 CFLAGS = $(ARCH) $(PROFILING) $(OPTIMIZATIONS) $(WARNINGS) $(DEBUG) $(DETERMINISM) $(INCLUDE_DIRS) $(COX)
 
 LIBRARIES = -pthread -lpthread -lm -lreadline -lboost_thread-mt -lboost_system-mt \
-			-lboost_date_time-mt -lboost_regex-mt $(UILIBRARIES)
+			-lboost_date_time-mt -lboost_regex-mt -ldl $(UILIBRARIES)
 
 LIBRARIES +=  -lboost_serialization-mt -lboost_mpi-mt
 
@@ -74,8 +74,6 @@ SRCS = utils/utils.cpp \
 			 sched/base.cpp \
 			 sched/common.cpp \
 			 sched/serial.cpp \
-			 sched/thread/threaded.cpp \
-			 sched/thread/assert.cpp \
 			 external/math.cpp \
 			 external/lists.cpp \
 			 external/utils.cpp \
@@ -90,12 +88,13 @@ SRCS = utils/utils.cpp \
 			 debug/debug_handler.cpp \
 			 debug/debug_list.cpp \
 			 api/bbsimapi.cpp \
-#			 api/mpi.cpp \
-
+			 #api/mpi.cpp /
+			 #sched/thread/threaded.cpp \
+			 #sched/thread/assert.cpp \
 
 OBJS = $(patsubst %.cpp,%.o,$(SRCS))
 
-all: meld print server
+all: meld print
 
 	echo $(OBJS)
 

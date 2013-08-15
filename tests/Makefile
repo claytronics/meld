@@ -12,5 +12,5 @@ test-mpi:
 
 compiled:
 	@mkdir -p code
-	@compile-directory progs code
+	@meld-compile-directory progs code
 	@rm -f code/*.ast code/*.code

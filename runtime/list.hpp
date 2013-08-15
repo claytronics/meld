@@ -33,7 +33,9 @@ private:
    list_ptr tail;
    const T head;
 
-   utils::atomic<size_t> refs;
+   
+   utils::atomic<vm::ref_count> refs;
+   
 
    inline void set_tail(list_ptr t)
    {

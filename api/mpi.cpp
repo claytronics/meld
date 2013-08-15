@@ -74,7 +74,7 @@ namespace api {
     }
 
     inline int nextProcess(void) {
-        /*note skips over master debugging process in
+        /*note- skips over master debugging process in
           debugging mode*/
         if (world->rank() == world->size()-1)
             return RING_ORIGIN;
@@ -96,7 +96,7 @@ namespace api {
     static int counter = 0;
     static int color = WHITE;
     static bool tokenSent = false;
-    static bool hasToken = false;
+    bool hasToken = false;
 
     void init(int argc, char **argv, sched::base *sched) {
         /* Initialize the MPI.
@@ -306,12 +306,14 @@ namespace api {
           There should be only 1 EXEC token passed around the ring. Only the
           process holding the token can execute, every other process must wait.
         */
+
         int source = prevProcess();
         if (!hasToken) {
             // Block process from continuing until token is received
             world->recv(source, EXEC);
             hasToken = true;
         }
+
     }
 
     void serializeEndExec(void) {

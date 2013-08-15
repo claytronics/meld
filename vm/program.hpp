@@ -9,6 +9,9 @@
 #include <stdexcept>
 #include <ostream>
 
+#include "vm/external.hpp"
+#include "vm/types.hpp"
+#include "utils/types.hpp"
 #include "vm/predicate.hpp"
 #include "vm/defs.hpp"
 #include "vm/tuple.hpp"
@@ -83,6 +86,7 @@ private:
    strat_level priority_strat_level;
    field_type priority_type;
    vm::priority_type priority_order;
+   bool priority_static;
    heap_priority initial_priority;
 
    void print_predicate_code(std::ostream&, predicate*) const;
@@ -112,6 +116,7 @@ public:
 	inline bool is_priority_desc(void) const { return priority_order == PRIORITY_DESC; }
 
    inline heap_priority get_initial_priority(void) const { return initial_priority; }
+   inline bool is_static_priority(void) const { return priority_static; }
 	
    predicate *get_predicate_by_name(const std::string&) const;
    
@@ -153,6 +158,9 @@ public:
    inline bool is_data(void) const { return is_data_file; }
 
    bool add_data_file(vm::program&);
+
+    void add_external_function(external_function_ptr ptr,size_t num_args,field_type ret_type,field_type *arg_type);
+    ptr_val get_function_pointer(char *lib_path,char* func_name);
    
    explicit program(const std::string&);
    

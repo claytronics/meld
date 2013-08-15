@@ -168,9 +168,8 @@ inline face_t operator++(face_t& f, int) {
   static bool isReady();
   static message_type *tcpPool();
   static void initTCP();
-  static void sendMessageTCP(message_type *msg);
   static void handleDebugMessage(utils::byte* reply, size_t totalSize);
-  static void sendMessageTCP1(message *m);
+  static void sendMessageTCP(message *m);
 
 	static void handleSetDeterministicMode(const deterministic_timestamp ts,
   const db::node::node_id node, const simulationMode mode);
@@ -335,7 +334,7 @@ set_color(db::node *n, const int r, const int g, const int b)
   colorMessage->data.color.b=b;
   colorMessage->data.color.i=0;
 
-  sendMessageTCP1(colorMessage);
+  sendMessageTCP(colorMessage);
   free(colorMessage);
 }
 
@@ -347,7 +346,7 @@ set_color(db::node *n, const int r, const int g, const int b)
     pauseComputationMessage->command = COMPUTATION_PAUSE;
     pauseComputationMessage->timestamp = (message_type) getCurrentLocalTime();
 	pauseComputationMessage->node = 0; //(message_type)n->get_id();
-    sendMessageTCP1(pauseComputationMessage);
+    sendMessageTCP(pauseComputationMessage);
     free(pauseComputationMessage);
   }
   
@@ -358,7 +357,7 @@ set_color(db::node *n, const int r, const int g, const int b)
     workEndMessage->timestamp = (message_type) getCurrentLocalTime();
 	workEndMessage->node = 0; //(message_type)n->get_id();
 	workEndMessage->data.workEnd.nbRecMsg = nbReceivedMsg;
-    sendMessageTCP1(workEndMessage);
+    sendMessageTCP(workEndMessage);
     free(workEndMessage);
   }
   
@@ -368,7 +367,7 @@ set_color(db::node *n, const int r, const int g, const int b)
     timeInfoMessage->command = TIME_INFO;
     timeInfoMessage->timestamp = (message_type) getCurrentLocalTime();
     timeInfoMessage->node = 0; //(message_type)n->get_id();
-    sendMessageTCP1(timeInfoMessage);
+    sendMessageTCP(timeInfoMessage);
     free(timeInfoMessage);
   }
   
@@ -403,15 +402,20 @@ set_color(db::node *n, const int r, const int g, const int b)
  }
 
 /*Sends the "SEND_MESSAGE" command*/
-  void 
+void
   sendMessage(const db::node* from, db::node::node_id to, db::simple_tuple* stpl)
   {
-   
+   //Find the tuple size
    const size_t stpl_size(stpl->storage_size());
-   const size_t msg_size = 5 * sizeof(message_type) + stpl_size;
-   message* msga=(message*)calloc((msg_size+ sizeof(message_type)), 1);
-  //Something to represent destination node.
-   size_t i = 0;
+ //  cout<<getNodeID<<":Stpl:"<<*stpl<<":Stpl size:"<<stpl_size<<endl;
+
+//Compute the size field  
+const size_t msg_size = 5 * sizeof(message_type) + stpl_size;
+
+//Allocating the buffer for the message   msg_size + the space for msga->size field.
+message* msga=(message*)calloc((msg_size+ sizeof(message_type)), 1);
+ 
+ 
    msga->size = (message_type)msg_size;
    msga->command = SEND_MESSAGE;
 #ifdef SIMD
@@ -423,15 +427,18 @@ set_color(db::node *n, const int r, const int g, const int b)
    msga->data.send_message.face= 0; //(dynamic_cast<serial_node*>(from))->get_face(to);
    msga->data.send_message.dest_nodeID = to;
    cout << from->get_id() << " Send " << *stpl << "to "<< to<< endl;
-  int pos = 6 * sizeof(message_type);
-  stpl->pack((utils::byte*)msga, msg_size + sizeof(message_type), &pos);
 
+/*Setting the position at the end of header to copy the tuple*/ 
+int pos = 6 * sizeof(message_type);
+  stpl->pack((utils::byte*)msga, msg_size + sizeof(message_type), &pos);
+// cout<<"Message Size:"<< msg_size<<" Pos:"<<pos<<" Assertion:"<<msg_size+sizeof(message_type)<<endl;
   assert((size_t)pos == msg_size + sizeof(message_type));
 
   simple_tuple::wipeout(stpl);
-  sendMessageTCP1(msga);
+  sendMessageTCP(msga);
   free(msga);
 }
+
 
 /*Flags if VM can run now*/
 bool 
@@ -491,13 +498,7 @@ tcpPool()
 
 /*Sends the message over the socket*/
 static void 
-sendMessageTCP(message_type *msg)
-  {
-    boost::asio::write(*my_tcp_socket, boost::asio::buffer(msg, msg[0] + sizeof(message_type)));
-  }
-
-  static void 
-sendMessageTCP1(message *msg)
+sendMessageTCP(message *msg)
   {
     boost::asio::write(*my_tcp_socket, boost::asio::buffer(msg, msg->size + sizeof(message_type)));
   }
@@ -518,51 +519,54 @@ sendMessageTCP1(message *msg)
 	if (reply[1] != DEBUG)
 		setCurrentLocalTime((deterministic_timestamp)reply[2]);
 #endif
-    switch(reply[1]) {
+    message* msg=(message*)reply;
+
+    switch(msg->command) {
   /*Initilize the blocks's ID*/
       case SETID: 
-      handleSetID((deterministic_timestamp) reply[2], (db::node::node_id) reply[3]);
+      handleSetID((deterministic_timestamp) msg->timestamp, (db::node::node_id) msg->node);
       id=(db::node::node_id) reply[3];
       ready=true;
+      cout << "ID received" << endl;
       break;
 
       case RECEIVE_MESSAGE:
-      handleReceiveMessage((deterministic_timestamp)reply[2],
-        (db::node::node_id)reply[3],
-        (face_t)reply[4],
-        (db::node::node_id)reply[5],
+      handleReceiveMessage((deterministic_timestamp)msg->timestamp,
+        (db::node::node_id)msg->node,
+        (face_t)msg->data.receiveMessage.face,
+        (db::node::node_id)msg->data.receiveMessage.from,
         (utils::byte*)reply,
         6 * sizeof(message_type),
-        (int)(reply[0] + sizeof(message_type)));
+        (int)(msg->size + sizeof(message_type)));
       break;
 
       case ADD_NEIGHBOR:
-      if(id==(db::node::node_id) reply[3])
-        handleAddNeighbor((deterministic_timestamp)reply[2],
-         (db::node::node_id)reply[3],
-         (db::node::node_id)reply[4],
-         (face_t)reply[5]);
+      if(id==(db::node::node_id) msg->node)
+        handleAddNeighbor((deterministic_timestamp)msg->timestamp,
+         (db::node::node_id)msg->node,
+         (db::node::node_id)msg->data.addNeighbor.nid,
+         (face_t)msg->data.addNeighbor.face);
       break;
 
       case REMOVE_NEIGHBOR:
    // if(id==(db::node::node_id) reply[3])
-      handleRemoveNeighbor((deterministic_timestamp)reply[2],
-        (db::node::node_id)reply[3],
-        (face_t)reply[4]);
+      handleRemoveNeighbor((deterministic_timestamp)msg->timestamp,
+        (db::node::node_id)msg->node,
+        (face_t)msg->data.delNeighbor.face);
       break;
 
       case TAP:
-      handleTap((deterministic_timestamp)reply[2], (db::node::node_id)reply[3]);
+      handleTap((deterministic_timestamp)msg->timestamp, (db::node::node_id)msg->node);
       break;
 
       case ACCEL:
-      handleAccel((deterministic_timestamp)reply[2],
-       (db::node::node_id)reply[3],
+      handleAccel((deterministic_timestamp)msg->timestamp,
+       (db::node::node_id)msg->node,
        (int)reply[4]);
       break;
 
       case SHAKE:
-      handleShake((deterministic_timestamp)reply[2], (db::node::node_id)reply[3],
+      handleShake((deterministic_timestamp)msg->timestamp, (db::node::node_id)msg->node,
        (int)reply[4], (int)reply[5], (int)reply[6]);
       break;
 
@@ -897,7 +901,7 @@ debugWaitMsg(void)
 void 
 debugSendMsg(int destination,message_type* msg, size_t messageSize)
 {
-  sendMessageTCP(msg);
+  sendMessageTCP((message*)msg);
   delete[] msg;
 }
 }

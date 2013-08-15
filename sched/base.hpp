@@ -57,16 +57,16 @@ namespace sched
 
 #endif
 
-      void do_loop(void);
-      void loop(void);
-      void do_work(db::node *);
-      void do_agg_tuple_add(db::node *, vm::tuple *, const vm::ref_count);
-      void do_tuple_add(db::node *, vm::tuple *, const vm::ref_count);
-
-      virtual bool terminate_iteration(void) = 0;
-
-      inline void node_iteration(db::node *node)
-      {
+   void do_loop(void);
+   void loop(void);
+   void do_work(db::node *);
+   void do_agg_tuple_add(db::node *, vm::tuple *, const vm::derivation_count);
+   void do_tuple_add(db::node *, vm::tuple *, const vm::derivation_count);
+   
+   virtual bool terminate_iteration(void) = 0;
+   
+   inline void node_iteration(db::node *node)
+   {
          db::simple_tuple_list ls(node->end_iteration());
 
          for(db::simple_tuple_list::iterator it(ls.begin());
@@ -75,20 +75,20 @@ namespace sched
          {
             new_work_agg(node, *it);
          }
-      }
+   }
 
    public:
 
       inline bool leader_thread(void) const { return get_id() == 0; }
 
-      virtual void init_node(db::node *node)
-      {
-         db::simple_tuple *stpl(db::simple_tuple::create_new(new vm::tuple(state.all->PROGRAM->get_init_predicate())));
-         new_work_self(node, stpl);
-         node->init();
-         node->set_owner(this);
-      }
-
+   virtual void init_node(db::node *node)
+   {
+      db::simple_tuple *stpl(db::simple_tuple::create_new(new vm::tuple(state.all->PROGRAM->get_init_predicate()), 0));
+      new_work_self(node, stpl);
+      node->init();
+      node->set_owner(this);
+   }
+   
    // a new work was created for the current executing node
       inline void new_work_self(db::node *node, db::simple_tuple *stpl, const process::work_modifier mod = process::mods::NOTHING)
       {

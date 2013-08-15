@@ -16,7 +16,8 @@ typedef uint32_t node_val;
 typedef bool bool_val;
 typedef unsigned char predicate_id;
 typedef unsigned short process_id;
-typedef short ref_count;
+typedef short derivation_count;
+typedef uint64_t ref_count;
 typedef unsigned char byte_code_el;
 typedef byte_code_el* byte_code;
 typedef uint32_t code_size_t;
@@ -26,6 +27,7 @@ typedef size_t strat_level;
 typedef size_t argument_id;
 typedef uint_val const_id;
 typedef uint32_t rule_id;
+typedef uint32_t depth_t;
 
 static const ptr_val null_ptr_val = 0;
 

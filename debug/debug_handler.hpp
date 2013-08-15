@@ -38,6 +38,8 @@ namespace debugger {
     const int PRINTLIST = 11;
     const int RUN = 12;
     const int MODE = 13;
+    const int CONCHE = 14;
+    const int ENDSER = 15;
 
     extern std::queue<api::message_type*> *messageQueue;
     extern int numberExpected;
@@ -49,6 +51,9 @@ namespace debugger {
     extern bool serializationMode;
 
     const int MASTER = 0;
+
+
+
 
     void activateBreakPoint(std::string specification);
     void runBreakPoint(char* type, std::string msg, char* name, int nodeID);
@@ -79,6 +84,12 @@ namespace debugger {
     void receiveMsg(void);
     void sendMsg(int destination, int msgType,
                  std::string content, bool broadcast = false);
+    void serializedPause(void);
+    api::message_type* pack(int msgEncode, std::string content, int proirity);
+    void insertMsg(std::string content, int priority, int instruction, int node);
+    std::string buildString(struct msgListContainer* container);
+    struct msgListContainer* checkAndGet(void);
+    void printRcv();
 }
 
 #endif
