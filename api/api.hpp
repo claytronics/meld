@@ -87,7 +87,9 @@ namespace api {
     extern void computationPause();
     extern void workEnd();
     extern void timeInfo();
-    extern uint nbReceivedMsg;
+    //extern uint nbReceivedMsg;
+    extern bool waitAndProcess(sched::base *sched, vm::all *all);
+    
     
 } // namespace api
 #endif

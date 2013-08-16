@@ -178,6 +178,11 @@ namespace sched
       explicit base(const vm::process_id, vm::all *);
 
       virtual ~base(void);
+
+#ifdef SIMD
+   private:
+		virtual bool has_work(void) const { return true; }
+#endif
    };
 
 }

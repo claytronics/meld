@@ -380,6 +380,25 @@ set_color(db::node *n, const int r, const int g, const int b)
     const db::node::node_id node, deterministic_timestamp duration) {
 	 resumeComputation(ts, duration);
   }
+  
+bool waitAndProcess(sched::base *sched, vm::all *all) {
+	static message_type msg[1024];
+	try {
+      my_tcp_socket->read_some(boost::asio::buffer(msg, sizeof(message_type)));
+      my_tcp_socket->read_some(boost::asio::buffer(msg + 1,  msg[0]));
+      nbReceivedMsg++;
+    } catch(std::exception &e) {
+		cout<<"Could not recieve!"<<endl;
+		return false;
+	}
+    if(ensembleFinished(sched_state)) {
+		return false;
+    } else {
+		processMessage(msg);
+		return true;
+	}
+  }
+
 
 /*Returns the node id for bbsimAPI*/
   int 

@@ -107,7 +107,7 @@ public:
 
    explicit node(const node_id, const node_id, vm::all *);
 
-    bool empty(void) const;
+   bool empty(void) const;
 
    virtual ~node(void);
 };

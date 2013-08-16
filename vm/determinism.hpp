@@ -2,6 +2,7 @@
 #define VM_DETERMINISM_HPP
 
 #include <cstdio>
+#include "db/node.hpp"
 
 namespace vm {
 	
@@ -13,6 +14,7 @@ namespace vm {
 		simulationMode getSimulationMode();
 		//bool isInDeterministicMode();
 		bool canCompute();
+		bool isComputing();
 		void checkAndWaitUntilCanCompute();
 		bool mustQueueMessages();
 

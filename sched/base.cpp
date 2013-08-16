@@ -62,7 +62,8 @@ base::do_loop(void)
           do_work(node);
           finish_work(node);
           hasComputed = true;
-      }  
+          cout << "work loop" << endl;
+      }
       if (debugger::isInMpiDebuggingMode()||debugger::isInSimDebuggingMode()){
           debugger::receiveMsg();
           if (debugger::isTheSystemPaused()){
@@ -71,20 +72,36 @@ base::do_loop(void)
               debugger::pauseIt();
           }
       }
+      
+	bool hasWork = api::pollAndProcess(this, state.all);
+#ifdef SIMD
+	if (!this->has_work()) {
+		if ((hasComputed || determinism::isComputing())) {
+			determinism::workEnd();
+			hasComputed = false;
+		} else {
+			cout << "wait for a message" << endl;
+			hasWork = api::waitAndProcess(this, state.all);
+			cout << "msg received" << endl;
+			hasComputed = true;
+		}
+	}
+#endif
+	
 
+/*
 #ifdef SIMD
     uint nb = api::nbReceivedMsg;
     bool hasWork = api::pollAndProcess(this, state.all);
-    if (nb == api::nbReceivedMsg) {
+	    if (nb == api::nbReceivedMsg) {
 		if( (determinism::getSimulationMode() == determinism::DETERMINISTIC2) || 
 			(hasComputed && (determinism::getSimulationMode() == determinism::DETERMINISTIC1))) {
 			determinism::workEnd();
 			hasComputed = false;
 		}
 	}
-#else
 	  bool hasWork = api::pollAndProcess(this, state.all);
-#endif
+#endif*/
       bool ensembleFinished = false;
       if (!hasWork)
           ensembleFinished = api::ensembleFinished(this);

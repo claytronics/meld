@@ -85,8 +85,13 @@ namespace vm {
 		}
 		
 		bool mustQueueMessages() {
-			return ((mode == DETERMINISTIC2) && computing);
+			return ((mode == DETERMINISTIC2) && isComputing());
 		}
+		
+		bool isComputing() {
+			return computing;
+		}
+		
 		
 		void resumeComputation(deterministic_timestamp ts, deterministic_timestamp d) {
 			switch(mode) {
