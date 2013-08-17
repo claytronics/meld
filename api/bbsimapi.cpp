@@ -40,8 +40,10 @@ using namespace msg;
 #define SET_DETERMINISTIC_MODE		20
 #define RESUME_COMPUTATION			21
 #define COMPUTATION_PAUSE			22
-#define	WORK_END					23
-#define TIME_INFO					24
+#define POLL_START					23
+#define END_POLL					24
+#define	WORK_END					25
+#define TIME_INFO					26
 
 // debug messages for simulation
 // #define DEBUG
@@ -145,7 +147,7 @@ inline face_t operator++(face_t& f, int) {
   boost::mpi::communicator *world = NULL;
   
   /*Helper Functions*/
-  static const char* msgcmd2str[23];
+  static const char* msgcmd2str[27];
   static boost::asio::ip::tcp::socket *my_tcp_socket;
   static void processMessage(message_type* reply);
   static void addReceivedTuple(serial_node *no, size_t ts, db::simple_tuple *stpl);
@@ -177,6 +179,7 @@ inline face_t operator++(face_t& f, int) {
   const db::node::node_id node, deterministic_timestamp duration);
 
   static bool ready(false);
+  static bool polling(false);
 
   /*Stores the scheduler*/
   static sched::base *sched_state(NULL);
@@ -204,7 +207,7 @@ inline face_t operator++(face_t& f, int) {
   { 
     if (schedular == NULL) return;
 
-    for (int i=0; i<25; i++) 
+    for (int i=0; i<27; i++) 
     msgcmd2str[i] = NULL;
     msgcmd2str[SETID] = "SETID";
     msgcmd2str[STOP] = "STOP";
@@ -221,6 +224,8 @@ inline face_t operator++(face_t& f, int) {
     msgcmd2str[RESUME_COMPUTATION] = "RESUME_COMPUTATION";
     msgcmd2str[COMPUTATION_PAUSE] = "COMPUTATION_PAUSE";
     msgcmd2str[WORK_END] = "WORK_END";
+    msgcmd2str[END_POLL] = "END_POLL";
+    msgcmd2str[POLL_START] = "POLL_START";
     try{
     /* Calling the connect*/
       initTCP();
@@ -296,21 +301,21 @@ onLocalVM(const db::node::node_id id){
 }
 
 /*Polls the socket for any message and processes the message*/
- bool 
- pollAndProcess(sched::base *sched, vm::all *all)
- {
-  message_type *reply;
-
-  /*Change the name of the poll function here*/
-  if((reply =(message_type*)tcpPool()) == NULL) {
-    if(ensembleFinished(sched_state))
-      return false;
-    else
-      return true;
-  }
-  processMessage(reply);
-  return true;
-}
+ //~ bool 
+ //~ pollAndProcess(sched::base *sched, vm::all *all)
+ //~ {
+  //~ message_type *reply;
+//~ 
+  //~ /*Change the name of the poll function here*/
+  //~ if((reply =(message_type*)tcpPool()) == NULL) {
+    //~ if(ensembleFinished(sched_state))
+      //~ return false;
+    //~ else
+      //~ return true;
+  //~ }
+  //~ processMessage(reply);
+  //~ return true;
+//~ }
 
 
 /*API function to send the SETCOLOR command to the simulator*/
@@ -361,6 +366,17 @@ set_color(db::node *n, const int r, const int g, const int b)
     free(workEndMessage);
   }
   
+  void pollStart() {
+	polling = true;
+	message* pollStartMessage = (message*)calloc(4, sizeof(message_type));
+    pollStartMessage->size = 3 * sizeof(message_type);
+    pollStartMessage->command =  POLL_START;
+    pollStartMessage->timestamp = (message_type) getCurrentLocalTime();
+	pollStartMessage->node = 0; //(message_type)n->get_id();
+    sendMessageTCP(pollStartMessage);
+    free(pollStartMessage);
+  }
+  
   void timeInfo(db::node *n) {
     message* timeInfoMessage=(message*)calloc(4, sizeof(message_type));
     timeInfoMessage->size=3 * sizeof(message_type);
@@ -381,12 +397,18 @@ set_color(db::node *n, const int r, const int g, const int b)
 	 resumeComputation(ts, duration);
   }
   
+ /* Wait for at least one incoming message. // Read and process all
+  * the received messages.
+  */
 bool waitAndProcess(sched::base *sched, vm::all *all) {
 	static message_type msg[1024];
 	try {
-      my_tcp_socket->read_some(boost::asio::buffer(msg, sizeof(message_type)));
-      my_tcp_socket->read_some(boost::asio::buffer(msg + 1,  msg[0]));
-      nbReceivedMsg++;
+	 // do {
+		  my_tcp_socket->read_some(boost::asio::buffer(msg, sizeof(message_type)));
+		  my_tcp_socket->read_some(boost::asio::buffer(msg + 1,  msg[0]));
+		  nbReceivedMsg++;
+		  processMessage(msg);
+	 // } while(my_tcp_socket->available());
     } catch(std::exception &e) {
 		cout<<"Could not recieve!"<<endl;
 		return false;
@@ -394,11 +416,32 @@ bool waitAndProcess(sched::base *sched, vm::all *all) {
     if(ensembleFinished(sched_state)) {
 		return false;
     } else {
-		processMessage(msg);
 		return true;
 	}
   }
 
+bool pollAndProcess(sched::base *sched, vm::all *all) {
+	static message_type msg[1024];
+	pollStart();
+	cout << "polling at " << vm::determinism::getCurrentLocalTime() << "..." << endl;
+	while (polling) {
+		try {
+			my_tcp_socket->read_some(boost::asio::buffer(msg, sizeof(message_type)));
+			my_tcp_socket->read_some(boost::asio::buffer(msg + 1,  msg[0]));
+			nbReceivedMsg++;
+			processMessage(msg);
+		} catch(std::exception &e) {
+			cout<<"Could not recieve!"<<endl;
+			return false;
+		}
+	}
+	cout << "end poll function" << endl;	
+    if(ensembleFinished(sched_state)) {
+		return false;
+    } else {
+		return true;
+	}
+}
 
 /*Returns the node id for bbsimAPI*/
   int 
@@ -609,6 +652,11 @@ sendMessageTCP(message *msg)
 		 handleResumeComputation((deterministic_timestamp)reply[2],
 		  (db::node::node_id)reply[3], (deterministic_timestamp)reply[4]);
       break;
+      
+      case END_POLL:
+		 polling = false;
+		 cout << "end poll received" << endl;
+	  break;
 #endif
       default: cerr << "Unrecognized message " << reply[1] << endl;
     }

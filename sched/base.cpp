@@ -76,15 +76,14 @@ base::do_loop(void)
 	bool hasWork = api::pollAndProcess(this, state.all);
 #ifdef SIMD
 	if (!this->has_work()) {
-		if ((hasComputed || determinism::isComputing())) {
+		//if ((hasComputed || determinism::isComputing())) {
 			determinism::workEnd();
-			hasComputed = false;
-		} else {
-			cout << "wait for a message" << endl;
-			hasWork = api::waitAndProcess(this, state.all);
-			cout << "msg received" << endl;
-			hasComputed = true;
-		}
+			//hasComputed = false;
+		//}
+		cout << "wait for a message" << endl;
+		hasWork = api::waitAndProcess(this, state.all);
+		cout << "msg received" << endl;
+		//hasComputed = true;
 	}
 #endif
 	

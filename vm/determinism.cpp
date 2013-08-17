@@ -33,6 +33,7 @@ namespace vm {
 	namespace determinism {
 	
 		static deterministic_timestamp currentLocalTime = 0;
+		static deterministic_timestamp currentWorldTime = 0;
 		static deterministic_timestamp currentComputationEndTime = 0;
 		static simulationMode mode = REALTIME;
 		//static simulationMode mode = DETERMINISTIC2;
@@ -167,6 +168,14 @@ namespace vm {
 				default:
 					break;
 			}
+		}
+		
+		deterministic_timestamp getCurrentWorldTime() {
+			return currentWorldTime;
+		}
+		
+		void setCurrentWorldTime(deterministic_timestamp time) {
+			currentWorldTime = max(currentWorldTime, time);
 		}
 	}
 }

@@ -4,6 +4,7 @@
 #include "process/machine.hpp"
 #include "vm/exec.hpp"
 #include "debug/debug_handler.hpp"
+#include "api/api.hpp"
 
 using namespace vm;
 using namespace db;
@@ -726,6 +727,7 @@ state::run_node(db::node *no)
          break;
       }
 		mark_active_rules();
+		api::pollAndProcess(NULL,NULL);
 	}
 
 
