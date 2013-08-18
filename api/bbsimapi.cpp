@@ -955,8 +955,6 @@ void
 debugGetMsgs(void)
 {
   pollAndProcess(sched_state, debugger::all);
-  //waitAndProcess(sched_state, debugger::all);
-  return;
 }
 
 void 
@@ -965,7 +963,9 @@ debugBroadcastMsg(message_type *msg, size_t messageSize)
 
 void 
 debugWaitMsg(void)
-{}
+{
+  waitAndProcess(sched_state, debugger::all);	
+}
 
 /* Output the database in a synchronized manner */
  void 
@@ -986,6 +986,7 @@ debugSendMsg(int destination,message_type* msg, size_t messageSize)
 {
   sendMessageTCP((message*)msg);
   delete[] msg;
+  cout << "send debug message" << endl;
 }
 }
 

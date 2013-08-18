@@ -51,7 +51,6 @@ void
 base::do_loop(void)
 {
   db::node *node(NULL);
-  bool hasComputed = true; // case no node has work; 
   
   while(true) {
       if (debugger::serializationMode){
@@ -61,7 +60,6 @@ base::do_loop(void)
           // Current VM has local work, process work
           do_work(node);
           finish_work(node);
-          hasComputed = true;
           cout << "work loop" << endl;
       }
       if (debugger::isInMpiDebuggingMode()||debugger::isInSimDebuggingMode()){
@@ -74,18 +72,16 @@ base::do_loop(void)
       }
       
 	bool hasWork = api::pollAndProcess(this, state.all);
-#ifdef SIMD
-	if (!this->has_work()) {
-		//if ((hasComputed || determinism::isComputing())) {
-			determinism::workEnd();
-			//hasComputed = false;
-		//}
-		cout << "wait for a message" << endl;
-		hasWork = api::waitAndProcess(this, state.all);
-		cout << "msg received" << endl;
-		//hasComputed = true;
-	}
-#endif
+//~ #ifdef SIMD
+	//~ if (!this->has_work()) {
+		//~ if ( determinism::getSimulationMode() == determinism::DETERMINISTIC1) {
+			//~ determinism::workEnd();
+		//~ }
+		//~ cout << "wait for a message" << endl;
+		//~ //hasWork = api::waitAndProcess(this, state.all);
+		//~ cout << "msg received" << endl;
+	//~ }
+//~ #endif
 	
 
 /*

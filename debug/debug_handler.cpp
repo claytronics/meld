@@ -422,7 +422,8 @@ namespace debugger {
                     api::debugWaitMsg();
                     receiveMsg();
             } else if (isInSimDebuggingMode()){
-                receiveMsg();
+					//api::debugWaitMsg();
+					receiveMsg();
 
             /*for normal debugging mode*/
             } else {
