@@ -231,7 +231,7 @@ inline face_t operator++(face_t& f, int) {
       initTCP();
       check_pre(schedular);
       while(!isReady())
-        pollAndProcess(NULL,NULL);
+        waitAndProcess(NULL,NULL);
     } catch(std::exception &e) {
       throw machine_error("can't connect to simulator");
     }
@@ -422,20 +422,35 @@ bool waitAndProcess(sched::base *sched, vm::all *all) {
 
 bool pollAndProcess(sched::base *sched, vm::all *all) {
 	static message_type msg[1024];
-	pollStart();
-	cout << "polling at " << vm::determinism::getCurrentLocalTime() << "..." << endl;
-	while (polling) {
-		try {
-			my_tcp_socket->read_some(boost::asio::buffer(msg, sizeof(message_type)));
-			my_tcp_socket->read_some(boost::asio::buffer(msg + 1,  msg[0]));
-			nbReceivedMsg++;
-			processMessage(msg);
-		} catch(std::exception &e) {
-			cout<<"Could not recieve!"<<endl;
-			return false;
-		}
+	switch (vm::determinism::getSimulationMode()) {
+		case REALTIME :
+			while (my_tcp_socket->available()) {
+				my_tcp_socket->read_some(boost::asio::buffer(msg, sizeof(message_type)));
+				my_tcp_socket->read_some(boost::asio::buffer(msg + 1,  msg[0]));
+				nbReceivedMsg++;
+				processMessage(msg);
+			}
+			break;
+		case DETERMINISTIC1 :
+			pollStart();
+			cout << "polling at " << vm::determinism::getCurrentLocalTime() << "..." << endl;
+			while (polling) {
+				try {
+					my_tcp_socket->read_some(boost::asio::buffer(msg, sizeof(message_type)));
+					my_tcp_socket->read_some(boost::asio::buffer(msg + 1,  msg[0]));
+					nbReceivedMsg++;
+					processMessage(msg);
+				} catch(std::exception &e) {
+					cout<<"Could not recieve!"<<endl;
+					return false;
+				}
+			}
+			cout << "end poll function" << endl;	
+			break;
+		default:
+			break;
 	}
-	cout << "end poll function" << endl;	
+	
     if(ensembleFinished(sched_state)) {
 		return false;
     } else {
@@ -940,6 +955,7 @@ void
 debugGetMsgs(void)
 {
   pollAndProcess(sched_state, debugger::all);
+  //waitAndProcess(sched_state, debugger::all);
   return;
 }
 
