@@ -12,9 +12,7 @@
 #include "utils/types.hpp"
 #include "vm/state.hpp"
 #include "version.hpp"
-#ifdef USE_UI
-#include "ui/macros.hpp"
-#endif
+
 
 using namespace std;
 using namespace db;
@@ -605,58 +603,6 @@ program::print_predicates(ostream& cout) const
    }
 }
 
-#ifdef USE_UI
-using namespace json_spirit;
-
-Value
-program::dump_json(void) const
-{
-	Array preds_json;
-
-	for(size_t i(0); i < num_predicates(); ++i) {
-		Object obj;
-		predicate *pred(get_predicate((predicate_id)i));
-
-		UI_ADD_FIELD(obj, "name", pred->get_name());
-
-		Array field_types;
-
-		for(size_t j(0); j < pred->num_fields(); ++j) {
-			switch(pred->get_field_type(j)) {
-				case FIELD_INT:
-					UI_ADD_ELEM(field_types, "int");
-					break;
-				case FIELD_FLOAT:
-					UI_ADD_ELEM(field_types, "float");
-					break;
-				case FIELD_NODE:
-					UI_ADD_ELEM(field_types, "node");
-					break;
-				case FIELD_STRING:
-					UI_ADD_ELEM(field_types, "string");
-					break;
-				case FIELD_LIST_INT:
-					UI_ADD_ELEM(field_types, "list int");
-					break;
-				default:
-					throw type_error("Unrecognized field type " + field_type_string(pred->get_field_type(j)) + " (program::dump_json)");
-			}
-		}
-		UI_ADD_FIELD(obj, "fields", field_types);
-
-		UI_ADD_FIELD(obj, "route",
-				pred->is_route_pred() ? UI_YES : UI_NIL);
-		UI_ADD_FIELD(obj, "reverse_route",
-				pred->is_reverse_route_pred() ? UI_YES : UI_NIL);
-		UI_ADD_FIELD(obj, "linear",
-			pred->is_linear_pred() ? UI_YES : UI_NIL);
-
-		UI_ADD_ELEM(preds_json, obj);
-	}
-
-	return preds_json;
-}
-#endif
 
 predicate*
 program::get_predicate_by_name(const string& name) const
