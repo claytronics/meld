@@ -66,9 +66,9 @@ SRCS = utils/utils.cpp \
 			 db/database.cpp \
 			 db/trie.cpp \
 			 process/machine.cpp \
-			 mem/thread.cpp \
 			 mem/center.cpp \
 			 mem/stat.cpp \
+			 mem/thread.cpp \
 			 sched/base.cpp \
 			 sched/common.cpp \
 			 sched/serial.cpp \
@@ -89,6 +89,7 @@ SRCS = utils/utils.cpp \
 			 #api/mpi.cpp /
 			 #sched/thread/threaded.cpp \
 			 #sched/thread/assert.cpp \
+
 
 OBJS = $(patsubst %.cpp,%.o,$(SRCS))
 
