@@ -495,7 +495,9 @@ namespace debugger {
                     api::debugWaitMsg();
                     receiveMsg();
             } else if (isInSimDebuggingMode()){
-					api::debugWaitMsg();
+					if (messageQueue->empty()) {
+						api::debugWaitMsg();
+					}
 					receiveMsg();
 
             /*for normal debugging mode*/

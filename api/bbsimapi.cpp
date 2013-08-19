@@ -424,8 +424,7 @@ bool pollAndProcess(sched::base *sched, vm::all *all) {
 	switch (vm::determinism::getSimulationMode()) {
 		case REALTIME :
 			//cout << "start polling" << endl;
-			//while (my_tcp_socket->available()) {
-			if (my_tcp_socket->available()) {
+			while (my_tcp_socket->available()) {
 				try {
 					my_tcp_socket->read_some(boost::asio::buffer(msg, sizeof(message_type)));
 					my_tcp_socket->read_some(boost::asio::buffer(msg + 1,  msg[0]));
