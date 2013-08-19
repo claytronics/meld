@@ -85,7 +85,7 @@ SRCS = utils/utils.cpp \
 			 debug/debug_prompt.cpp \
 			 debug/debug_handler.cpp \
 			 debug/debug_list.cpp \
-			 api/bbsimapi.cpp \
+			 api/mpi.cpp \
 			 #api/mpi.cpp /
 			 #sched/thread/threaded.cpp \
 			 #sched/thread/assert.cpp \
@@ -100,7 +100,7 @@ all: meld print
 Makefile.externs:	Makefile
 	@echo "Remaking Makefile.externs"
 	@/bin/rm -f Makefile.externs
-	@for i in $(SRCS); do $(CXX) $(CXXFLAGS) -MM -MT $${i/%.cpp/.o} $$i >> Makefile.externs; done
+	@for i in $(SRCS); do $(CXX) -g $(CXXFLAGS) -MM -MT $${i/%.cpp/.o} $$i >> Makefile.externs; done
 	@echo "Makefile.externs ready"
 
 meld: $(OBJS) meld.o
