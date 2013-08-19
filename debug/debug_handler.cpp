@@ -1,74 +1,5 @@
 /*INTERFACE TO HANDLE BREAKPOINTS, DUMPS, AND CONTINUES*/
-/*
- *     David Campbell - dncswim76@gmail.com
- */
 
-/* ===============HOW THE DEBUGGER IS IMPLEMENTED====================== */
-
-/* MODES
-   The debugger has three different modes: normal, mpi, and simulation.
-   These different modes are set within from the command line when meld
-   is executed in which a debugger global var is used to indicate the mode.
-   These are set in meld.cpp
-
-   COMMAND LINE INITIATIVES
-   In each mode a command line prompt is initiated in which the user
-   can input specific commands to controll the VM.  In MPI debugging mode,
-   this prompt is the 0th process setup by boost MPI, and in SIM debugging
-   mode, it is a thread that is embedded within the simulator itself.
-   In normal debugging mode, it is a thread that is run in the VM itself.
-   In debug_prompt.cpp, this is the prompt code that will parse and send
-   the input to the debugging controller to react to the input.
-
-   MESSAGE API LAYER
-   The controller will then send a message to the respective VMs running
-   alongside it, else it will print to cout if not running more than one
-   process.  The messages are sent through the api layer. (SIM should be
-   compiled with api/bbsimpi.cpp and MPI with api/mpi.cpp)
-
-   INSERTING BREAKPOINTS
-   When a breakpoint is specified, the controller will tell the VMs to insert
-   the breakpoint into their list of breakpoints.  The VMs are initially paused
-   when the program begins, waiting for feedback.  When the user specifies to
-   run the program, if a breakpoint is in the breakpoint list and its a match
-   at key points in the program the system will be paused again.
-
-   HITTING BREAKPOINTS
-   When a breakpoint is hit, the VM lets the controller know a breakpoint was
-   reached and the controller may pause all VMs (if no one reached a breakpoint)
-   before it.  Since there are many VMs running loose (in simulation or MPI),
-   there may be more than one break point at once.  If a break point is not
-   reached, the VMs will be paused in sched/base.cpp.  If verbose mode is set
-   the user can see that all VMs are paused at a certain point.
-
-   SET BREAKPOINTS
-   When a breakpoint is set, only one VM response will be printed unless verbose
-   mode is set.
-
-   DUMPS
-   To dump, the debugger simply calls the db::print_database commands.
-
-   BREAKPOINTS
-   The user can also print and remove breakpoints from the list. See
-   debug_list.cpp.
-
-   SENDING MESSAGES
-   It is possible for the debugger to need to send a message of an arbitrary
-   size.  Therefore, since we have a limited buffer size, a message is packed
-   into a list of packets that are sent to their destination.  For every message,
-   there will be a header packet that had priority 0 and the total amount
-   of packets in the message.  When recieving, these packets are stored in a
-   cache that holds incoming packets in the correct message.  If the message
-   has recieved all the packets, it will reconstruct it, and then process it.
-
-   SERIALIZATION
-   To have only one VM executed at a time, the debugger can be put into
-   serialization mode.  Only the VM with the conche is allowed to execute.
-   When it has finished one round of work, it will tell the master to
-   pass the conche indicating who will get it next.  These messages are hidden
-   from the user.  The simulation debugger cannot go into serialization mode.
-
-*/
 
 #include <string.h>
 #include <pthread.h>
@@ -180,7 +111,6 @@ namespace debugger {
         all = debugAll;
         setupFactList();
         messageQueue = new std::queue<api::message_type*>();
-        rcvMessageList = new std::list<struct msgListContainer*>();
     }
 
     /*setup MPI debugging mode*/
@@ -1063,13 +993,11 @@ namespace debugger {
              *broken message in pieces has been completed*/
             insertMsg(spec, priority, instruction, NodeId);
 
-
             /*check to see if a total message has been sent*/
             msgContainer = checkAndGet();
 
             /*messages are ready to be processed*/
             if (msgContainer!= NULL){
-
                 instruction = msgContainer->instruction;
                 spec = buildString(msgContainer);
 
@@ -1166,7 +1094,6 @@ namespace debugger {
         std::list<struct msgListContainer*>::iterator it;
         struct msgListContainer* contain;
         struct msgListElem* elem;
-
 
         /*iterate through cache*/
         for (it = rcvMessageList->begin();
