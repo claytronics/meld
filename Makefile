@@ -92,7 +92,7 @@ SRCS = utils/utils.cpp \
 
 OBJS = $(patsubst %.cpp,%.o,$(SRCS))
 
-all: meld print
+all: meld print 
 
 	echo $(OBJS)
 
@@ -109,13 +109,13 @@ meld: $(OBJS) meld.o
 print: $(OBJS) print.o
 	$(COMPILE) print.o -o print $(LDFLAGS)
 
-server: $(OBJS) server.o
-	$(COMPILE) server.o -o server $(LDFLAGS)
+#server: $(OBJS) server.o
+#	$(COMPILE) server.o -o server $(LDFLAGS)
 
 depend:
 	makedepend -- $(CXXFLAGS) -- $(shell find . -name '*.cpp')
 
 clean:
 	find . -name '*.o' | xargs rm -f
-	rm -f meld predicates print server Makefile.externs
+	rm -f meld print Makefile.externs
 # DO NOT DELETE

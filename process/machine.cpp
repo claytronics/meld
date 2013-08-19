@@ -15,10 +15,6 @@
 #include "api/api.hpp"
 #include "debug/debug_handler.hpp"
 #include "debug/debug_prompt.hpp"
-//#include "sched/serial_ui.hpp"
-//#include "sched/serial_ui.hpp"
-//#include "thread/threads.hpp"
-//#include "thread/prio.hpp"
 
 
 using namespace process;
