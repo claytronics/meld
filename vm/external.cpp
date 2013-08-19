@@ -17,14 +17,14 @@ using namespace std::tr1;
 
 namespace vm
 {
-   
+
 using namespace external;
 using namespace std;
 
 typedef unordered_map<external_function_id, external_function*> hash_external_type;
 
 //static bool init_external_functions(void);
-static external_function_id external_counter(0);   
+static external_function_id external_counter(0);
 static hash_external_type hash_external;
 //static bool dummy(init_external_functions());
 static bool external_functions_initialised(false);
@@ -33,7 +33,7 @@ void
 external_function::set_arg_type(const size_t arg, const field_type typ)
 {
    assert(arg < num_args);
-   
+
    spec[arg] = typ;
 }
 
@@ -63,9 +63,8 @@ external_function*
 lookup_external_function(const external_function_id id)
 {
    external_function *ret(hash_external[id]);
-   cout<<"lookup_external_function : id : "<<id<<endl; 
    assert(ret != NULL);
-   
+
    return ret;
 }
 
@@ -79,9 +78,9 @@ external_function*
 external1(external_function_ptr ptr, const field_type ret, const field_type arg1)
 {
    external_function *f(new external_function(ptr, 1, ret));
-   
+
    f->set_arg_type(0, arg1);
-   
+
    return f;
 }
 
@@ -89,10 +88,10 @@ external_function*
 external2(external_function_ptr ptr, const field_type ret, const field_type arg1, const field_type arg2)
 {
    external_function *f(new external_function(ptr, 2, ret));
-   
+
    f->set_arg_type(0, arg1);
    f->set_arg_type(1, arg2);
-   
+
    return f;
 }
 
@@ -101,11 +100,11 @@ external3(external_function_ptr ptr, const field_type ret, const field_type arg1
    const field_type arg2, const field_type arg3)
 {
    external_function *f(new external_function(ptr, 3, ret));
-   
+
    f->set_arg_type(0, arg1);
    f->set_arg_type(1, arg2);
    f->set_arg_type(2, arg3);
-   
+
    return f;
 }
 
@@ -119,9 +118,9 @@ cleanup_externals(void)
 bool
 init_external_functions(void)
 {
-   if(external_functions_initialised) 
+   if(external_functions_initialised)
     return true;
-   else external_functions_initialised = true; 
+   else external_functions_initialised = true;
 
 #define EXTERN(NAME) (external_function_ptr) external :: NAME
 #define EXTERNAL0(NAME, RET) external0(EXTERN(NAME), RET)
@@ -170,7 +169,7 @@ init_external_functions(void)
    register_external_function(EXTERNAL2(intlistequal, FIELD_INT, FIELD_LIST_INT, FIELD_LIST_INT));
 
    atexit(cleanup_externals);
-   
+
    return true;
 }
 

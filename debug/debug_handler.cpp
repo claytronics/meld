@@ -1,5 +1,74 @@
 /*INTERFACE TO HANDLE BREAKPOINTS, DUMPS, AND CONTINUES*/
+/*
+ *     David Campbell - dncswim76@gmail.com
+ */
 
+/* ===============HOW THE DEBUGGER IS IMPLEMENTED====================== */
+
+/* MODES
+   The debugger has three different modes: normal, mpi, and simulation.
+   These different modes are set within from the command line when meld
+   is executed in which a debugger global var is used to indicate the mode.
+   These are set in meld.cpp
+
+   COMMAND LINE INITIATIVES
+   In each mode a command line prompt is initiated in which the user
+   can input specific commands to controll the VM.  In MPI debugging mode,
+   this prompt is the 0th process setup by boost MPI, and in SIM debugging
+   mode, it is a thread that is embedded within the simulator itself.
+   In normal debugging mode, it is a thread that is run in the VM itself.
+   In debug_prompt.cpp, this is the prompt code that will parse and send
+   the input to the debugging controller to react to the input.
+
+   MESSAGE API LAYER
+   The controller will then send a message to the respective VMs running
+   alongside it, else it will print to cout if not running more than one
+   process.  The messages are sent through the api layer. (SIM should be
+   compiled with api/bbsimpi.cpp and MPI with api/mpi.cpp)
+
+   INSERTING BREAKPOINTS
+   When a breakpoint is specified, the controller will tell the VMs to insert
+   the breakpoint into their list of breakpoints.  The VMs are initially paused
+   when the program begins, waiting for feedback.  When the user specifies to
+   run the program, if a breakpoint is in the breakpoint list and its a match
+   at key points in the program the system will be paused again.
+
+   HITTING BREAKPOINTS
+   When a breakpoint is hit, the VM lets the controller know a breakpoint was
+   reached and the controller may pause all VMs (if no one reached a breakpoint)
+   before it.  Since there are many VMs running loose (in simulation or MPI),
+   there may be more than one break point at once.  If a break point is not
+   reached, the VMs will be paused in sched/base.cpp.  If verbose mode is set
+   the user can see that all VMs are paused at a certain point.
+
+   SET BREAKPOINTS
+   When a breakpoint is set, only one VM response will be printed unless verbose
+   mode is set.
+
+   DUMPS
+   To dump, the debugger simply calls the db::print_database commands.
+
+   BREAKPOINTS
+   The user can also print and remove breakpoints from the list. See
+   debug_list.cpp.
+
+   SENDING MESSAGES
+   It is possible for the debugger to need to send a message of an arbitrary
+   size.  Therefore, since we have a limited buffer size, a message is packed
+   into a list of packets that are sent to their destination.  For every message,
+   there will be a header packet that had priority 0 and the total amount
+   of packets in the message.  When recieving, these packets are stored in a
+   cache that holds incoming packets in the correct message.  If the message
+   has recieved all the packets, it will reconstruct it, and then process it.
+
+   SERIALIZATION
+   To have only one VM executed at a time, the debugger can be put into
+   serialization mode.  Only the VM with the conche is allowed to execute.
+   When it has finished one round of work, it will tell the master to
+   pass the conche indicating who will get it next.  These messages are hidden
+   from the user.  The simulation debugger cannot go into serialization mode.
+
+*/
 
 #include <string.h>
 #include <pthread.h>
@@ -422,7 +491,7 @@ namespace debugger {
                     api::debugWaitMsg();
                     receiveMsg();
             } else if (isInSimDebuggingMode()){
-					//api::debugWaitMsg();
+					api::debugWaitMsg();
 					receiveMsg();
 
             /*for normal debugging mode*/
@@ -961,6 +1030,7 @@ namespace debugger {
         api::debugGetMsgs();
 
         while(!messageQueue->empty()){
+			cout << "queue not empty" << endl;
             /*process each message until empty*/
             /*extract the message*/
             msg = (utils::byte*)messageQueue->front();
@@ -993,14 +1063,17 @@ namespace debugger {
 
             /*insert the message into a cache to be checked if the
              *broken message in pieces has been completed*/
+            cout << "inserting" << endl;
             insertMsg(spec, priority, instruction, NodeId);
             printRcv();
+			cout << "printRCV done" << endl;
 
             /*check to see if a total message has been sent*/
             msgContainer = checkAndGet();
-
+			cout << "checkAndGet done" << endl;
             /*messages are ready to be processed*/
             if (msgContainer!= NULL){
+
                 instruction = msgContainer->instruction;
                 spec = buildString(msgContainer);
 
@@ -1062,14 +1135,17 @@ namespace debugger {
          for (it = rcvMessageList->begin();it!=rcvMessageList->end();it++){
 
              contain = *it;
-
+				cout << "for..." << endl;
              /*a message that matches already came from a node, insert it with
               * that node*/
              if (contain->instruction == instruction && contain->node == node){
+                 cout << "if" << endl;
                  elem = new struct msgListElem;
                  elem->priority = priority;
                  elem->content = content;
+                 cout << "pushing..." << endl;
                  contain->msglist->push_back(elem);
+                 cout << "pushed" << endl;
                  return;
              }
          }
@@ -1097,6 +1173,7 @@ namespace debugger {
         std::list<struct msgListContainer*>::iterator it;
         struct msgListContainer* contain;
         struct msgListElem* elem;
+
 
         /*iterate through cache*/
         for (it = rcvMessageList->begin();
@@ -1133,7 +1210,7 @@ namespace debugger {
         ostringstream msg;
 
         msg << "#######################################" << endl <<endl;
-
+		
         for (it = rcvMessageList->begin();
              it!=rcvMessageList->end();it++){
             contain = *it;
@@ -1142,17 +1219,18 @@ namespace debugger {
             msg << "node: " << contain->node << endl;
             msg << "========================" << endl;
             msgList = contain->msglist;
-            for (iter = msgList->begin();iter!=msgList->end();iter++){
-                elem = *iter;
-                msg << "\t*****************" << endl;
-                msg << "\tpriority: " << elem->priority << endl;
-                msg << "\tcontent: " << elem->content << endl;
-                msg << "\t*****************" << endl;
-            }
-            msg << "========================" << endl;
-        }
-
-        printf("%s",msg.str().c_str());
+           	for (iter = msgList->begin();iter!=msgList->end();iter++){
+				elem = *iter;
+				msg << "\t*****************" << endl;
+				msg << "\tpriority: " << elem->priority << endl;
+				msg << "\tcontent: " << elem->content << endl;
+				msg << "\t*****************" << endl;
+			}
+			msg << "========================" << endl;
+		}
+		
+		cout << msg.str() << endl;
+        //printf("%s",msg.str().c_str());
     }
 
 

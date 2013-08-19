@@ -68,9 +68,9 @@ SRCS = utils/utils.cpp \
 			 db/database.cpp \
 			 db/trie.cpp \
 			 process/machine.cpp \
-			 mem/thread.cpp \
 			 mem/center.cpp \
 			 mem/stat.cpp \
+			 mem/thread.cpp \
 			 sched/base.cpp \
 			 sched/common.cpp \
 			 sched/serial.cpp \
@@ -88,13 +88,13 @@ SRCS = utils/utils.cpp \
 			 debug/debug_handler.cpp \
 			 debug/debug_list.cpp \
 			 api/bbsimapi.cpp \
-			 #api/mpi.cpp \
 			 #sched/thread/threaded.cpp \
 			 #sched/thread/assert.cpp \
 
+
 OBJS = $(patsubst %.cpp,%.o,$(SRCS))
 
-all: meld print
+all: meld print 
 
 	echo $(OBJS)
 
@@ -111,13 +111,13 @@ meld: $(OBJS) meld.o
 print: $(OBJS) print.o
 	$(COMPILE) print.o -o print $(LDFLAGS)
 
-server: $(OBJS) server.o
-	$(COMPILE) server.o -o server $(LDFLAGS)
+#server: $(OBJS) server.o
+#	$(COMPILE) server.o -o server $(LDFLAGS)
 
 depend:
 	makedepend -- $(CXXFLAGS) -- $(shell find . -name '*.cpp')
 
 clean:
 	find . -name '*.o' | xargs rm -f
-	rm -f meld predicates print server Makefile.externs
+	rm -f meld print Makefile.externs
 # DO NOT DELETE

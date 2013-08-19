@@ -72,16 +72,16 @@ base::do_loop(void)
       }
       
 	bool hasWork = api::pollAndProcess(this, state.all);
-//~ #ifdef SIMD
-	//~ if (!this->has_work()) {
-		//~ if ( determinism::getSimulationMode() == determinism::DETERMINISTIC1) {
-			//~ determinism::workEnd();
-		//~ }
-		//~ cout << "wait for a message" << endl;
-		//~ //hasWork = api::waitAndProcess(this, state.all);
-		//~ cout << "msg received" << endl;
-	//~ }
-//~ #endif
+#ifdef SIMD
+	if (!this->has_work()) {
+		if ( determinism::getSimulationMode() == determinism::DETERMINISTIC1) {
+			determinism::workEnd();
+		}
+		cout << "wait for a message" << endl;
+		hasWork = api::waitAndProcess(this, state.all);
+		cout << "msg received" << endl;
+	}
+#endif
 	
 
 /*
