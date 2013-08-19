@@ -73,7 +73,7 @@ base::do_loop(void)
       
 	bool hasWork = api::pollAndProcess(this, state.all);
 #ifdef SIMD
-	if (!this->has_work()) {
+	if (!this->has_work() && debugger::isDebuggerQueueEmpty()) {
 		if ( determinism::getSimulationMode() == determinism::DETERMINISTIC1) {
 			determinism::workEnd();
 		}

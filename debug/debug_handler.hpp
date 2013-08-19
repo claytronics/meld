@@ -67,6 +67,7 @@ namespace debugger {
     bool isInSimDebuggingMode(void);
     void setupFactList(void);
     debugList getFactList(void);
+    bool isDebuggerQueueEmpty(void);
     void initSimDebug(vm::all *debugAll);
     void setSimDebuggingMode(bool setting);
     void handleDebugMessage(uint64_t *msg);

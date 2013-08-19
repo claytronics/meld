@@ -248,6 +248,10 @@ namespace debugger {
     debugList getFactList(void){
         return factBreakList;
     }
+    
+    bool isDebuggerQueueEmpty(void){
+		return messageQueue->empty();
+	}
 
 
     /**********************************************************************/
