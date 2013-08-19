@@ -25,11 +25,11 @@ void
 assert_thread_iteration(const size_t iteration)
 {
    mutex::scoped_lock lock(mtx);
-   
+
    total.push_back(iteration);
-   
+
    assert(iteration == total[0]);
-   
+
    if(total.size() == state::NUM_THREADS)
       total.clear();
 }
@@ -57,7 +57,7 @@ assert_thread_end_iteration(void)
 {
    if(!assert_work_count)
       return;
-      
+
    if(work > 0)
       printf("Missing %d tuples to process\n", (size_t)work);
    assert(work == 0);

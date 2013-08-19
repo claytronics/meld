@@ -126,6 +126,7 @@ run_program(int argc, char **argv, const char *program, const vm::machine_argume
 
   /*BBSIM API Init*/
   api::init(argc, argv, mac.get_all()->ALL_THREADS[0]);
+
   if (debugger::isInMpiDebuggingMode()){
     api::debugInit(mac.get_all());
   }
