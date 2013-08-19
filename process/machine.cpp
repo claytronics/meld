@@ -68,6 +68,7 @@ namespace process
        case SETEDGELABEL_PREDICATE_ID:
            break;
        case SET_PRIORITY_PREDICATE_ID:
+           assert(sched);
            if(from_other)
                sched->set_node_priority_other(node, tpl->get_float(0));
            else {
