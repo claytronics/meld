@@ -179,8 +179,11 @@ inline face_t operator++(face_t& f, int) {
   const db::node::node_id node, deterministic_timestamp duration);
 
   static bool ready(false);
+#ifdef SIMD
   static bool polling(false);
-
+  static std::queue<message_type*> messageQ;
+  static uint nbProcessedMsg = 0;
+#endif
   /*Stores the scheduler*/
   static sched::base *sched_state(NULL);
   vm::predicate* neighbor_pred(NULL);
@@ -342,8 +345,6 @@ set_color(db::node *n, const int r, const int g, const int b)
   free(colorMessage);
 }
 
-
-  uint nbReceivedMsg = 0;
   void computationPause() {
     message* pauseComputationMessage = (message*)calloc(4, sizeof(message_type));
     pauseComputationMessage->size = 3 * sizeof(message_type);
@@ -360,7 +361,7 @@ set_color(db::node *n, const int r, const int g, const int b)
     workEndMessage->command = WORK_END;
     workEndMessage->timestamp = (message_type) getCurrentLocalTime();
 	workEndMessage->node = 0; //(message_type)n->get_id();
-	workEndMessage->data.workEnd.nbRecMsg = nbReceivedMsg;
+	workEndMessage->data.workEnd.nbRecMsg = nbProcessedMsg;
     sendMessageTCP(workEndMessage);
     free(workEndMessage);
   }
@@ -395,22 +396,33 @@ set_color(db::node *n, const int r, const int g, const int b)
     const db::node::node_id node, deterministic_timestamp duration) {
 	 resumeComputation(ts, duration);
   }
-  
+
+static void processNextQueuedMessage() {
+	message_type *m = NULL;
+	m = messageQ.front();
+	processMessage(m);
+	messageQ.pop();
+	delete[] m;
+}
+
  /* Wait for at least one incoming message. // Read and process all
   * the received messages.
   */
 bool waitAndProcess(sched::base *sched, vm::all *all) {
 	static message_type msg[1024];
-	try {
-	 // do {
-		  my_tcp_socket->read_some(boost::asio::buffer(msg, sizeof(message_type)));
-		  my_tcp_socket->read_some(boost::asio::buffer(msg + 1,  msg[0]));
-		  nbReceivedMsg++;
-		  processMessage(msg);
-	 // } while(my_tcp_socket->available());
-    } catch(std::exception &e) {
-		cout<<"Could not recieve!"<<endl;
-		return false;
+	if (debugger::isInSimDebuggingMode() && vm::determinism::getSimulationMode() == DETERMINISTIC1 && !messageQ.empty()) {
+		processNextQueuedMessage();
+	} else {
+		try {
+		 // do {
+			  my_tcp_socket->read_some(boost::asio::buffer(msg, sizeof(message_type)));
+			  my_tcp_socket->read_some(boost::asio::buffer(msg + 1,  msg[0]));
+			  processMessage(msg);
+		 // } while(my_tcp_socket->available());
+		} catch(std::exception &e) {
+			cout<<"Could not recieve!"<<endl;
+			return false;
+		}
 	}
     if(ensembleFinished(sched_state)) {
 		return false;
@@ -421,6 +433,7 @@ bool waitAndProcess(sched::base *sched, vm::all *all) {
 
 bool pollAndProcess(sched::base *sched, vm::all *all) {
 	static message_type msg[1024];
+	
 	switch (vm::determinism::getSimulationMode()) {
 		case REALTIME :
 			//cout << "start polling" << endl;
@@ -432,7 +445,6 @@ bool pollAndProcess(sched::base *sched, vm::all *all) {
 					cout<<"Could not recieve!"<<endl;
 					return false;
 				}
-				nbReceivedMsg++;
 				processMessage(msg);
 			}
 			//cout << "end polling" << endl;
@@ -441,14 +453,30 @@ bool pollAndProcess(sched::base *sched, vm::all *all) {
 			pollStart();
 			cout << "polling at " << vm::determinism::getCurrentLocalTime() << "..." << endl;
 			while (polling) {
-				try {
-					my_tcp_socket->read_some(boost::asio::buffer(msg, sizeof(message_type)));
-					my_tcp_socket->read_some(boost::asio::buffer(msg + 1,  msg[0]));
-					nbReceivedMsg++;
-					processMessage(msg);
-				} catch(std::exception &e) {
-					cout<<"Could not recieve!"<<endl;
-					return false;
+				if (debugger::isInSimDebuggingMode()) {
+					while (!messageQ.empty()) {
+						processNextQueuedMessage();
+					}
+				}
+				if (polling && (!debugger::isInSimDebuggingMode() || debugger::isDebuggerQueueEmpty())) {
+					try {
+						cout << "PollAndProcess: wait for a message" << endl;
+						my_tcp_socket->read_some(boost::asio::buffer(msg, sizeof(message_type)));
+						my_tcp_socket->read_some(boost::asio::buffer(msg + 1,  msg[0]));
+						cout << "PollAndProcess: message received" << endl;
+						processMessage(msg);
+					} catch(std::exception &e) {
+						cout<<"Could not recieve!"<<endl;
+						return false;
+					}
+				}
+				if (debugger::isInSimDebuggingMode()){
+					debugger::receiveMsg(false);
+					if (debugger::isTheSystemPaused()){
+						debugger::isPausedInDeterministicPollLoop = true;
+						debugger::display("PAUSED IN DETERMINISTIC POLL LOOP\n",debugger::PAUSE);
+						debugger::pauseIt();
+					  }
 				}
 			}
 			cout << "end poll function" << endl;	
@@ -569,7 +597,6 @@ tcpPool()
       //cout<<"getting message of length "<< length<<endl;
       length = my_tcp_socket->read_some(boost::asio::buffer(msg + 1,  msg[0]));
       //cout<<"Returning message of length "<< msg[0]<<endl;
-      nbReceivedMsg++;
       return msg;
     }
   } catch(std::exception &e) {
@@ -597,14 +624,15 @@ sendMessageTCP(message *msg)
   processMessage(message_type* reply)
   {
     //printf("%d:Processing %s %lud bytes for %lud\n",id, msgcmd2str[reply[1]], reply[0], reply[3]);
-    cout << id << ":Processing" << msgcmd2str[reply[1]] << endl;
+    cout << id << " :Processing " << msgcmd2str[reply[1]] << endl;
     assert(reply!=NULL);
-#ifdef SIMD
-	if (reply[1] != DEBUG)
-		setCurrentLocalTime((deterministic_timestamp)reply[2]);
-#endif
     message* msg=(message*)reply;
-
+#ifdef SIMD
+	if (msg->command != DEBUG) {
+		setCurrentLocalTime((deterministic_timestamp)msg->timestamp);
+	}
+	nbProcessedMsg++;
+#endif
     switch(msg->command) {
   /*Initilize the blocks's ID*/
       case SETID:
@@ -654,7 +682,7 @@ sendMessageTCP(message *msg)
        (int)reply[4], (int)reply[5], (int)reply[6]);
       break;
 
-      case DEBUG:
+      case DEBUG: 
 		handleDebugMessage((utils::byte*)reply, (size_t)reply[0]);
       break;
 
@@ -821,9 +849,9 @@ static void handleReceiveMessage(const deterministic_timestamp ts,
 static void
 handleDebugMessage(utils::byte* reply, size_t totalSize)
 {
- message_type *m = new message_type[MAXLENGTH];
- memcpy(m, reply, reply[0]+sizeof(message_type));
- debugger::messageQueue->push((message_type*)reply);
+	message_type *m = new message_type[MAXLENGTH];
+	memcpy(m, reply, reply[0]+sizeof(message_type));
+	debugger::messageQueue->push((message_type*)m);
 }
 
 
@@ -959,7 +987,38 @@ handleShake(const deterministic_timestamp ts, const db::node::node_id node,
 void
 debugGetMsgs(void)
 {
-	pollAndProcess(sched_state, debugger::all);
+#ifndef SIMD
+	pollAndProcess(NULL, NULL);
+#else
+	message_type msg[1024];
+	message_type *m;
+	switch (vm::determinism::getSimulationMode()) {
+		case REALTIME :
+			pollAndProcess(NULL, NULL);
+			break;
+		case DETERMINISTIC1 :
+			while (my_tcp_socket->available()) {
+				try {
+					my_tcp_socket->read_some(boost::asio::buffer(msg, sizeof(message_type)));
+					my_tcp_socket->read_some(boost::asio::buffer(msg + 1,  msg[0]));
+					message* c =(message*)msg;
+					if (c->command == DEBUG) {
+						processMessage(msg);
+					} else {
+						m = new message_type[api::MAXLENGTH];
+						memcpy(m, msg, msg[0]+sizeof(message_type));
+						messageQ.push(m);
+					}
+				} catch(std::exception &e) {
+					cout<<"Could not recieve!"<<endl;
+				}
+			}
+			break;
+		default:
+			break;
+	}
+#endif
+	cout << "end poll function" << endl;	
 }
 
 void
@@ -969,7 +1028,41 @@ debugBroadcastMsg(message_type *msg, size_t messageSize)
 void
 debugWaitMsg(void)
 {
-  waitAndProcess(sched_state, debugger::all);	
+#ifndef SIMD
+	waitAndProcess(NULL, NULL);
+#else
+	message_type msg[1024];
+	message_type *m;
+	bool debugMsgReceived = false;
+	cout << "start wait function" << endl;
+	switch (vm::determinism::getSimulationMode()) {
+		case REALTIME :
+			waitAndProcess(NULL, NULL);
+			break;
+		case DETERMINISTIC1 :
+			while (!debugMsgReceived) {
+				try {
+					my_tcp_socket->read_some(boost::asio::buffer(msg, sizeof(message_type)));
+					my_tcp_socket->read_some(boost::asio::buffer(msg + 1,  msg[0]));
+					message* c =(message*)msg;
+					if (c->command == DEBUG) {
+						processMessage(msg);
+						debugMsgReceived = true;
+					} else {
+						m = new message_type[api::MAXLENGTH];
+						memcpy(m, msg, msg[0]+sizeof(message_type));
+						messageQ.push(m);
+					}
+				} catch(std::exception &e) {
+					cout<<"Could not recieve!"<<endl;
+				}
+			}
+			break;
+		default:
+			break;
+	}
+#endif
+	cout << "end wait function" << endl;
 }
 
 /* Output the database in a synchronized manner */
@@ -989,6 +1082,9 @@ debugWaitMsg(void)
 void
 debugSendMsg(int destination,message_type* msg, size_t messageSize)
 {
+#if SIMD
+  msg[2] = (message_type) getCurrentLocalTime();
+#endif
   sendMessageTCP((message*)msg);
   delete[] msg;
   cout << "send debug message" << endl;

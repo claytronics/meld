@@ -727,7 +727,7 @@ state::run_node(db::node *no)
          break;
       }
 		mark_active_rules();
-		api::pollAndProcess(NULL,NULL);
+		api::pollAndProcess(sched,this->all);
 	}
 
 

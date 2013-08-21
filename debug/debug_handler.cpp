@@ -83,6 +83,9 @@
 #include "debug/debug_handler.hpp"
 #include "utils/serialization.hpp"
 #include "utils/types.hpp"
+#ifdef SIMD
+#include "vm/determinism.hpp"
+#endif
 
 using namespace std;
 using namespace vm;
@@ -117,6 +120,7 @@ namespace debugger {
     /*the program is suspended in the do_loop function
      *see (sched/base.cpp)*/
     bool isPausedInWorkLoop = false;
+    bool isPausedInDeterministicPollLoop = false;
     /*the program has reached a breakpoint*/
     static bool isPausedAtBreakpoint = false;
 
@@ -436,6 +440,9 @@ namespace debugger {
         else if (isInSimDebuggingMode()) {
            MSG << "<=======VM#" <<
                 api::getNodeID()
+#ifdef SIMD
+                << " at time " << vm::determinism::getCurrentLocalTime() 
+#endif
                 << "===================================================>"
                 << endl << msg;
             sendMsg(api::getNodeID(),type,MSG.str());
@@ -730,6 +737,9 @@ namespace debugger {
                     if (isPausedAtBreakpoint){
                         break;
                     }
+                    if (isPausedInDeterministicPollLoop) {
+						break;
+					}
                     /*if it never left a pause loop (continue would have been called
                      * and pause message repaused it without leaving loop)*/
                     if (isSystemPaused){
@@ -752,6 +762,7 @@ namespace debugger {
                     /*unleash all bounds to system*/
                     isPausedAtBreakpoint = false;
                     isPausedInWorkLoop = false;
+                    isPausedInDeterministicPollLoop = false;
                     continueExecution();
                     break;
 
@@ -799,6 +810,7 @@ namespace debugger {
                      *want to run a certain way*/
                     isPausedAtBreakpoint = false;
                     isPausedInWorkLoop = false;
+                    isPausedInDeterministicPollLoop = false;
                     continueExecution();
                     break;
 
@@ -937,7 +949,11 @@ namespace debugger {
         size_t contentSize = content.length() + 1;
         size_t bufSize = api::MAXLENGTH*SIZE;//bytes
         api::message_type msgSize = bufSize-SIZE;//according to message spec
+#ifdef SIMD
         api::message_type timeStamp = 0;
+#else 
+		api::message_type timeStamp = vm::determinism::getCurrentLocalTime();
+#endif
         api::message_type nodeId = api::getNodeID();
 
         /*message size in bytes*/
@@ -1020,7 +1036,7 @@ namespace debugger {
     /*RECIEVEMSG--populate the queue of messages
      * from the mpi layer and handle them
      * until there are no more messages*/
-    void receiveMsg(void){
+    void receiveMsg(bool poll){
 
         utils::byte *msg;
         int instruction;
@@ -1032,8 +1048,10 @@ namespace debugger {
 
         struct msgListContainer* msgContainer;
 
-        /*load the message queue with messages*/
-        api::debugGetMsgs();
+		if (poll) {
+			/*load the message queue with messages*/
+			api::debugGetMsgs();
+		}
 
         while(!messageQueue->empty()){
 			cout << "queue not empty" << endl;

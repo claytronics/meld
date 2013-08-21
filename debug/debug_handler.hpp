@@ -46,6 +46,7 @@ namespace debugger {
     extern vm::all *all;
 
     extern bool isPausedInWorkLoop;
+    extern bool isPausedInDeterministicPollLoop;
 
     extern bool verboseMode;
     extern bool serializationMode;
@@ -82,7 +83,7 @@ namespace debugger {
     void initMpiDebug(vm::all *debugAll);
     bool isInMpiDebuggingMode(void);
     void setMpiDebuggingMode(bool setting);
-    void receiveMsg(void);
+    void receiveMsg(bool poll=true);
     void sendMsg(int destination, int msgType,
                  std::string content, bool broadcast = false);
     void serializedPause(void);

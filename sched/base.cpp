@@ -51,6 +51,8 @@ void
 base::do_loop(void)
 {
   db::node *node(NULL);
+  bool hasComputed = true;
+  bool hasWork;
   
   while(true) {
       if (debugger::serializationMode){
@@ -60,6 +62,7 @@ base::do_loop(void)
           // Current VM has local work, process work
           do_work(node);
           finish_work(node);
+          hasComputed = true;
           cout << "work loop" << endl;
       }
       if (debugger::isInMpiDebuggingMode()||debugger::isInSimDebuggingMode()){
@@ -70,17 +73,23 @@ base::do_loop(void)
               debugger::pauseIt();
           }
       }
-      
-	bool hasWork = api::pollAndProcess(this, state.all);
-#ifdef SIMD
-	if (!this->has_work() && debugger::isDebuggerQueueEmpty()) {
-		if ( determinism::getSimulationMode() == determinism::DETERMINISTIC1) {
+
+#ifdef SIMD 
+    if (determinism::getSimulationMode() == determinism::REALTIME || hasComputed) {
+		hasWork = api::pollAndProcess(this, state.all);
+	}
+	if (!this->has_work() || (debugger::isInSimDebuggingMode() && debugger::isDebuggerQueueEmpty())) {
+		if (hasComputed && determinism::getSimulationMode() == determinism::DETERMINISTIC1) {
+			cout << "END WORK at " << determinism::getCurrentLocalTime() << endl;
 			determinism::workEnd();
+			hasComputed = false;			
 		}
 		cout << "wait for a message" << endl;
 		hasWork = api::waitAndProcess(this, state.all);
 		cout << "msg received" << endl;
 	}
+# else
+	hasWork = api::pollAndProcess(this, state.all);
 #endif
 	
 

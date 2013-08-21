@@ -77,8 +77,7 @@ namespace vm {
 						if(currentComputationEndTime != 0)
 							computationPause();
 						while(!canCompute()) {
-							api::pollAndProcess(NULL,NULL);
-							usleep(10);
+							api::waitAndProcess(NULL,NULL);
 						}
 					}
 					break;
@@ -161,6 +160,7 @@ namespace vm {
 					break;
 				case DETERMINISTIC1:
 					currentLocalTime = max(currentLocalTime, time);
+					cout << "time adjusted: " << currentLocalTime  << endl;
 					break;
 				case DETERMINISTIC2:
 					currentLocalTime = max(currentLocalTime, time);
