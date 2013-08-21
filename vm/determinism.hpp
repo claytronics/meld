@@ -3,6 +3,7 @@
 
 #include <cstdio>
 #include "db/node.hpp"
+#include "vm/instr.hpp"
 
 namespace vm {
 	
@@ -10,7 +11,7 @@ namespace vm {
 		typedef size_t deterministic_timestamp;
 		enum simulationMode {DETERMINISTIC1 = 1, DETERMINISTIC2 = 2, REALTIME = 3};
 		
-		void setDeterministicMode(simulationMode mode);
+		void setSimulationMode(simulationMode mode);
 		simulationMode getSimulationMode();
 		//bool isInDeterministicMode();
 		bool canCompute();
@@ -23,7 +24,7 @@ namespace vm {
 		void workEnd();
 
 		deterministic_timestamp getCurrentLocalTime();
-		void incrCurrentLocalTime(deterministic_timestamp time);
+		void incrCurrentLocalTime(pcounter pc);
 		void setCurrentLocalTime(deterministic_timestamp time);
 	}
 }

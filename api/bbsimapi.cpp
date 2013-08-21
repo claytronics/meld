@@ -389,7 +389,7 @@ set_color(db::node *n, const int r, const int g, const int b)
   
   void handleSetDeterministicMode(const deterministic_timestamp ts,
     const db::node::node_id node, const simulationMode mode) {
-		setDeterministicMode(mode);
+		setSimulationMode(mode);
   }
 
   void handleResumeComputation(const deterministic_timestamp ts,
@@ -436,7 +436,6 @@ bool pollAndProcess(sched::base *sched, vm::all *all) {
 	
 	switch (vm::determinism::getSimulationMode()) {
 		case REALTIME :
-			//cout << "start polling" << endl;
 			while (my_tcp_socket->available()) {
 				try {
 					my_tcp_socket->read_some(boost::asio::buffer(msg, sizeof(message_type)));
@@ -447,26 +446,21 @@ bool pollAndProcess(sched::base *sched, vm::all *all) {
 				}
 				processMessage(msg);
 			}
-			//cout << "end polling" << endl;
 			break;
 		case DETERMINISTIC1 :
 			pollStart();
-			cout << "polling at " << vm::determinism::getCurrentLocalTime() << "..." << endl;
 			while (polling) {
 				if (debugger::isInSimDebuggingMode()) {
-					while (!messageQ.empty()) {
+					while (polling && !messageQ.empty()) {
 						processNextQueuedMessage();
 					}
 				}
 				if (polling && (!debugger::isInSimDebuggingMode() || debugger::isDebuggerQueueEmpty())) {
 					try {
-						cout << "PollAndProcess: wait for a message" << endl;
 						my_tcp_socket->read_some(boost::asio::buffer(msg, sizeof(message_type)));
 						my_tcp_socket->read_some(boost::asio::buffer(msg + 1,  msg[0]));
-						cout << "PollAndProcess: message received" << endl;
 						processMessage(msg);
 					} catch(std::exception &e) {
-						cout<<"Could not recieve!"<<endl;
 						return false;
 					}
 				}
@@ -479,7 +473,6 @@ bool pollAndProcess(sched::base *sched, vm::all *all) {
 					  }
 				}
 			}
-			cout << "end poll function" << endl;	
 			break;
 		default:
 			break;
@@ -639,7 +632,6 @@ sendMessageTCP(message *msg)
       handleSetID((deterministic_timestamp) msg->timestamp, (db::node::node_id) msg->node);
       id=(db::node::node_id) reply[3];
       ready=true;
-      cout << "ID received" << endl;
       break;
 
       case RECEIVE_MESSAGE:
@@ -705,7 +697,6 @@ sendMessageTCP(message *msg)
       
       case END_POLL:
 		 polling = false;
-		 cout << "end poll received" << endl;
 	  break;
 #endif
       default: cerr << "Unrecognized message " << reply[1] << endl;
@@ -1018,7 +1009,6 @@ debugGetMsgs(void)
 			break;
 	}
 #endif
-	cout << "end poll function" << endl;	
 }
 
 void
@@ -1034,7 +1024,6 @@ debugWaitMsg(void)
 	message_type msg[1024];
 	message_type *m;
 	bool debugMsgReceived = false;
-	cout << "start wait function" << endl;
 	switch (vm::determinism::getSimulationMode()) {
 		case REALTIME :
 			waitAndProcess(NULL, NULL);
@@ -1062,7 +1051,6 @@ debugWaitMsg(void)
 			break;
 	}
 #endif
-	cout << "end wait function" << endl;
 }
 
 /* Output the database in a synchronized manner */
@@ -1087,7 +1075,6 @@ debugSendMsg(int destination,message_type* msg, size_t messageSize)
 #endif
   sendMessageTCP((message*)msg);
   delete[] msg;
-  cout << "send debug message" << endl;
 }
 }
 

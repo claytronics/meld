@@ -108,7 +108,7 @@ namespace debugger {
 
     /*message Queue to handle incomming messages*/
     /*the api layer should use this when handling with debuf functions*/
-    std::queue<api::message_type*> *messageQueue;
+    std::queue<api::message_type*> *messageQueue = NULL;
 
 
     /*>>> THE FOLLOWING FOUR ARE USED FOR SYCHRONIZATION <<< */
@@ -254,7 +254,7 @@ namespace debugger {
     }
     
     bool isDebuggerQueueEmpty(void){
-		return messageQueue->empty();
+		return (messageQueue == NULL || messageQueue->empty());
 	}
 
 
@@ -494,7 +494,6 @@ namespace debugger {
 
         isSystemPaused = true;
         while(isSystemPaused) {
-
             /*if is in MPI mode, recieve messages*/
             /*will breakout of loop if CONTINUE message is
              * specified which is handled by debugController*/
@@ -502,11 +501,10 @@ namespace debugger {
                     api::debugWaitMsg();
                     receiveMsg();
             } else if (isInSimDebuggingMode()){
-					if (messageQueue->empty()) {
+					if (isSystemPaused && messageQueue->empty()) {
 						api::debugWaitMsg();
 					}
-					receiveMsg();
-
+					receiveMsg(false);
             /*for normal debugging mode*/
             } else {
                 sleep(1);
@@ -1054,7 +1052,6 @@ namespace debugger {
 		}
 
         while(!messageQueue->empty()){
-			cout << "queue not empty" << endl;
             /*process each message until empty*/
             /*extract the message*/
             msg = (utils::byte*)messageQueue->front();
@@ -1087,14 +1084,11 @@ namespace debugger {
 
             /*insert the message into a cache to be checked if the
              *broken message in pieces has been completed*/
-            cout << "inserting" << endl;
             insertMsg(spec, priority, instruction, NodeId);
             printRcv();
-			cout << "printRCV done" << endl;
 
             /*check to see if a total message has been sent*/
             msgContainer = checkAndGet();
-			cout << "checkAndGet done" << endl;
             /*messages are ready to be processed*/
             if (msgContainer!= NULL){
 
@@ -1159,17 +1153,13 @@ namespace debugger {
          for (it = rcvMessageList->begin();it!=rcvMessageList->end();it++){
 
              contain = *it;
-				cout << "for..." << endl;
              /*a message that matches already came from a node, insert it with
               * that node*/
              if (contain->instruction == instruction && contain->node == node){
-                 cout << "if" << endl;
                  elem = new struct msgListElem;
                  elem->priority = priority;
                  elem->content = content;
-                 cout << "pushing..." << endl;
                  contain->msglist->push_back(elem);
-                 cout << "pushed" << endl;
                  return;
              }
          }
@@ -1252,9 +1242,7 @@ namespace debugger {
 			}
 			msg << "========================" << endl;
 		}
-		
-		cout << msg.str() << endl;
-        //printf("%s",msg.str().c_str());
+        printf("%s",msg.str().c_str());
     }
 
 

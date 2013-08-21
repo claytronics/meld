@@ -19,7 +19,7 @@ protected:
 
 private:
 
-   bool has_work(void) const { std::cout << "serial::has_work" << std::endl; return !queue_nodes.empty(); }
+   bool has_work(void) const {return !queue_nodes.empty();}
 
    virtual void assert_end(void) const;
    virtual void assert_end_iteration(void) const;

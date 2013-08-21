@@ -1,47 +1,106 @@
 #include "vm/determinism.hpp"
 #include "api/api.hpp"
 
-#define OPINTMOD_CYCLES
-#define OPINTDIV_CYCLES
-#define OPFLOATDIV_CYCLES
-#define ALLOC_CYCLES
-#define OPFLOATMUL_CYCLES
-#define OPFLOATADD_CYCLES
-#define OPFLOATSUB_CYCLES
-#define OPFLOATLTE_CYCLES
-#define OPFLOATEQ_CYCLES
-#define OPFLOATGTE_CYCLES
-#define OPFLOATMOD_CYCLES
-#define OPINTMUL_CYCLES
-#define OPFLOATGT_CYCLES
-#define OPFLOATLT_CYCLES
-#define OPFLOATNEQ_CYCLES
-#define OPINTEQ_CYCLES
-#define OPINTLTE_CYCLES
-#define OPINTGTE_CYCLES
-#define OPINTLT_CYCLES
-#define OPINTGT_CYCLES
-#define OPINTNEQ_CYCLES
-#define OPINTADD_CYCLES
-#define OPINTSUB_CYCLES
-#define MOVE_CYCLES
+// INSTRUCTIONS CYCLES
+#define NB_INSTR 250 // used for cycle table instantiation, instr enum is not continuous
+#define RETURN_INSTR_CYCLES 100
+#define NEXT_INSTR_CYCLES 100
+#define ELSE_INSTR_CYCLES 100
+#define TEST_NIL_INSTR_CYCLES 100
+#define CONS_INSTR_CYCLES 100
+#define HEAD_INSTR_CYCLES 100
+#define TAIL_INSTR_CYCLES 100
+#define NOT_INSTR_CYCLES 100
+#define SEND_INSTR_CYCLES 100
+#define FLOAT_INSTR_CYCLES 100
+#define SELECT_INSTR_CYCLES 100
+#define RETURN_SELECT_INSTR_CYCLES 100
+#define COLOCATED_INSTR_CYCLES 100
+#define DELETE_INSTR_CYCLES 100
+#define RESET_LINEAR_INSTR_CYCLES 100
+#define END_LINEAR_INSTR_CYCLES 100
+#define RULE_INSTR_CYCLES 100
+#define RULE_DONE_INSTR_CYCLES 100
+#define NEW_NODE_INSTR_CYCLES 100
+#define NEW_AXIOMS_INSTR_CYCLES 100
+#define SEND_DELAY_INSTR_CYCLES 100
+#define PUSH_INSTR_CYCLES 100
+#define POP_INSTR_CYCLES 100
+#define PUSH_REGS_INSTR_CYCLES 100
+#define POP_REGS_INSTR_CYCLES 100
+#define CALLF_INSTR_CYCLES 100
+#define CALLE_INSTR_CYCLES 100
+#define CALL_INSTR_CYCLES 100
+#define MOVE_INSTR_CYCLES 100
+#define ALLOC_INSTR_CYCLES 400
+#define IF_INSTR_CYCLES 100
+#define MOVE_NIL_INSTR_CYCLES 175
+#define REMOVE_INSTR_CYCLES 100
+#define ITER_INSTR_CYCLES 100
+#define OP_INSTR_CYCLES 100
+#define RETURN_LINEAR_INSTR_CYCLES 100
+#define RETURN_DERIVED_INSTR_CYCLES 100
+
+// ARITHMETIC & LOGIC OPERATION CYCLES
+#define NB_OP 26 // used for the cycle table instantiation
+#define OP_NEQF_CYCLES 400
+#define OP_NEQI_CYCLES 375
+#define OP_EQF_CYCLES 425
+#define OP_EQI_CYCLES 375
+#define OP_LESSF_CYCLES 400
+#define OP_LESSI_CYCLES 350
+#define OP_LESSEQF_CYCLES 425
+#define OP_LESSEQI_CYCLES 375
+#define OP_GREATERF_CYCLES 400
+#define OP_GREATERI_CYCLES 350
+#define OP_GREATEREQF_CYCLES 425
+#define OP_GREATEREQI_CYCLES 375
+#define OP_MODF_CYCLES 425
+#define OP_MODI_CYCLES 1100
+#define OP_PLUSF_CYCLES 450
+#define OP_PLUSI_CYCLES 350
+#define OP_MINUSF_CYCLES 450
+#define OP_MINUSI_CYCLES 350
+#define OP_TIMESF_CYCLES 500
+#define OP_TIMESI_CYCLES 400
+#define OP_DIVF_CYCLES 900
+#define OP_DIVI_CYCLES 1100
+#define OP_NEQA_CYCLES 50
+#define OP_EQA_CYCLES 50
+#define OP_GREATERA_CYCLES 50
+#define OP_ORB_CYCLES 50
+
+// Frequency unit: MHz
+#define ATMEL_ATXMEGA256A3_FREQUENCY 32// Blinky Block microcontroler
+#define CPU_FRENQUENCY ATMEL_ATXMEGA256A3_FREQUENCY
 
 using namespace std;
+using namespace vm::instr;
 
 namespace vm {
 	
 	namespace determinism {
 	
-		static deterministic_timestamp currentLocalTime = 0;
-		static deterministic_timestamp currentWorldTime = 0;
+		static uint* initOpCycleTab();
+	    static uint* initInstrCycleTab();
+	    
+	    /* TIME :
+	     * unit : microseconds
+	     * 
+	     * constraints : 
+	     * uint64_t 1.8*10^19, 
+		 * double 1.7*10^308 : 64 bits with 52 bits for the mantissa
+		 *		and 11 bits for the exponent.
+		 */
+		static double currentLocalTime; // in microseconds
 		static deterministic_timestamp currentComputationEndTime = 0;
 		static simulationMode mode = REALTIME;
-		//static simulationMode mode = DETERMINISTIC2;
-		static bool computing = false;
+		static bool computing = false;	
+		static uint *opCycleTab = initOpCycleTab();
+		static uint *instrCycleTab = initInstrCycleTab();
 
-		void setDeterministicMode(simulationMode m) {
+		void setSimulationMode(simulationMode m) {
 			mode = m;
-			cout << "setDeterminismMode: " << m << endl;
 		}
 		
 		simulationMode getSimulationMode() {
@@ -57,7 +116,7 @@ namespace vm {
 					return true;
 					break;
 				case DETERMINISTIC2:
-					return (currentLocalTime < currentComputationEndTime);
+					return ((deterministic_timestamp)currentLocalTime < currentComputationEndTime);
 					break;
 				default:
 					return true;
@@ -102,7 +161,6 @@ namespace vm {
 				case DETERMINISTIC2:
 					computing = true;
 					currentComputationEndTime = currentLocalTime + d;
-					cout << "start Computation at "<< currentLocalTime << "till " << currentComputationEndTime << endl;
 					break;
 				default:
 					return;
@@ -119,7 +177,7 @@ namespace vm {
 						computing = false;
 						setCurrentLocalTime(currentComputationEndTime);
 						api::computationPause();						
-						cout << "computationPause" << endl;
+						//cout << "computationPause" << endl;
 					}
 					break;
 				default:
@@ -137,21 +195,104 @@ namespace vm {
 					if (!computing) { return; }
 					computing = false;
 					setCurrentLocalTime(currentComputationEndTime);
-					cout << "WorkEnd" << endl;
+					//cout << "WorkEnd" << endl;
 					break;
 				default:
 					break;
 			}
 			api::workEnd();
-			cout << "WorkEnd sent" << endl;
+			//cout << "WorkEnd sent" << endl;
 		}
 		
 		deterministic_timestamp getCurrentLocalTime() {
-			return currentLocalTime;
+			return (deterministic_timestamp)currentLocalTime;
 		}
 		
-		void incrCurrentLocalTime(deterministic_timestamp time) {
-				currentLocalTime += time;
+		uint* initOpCycleTab() {
+			uint *t = new uint[NB_OP];
+			t[OP_NEQF] = OP_NEQF_CYCLES;
+			t[OP_NEQI] = OP_NEQI_CYCLES;
+			t[OP_EQF] = OP_EQF_CYCLES;
+			t[OP_EQI] = OP_EQI_CYCLES;
+			t[OP_LESSF] = OP_LESSF_CYCLES;
+			t[OP_LESSI] = OP_LESSI_CYCLES;
+			t[OP_LESSEQF] = OP_LESSEQF_CYCLES;
+			t[OP_LESSEQI] = OP_LESSEQI_CYCLES;
+			t[OP_GREATERF] = OP_GREATERF_CYCLES;
+			t[OP_GREATERI] = OP_GREATERI_CYCLES;
+			t[OP_GREATEREQF] = OP_GREATEREQF_CYCLES;
+			t[OP_GREATEREQI] = OP_GREATEREQI_CYCLES;
+			t[OP_MODF] = OP_MODF_CYCLES;
+			t[OP_MODI] = OP_MODI_CYCLES;
+			t[OP_PLUSF] = OP_PLUSF_CYCLES;
+			t[OP_PLUSI] = OP_PLUSI_CYCLES;
+			t[OP_MINUSF] = OP_MINUSF_CYCLES;
+			t[OP_MINUSI] = OP_MINUSI_CYCLES;
+			t[OP_TIMESF] = OP_TIMESF_CYCLES;
+			t[OP_TIMESI] = OP_TIMESI_CYCLES;
+			t[OP_DIVF] = OP_DIVF_CYCLES;
+			t[OP_DIVI] = OP_DIVI_CYCLES;
+			t[OP_NEQA] = OP_NEQA_CYCLES;
+			t[OP_EQA] = OP_EQA_CYCLES;
+			t[OP_GREATERA] = OP_GREATERA_CYCLES;
+			t[OP_ORB] = OP_ORB_CYCLES;
+			return t;
+		}
+		
+		uint* initInstrCycleTab() {
+			uint *t = new uint[NB_INSTR];
+			for(uint i=0; i < NB_INSTR; i++) {
+				t[i] = 0;
+			}
+			t[RETURN_INSTR] = RETURN_INSTR_CYCLES;
+			t[NEXT_INSTR] = NEXT_INSTR_CYCLES;
+			t[ELSE_INSTR] = ELSE_INSTR_CYCLES;
+			t[TEST_NIL_INSTR] = TEST_NIL_INSTR_CYCLES;
+			t[CONS_INSTR] = CONS_INSTR_CYCLES;
+			t[HEAD_INSTR] = HEAD_INSTR_CYCLES;
+			t[TAIL_INSTR] = TAIL_INSTR_CYCLES;
+			t[NOT_INSTR] = NOT_INSTR_CYCLES;
+			t[SEND_INSTR] = SEND_INSTR_CYCLES;
+			t[FLOAT_INSTR] = FLOAT_INSTR_CYCLES;
+			t[SELECT_INSTR] = SELECT_INSTR_CYCLES;
+			t[RETURN_SELECT_INSTR] = RETURN_SELECT_INSTR_CYCLES;
+			t[COLOCATED_INSTR] = COLOCATED_INSTR_CYCLES;
+			t[DELETE_INSTR] = DELETE_INSTR_CYCLES;
+			t[RESET_LINEAR_INSTR] = RESET_LINEAR_INSTR_CYCLES;
+			t[END_LINEAR_INSTR] = END_LINEAR_INSTR_CYCLES;
+			t[RULE_INSTR] = RULE_INSTR_CYCLES;
+			t[RULE_DONE_INSTR] = RULE_DONE_INSTR_CYCLES;
+			t[NEW_NODE_INSTR] = NEW_NODE_INSTR_CYCLES;
+			t[NEW_AXIOMS_INSTR] = NEW_AXIOMS_INSTR_CYCLES;
+			t[SEND_DELAY_INSTR] = SEND_DELAY_INSTR_CYCLES;
+			t[PUSH_INSTR] = PUSH_INSTR_CYCLES;
+			t[POP_INSTR] = POP_INSTR_CYCLES;
+			t[PUSH_REGS_INSTR] = PUSH_REGS_INSTR_CYCLES;
+			t[POP_REGS_INSTR] = POP_REGS_INSTR_CYCLES;
+			t[CALLF_INSTR] = CALLF_INSTR_CYCLES;
+			t[CALLE_INSTR] = CALLE_INSTR_CYCLES;
+			t[CALL_INSTR] = CALL_INSTR_CYCLES;
+			t[MOVE_INSTR] = MOVE_INSTR_CYCLES;
+			t[ALLOC_INSTR] = ALLOC_INSTR_CYCLES;
+			t[IF_INSTR] = IF_INSTR_CYCLES;
+			t[MOVE_NIL_INSTR] = MOVE_NIL_INSTR_CYCLES;
+			t[REMOVE_INSTR] = REMOVE_INSTR_CYCLES;
+			t[ITER_INSTR] = ITER_INSTR_CYCLES;
+			t[OP_INSTR] = OP_INSTR_CYCLES;
+			t[RETURN_LINEAR_INSTR] = RETURN_LINEAR_INSTR_CYCLES;
+			t[RETURN_DERIVED_INSTR] = RETURN_DERIVED_INSTR_CYCLES;
+			return t;
+		}
+		
+		void incrCurrentLocalTime(pcounter pc){
+			uint cycles = 0;
+			instr_type inst = fetch(pc);
+			if(inst == OP_INSTR) {
+				cycles = opCycleTab[op_op(pc)];
+			} else {
+				cycles = instrCycleTab[inst];
+			}
+			currentLocalTime += cycles/CPU_FRENQUENCY;
 		}
 		
 		void setCurrentLocalTime(deterministic_timestamp time) {
@@ -159,23 +300,12 @@ namespace vm {
 				case REALTIME:
 					break;
 				case DETERMINISTIC1:
-					currentLocalTime = max(currentLocalTime, time);
-					cout << "time adjusted: " << currentLocalTime  << endl;
-					break;
 				case DETERMINISTIC2:
-					currentLocalTime = max(currentLocalTime, time);
+					currentLocalTime = max(currentLocalTime, (double)time);
 					break;
 				default:
 					break;
 			}
-		}
-		
-		deterministic_timestamp getCurrentWorldTime() {
-			return currentWorldTime;
-		}
-		
-		void setCurrentWorldTime(deterministic_timestamp time) {
-			currentWorldTime = max(currentWorldTime, time);
 		}
 	}
 }

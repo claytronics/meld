@@ -1999,7 +1999,7 @@ execute(pcounter pc, state& state)
 eval_loop:
 #ifdef SIMD
 	checkAndWaitUntilCanCompute();
-	incrCurrentLocalTime(5); // test purpose
+	incrCurrentLocalTime(pc);
 #endif
 
 #ifdef DEBUG_MODE
