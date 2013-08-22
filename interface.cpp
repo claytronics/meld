@@ -91,6 +91,7 @@ static inline void
 finish(void)
 {
   api::end();
+  debugger::cleanUp();
 }
 
 /* program = meld program */

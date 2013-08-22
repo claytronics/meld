@@ -9,7 +9,7 @@
    The debugger has three different modes: normal, mpi, and simulation.
    These different modes are set within from the command line when meld
    is executed in which a debugger global var is used to indicate the mode.
-   These are set in meld.cpp
+   These are set in meld.cpp, then main meld file.
 
    COMMAND LINE INITIATIVES
    In each mode a command line prompt is initiated in which the user
@@ -191,9 +191,7 @@ namespace debugger {
     void initMpiDebug(vm::all *debugAll){
         messageQueue = new std::queue<api::message_type*>();
         all = debugAll;
-        if (api::world->rank()!=MASTER){
-            setupFactList();
-        }
+        setupFactList();
         rcvMessageList = new std::list<struct msgListContainer*>();
     }
 
@@ -215,6 +213,16 @@ namespace debugger {
     /*indicate to go into MPI debugging mode*/
     void setMpiDebuggingMode(bool setting){
         isMpiDebug  = setting;
+    }
+
+    void cleanUp(void){
+        if (isInSimDebuggingMode()||isInMpiDebuggingMode()){
+            delete rcvMessageList;
+            delete messageQueue;
+        } else if (isInSimDebuggingMode()||isInMpiDebuggingMode()
+                   ||isInDebuggingMode()){
+            listFree(getFactList());
+        }
     }
 
 
@@ -792,8 +800,7 @@ namespace debugger {
                     /*if quit command was specified*/
                     if (isInMpiDebuggingMode())
                         api::end();
-                    listFree(getFactList());
-                    delete messageQueue;
+                    cleanUp();
                     exit(0);
                     break;
 
@@ -864,6 +871,7 @@ namespace debugger {
             if (serializationMode)
                 sendMsg(-1,ENDSER,"",BROADCAST);
             api::end();
+            cleanUp();
             exit(0);
 
         } else if (instruction == PAUSE){
@@ -1088,13 +1096,11 @@ namespace debugger {
             /*insert the message into a cache to be checked if the
              *broken message in pieces has been completed*/
             insertMsg(spec, priority, instruction, NodeId);
-            printRcv();
 
             /*check to see if a total message has been sent*/
             msgContainer = checkAndGet();
             /*messages are ready to be processed*/
             if (msgContainer!= NULL){
-
                 instruction = msgContainer->instruction;
                 spec = buildString(msgContainer);
 
@@ -1190,7 +1196,6 @@ namespace debugger {
         std::list<struct msgListContainer*>::iterator it;
         struct msgListContainer* contain;
         struct msgListElem* elem;
-
 
         /*iterate through cache*/
         for (it = rcvMessageList->begin();

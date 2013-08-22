@@ -91,7 +91,8 @@ namespace debugger {
     void insertMsg(std::string content, int priority, int instruction, int node);
     std::string buildString(struct msgListContainer* container);
     struct msgListContainer* checkAndGet(void);
-    void printRcv();
+    void printRcv(void);
+    void cleanUp(void);
 }
 
 #endif
