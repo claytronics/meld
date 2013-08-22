@@ -8,8 +8,9 @@ type linear visited(node).
 !edge(@2, @3).
 !edge(@1, @4).
 !edge(@2, @4).
+!edge(@1, @5).
 
-unvisited(@1). unvisited(@2). unvisited(@3). unvisited(@4).
+unvisited(@1). unvisited(@2). unvisited(@3). unvisited(@4). unvisited(@5).
 visit(@1).
 
 visit(A), unvisited(A) -o

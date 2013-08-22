@@ -416,7 +416,7 @@ namespace debugger {
         if (nodeID!="")
             msg <<  "\tNode: " << nodeID << endl;
 
-        if (isInMpiDebuggingMode()&&api::world->rank() != 1){
+        if (isInMpiDebuggingMode()){
             display(msg.str(),PAUSE);
             return;
         }
@@ -447,8 +447,7 @@ namespace debugger {
         /*if is in MPI debugging mode, send to master to display/handle
          *the message*/
         } else if (isInMpiDebuggingMode()){
-            MSG << "<=======VM#" <<
-                api::world->rank()
+            MSG << "<=======VM#"
                 << "===================================================>"
                 << endl << msg;
             sendMsg(MASTER,type,MSG.str());
@@ -514,10 +513,10 @@ namespace debugger {
         /*note- skips over master debugging process in
           debugging mode*/
 
-        if (api::world->rank() == api::world->size()-1){
+        if (true){
             return 1;
         } else
-            return api::world->rank() + 1;
+            return 0;
     }
 
 
@@ -599,7 +598,7 @@ namespace debugger {
                     /*no serialization in simulation debugging*/
                     msg << "-cannot go into serialization mode" << endl;
                 }
-                if (isInMpiDebuggingMode()&&api::world->rank() == 1)
+                if (isInMpiDebuggingMode())
                     //let begining process execute in serialization
                     if (okayToSetConche){
                         /*only able to set conche once*/
@@ -610,7 +609,7 @@ namespace debugger {
             }
         }
 
-        if ((isInMpiDebuggingMode()&&api::world->rank()!=MASTER)
+        if ((isInMpiDebuggingMode())
             ||isInSimDebuggingMode())
             display(msg.str(),PRINTCONTENT);
     }
@@ -637,7 +636,7 @@ namespace debugger {
         /*if MPI debugging and the master process (process zero):
          *send a  message instead of changing the system state
          *as normally done in normal debugging*/
-        if (isInMpiDebuggingMode() && api::world->rank()==MASTER){
+        if (isInMpiDebuggingMode()){
 
             /*process of master debugger in MPI DEBUGGINGMODE*/
             if (instruction == CONTINUE || instruction == UNPAUSE){
@@ -645,20 +644,20 @@ namespace debugger {
                 okayToBroadcastPause = true;
                 /*continue a paused system by broadcasting an UNPAUSE signal*/
                 sendMsg(-1,CONTINUE,"",BROADCAST);
-                numberExpected = api::world->size()-1;
+                numberExpected = 9;
 
             } else if (instruction == RUN) {
 
                 /*same as continue -- reserved if funcionality need to be changed*/
                 okayToBroadcastPause = true;
                 sendMsg(-1,RUN,"",BROADCAST);
-                numberExpected = api::world->size()-1;
+                numberExpected = 0;
 
             } else if (instruction == MODE) {
 
                 setFlags(specification);
                 sendMsg(-1,MODE,specification,BROADCAST);
-                numberExpected = api::world->size()-1;
+                numberExpected = 0;
 
             } else if (instruction == DUMP) {
 
@@ -668,7 +667,7 @@ namespace debugger {
                     sendMsg(-1,DUMP,specification,BROADCAST);
                     /*wait for all VMs to receive (not counting the debugger
                      *itself*/
-                    numberExpected = (int)api::world->size()-1;
+                    numberExpected = 0;
 
                 } else {
 
@@ -686,7 +685,7 @@ namespace debugger {
 
                     /*broadcast the message if the node is not specified*/
                     sendMsg(-1,instruction,specification,BROADCAST);
-                    numberExpected = (int)api::world->size()-1;
+                    numberExpected = 0;
 
                 } else {
 
@@ -701,7 +700,7 @@ namespace debugger {
 
                 /*broadcast  a print message*/
                 sendMsg(-1,PRINTLIST,"",BROADCAST);
-                numberExpected = (int)api::world->size()-1;
+                numberExpected = 0;
 
             }
 
@@ -811,7 +810,7 @@ namespace debugger {
                 case CONCHE:
 
                     /*if match for next conche, retrieve it*/
-                    if (atoi(specification.c_str()) == api::world->rank()){
+                    if (atoi(specification.c_str()) == 0){
                         hasTheConche = true;
                     }
                     break;
@@ -995,20 +994,20 @@ namespace debugger {
                 if (broadcast){
 
                     /*send to all*/
-                    api::debugBroadcastMsg(msg,msgSize);
+                    //api::debugBroadcastMsg(msg,msgSize);
 
                 } else {
 
                     /*send to the master debugging process*/
                     if (destination == MASTER){
-                        api::debugSendMsg(MASTER,msg,
-                                          msgSize);
+                        //  api::debugSendMsg(MASTER,msg,
+                        //                msgSize);
                         continue;
                     }
 
                     /*send the message through api layer*/
-                    api::debugSendMsg(destination,msg,
-                                      msgSize);
+                    //api::debugSendMsg(destination,msg,
+                    //                msgSize);
                 }
 
             }
@@ -1034,7 +1033,7 @@ namespace debugger {
         struct msgListContainer* msgContainer;
 
         /*load the message queue with messages*/
-        api::debugGetMsgs();
+        //api::debugGetMsgs();
 
         while(!messageQueue->empty()){
             /*process each message until empty*/
@@ -1091,7 +1090,7 @@ namespace debugger {
             }
 
             /*if the controlling process is recieving a message*/
-            if (isInMpiDebuggingMode()&&api::world->rank()==MASTER){
+            if (isInMpiDebuggingMode()){
 
                 /*broadcast new conche owner specified by old conche owner*/
                 if (instruction == CONCHE){
