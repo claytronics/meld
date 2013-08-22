@@ -73,8 +73,8 @@ base::do_loop(void)
           }
       }
 
-#ifdef SIMD 
-    if ((determinism::getSimulationMode() == determinism::REALTIME) || hasComputed) {
+#ifdef SIMD
+    if ((determinism::getSimulationMode() == determinism::REALTIME)) {
 		hasWork = api::pollAndProcess(this, state.all);
 	}
 	if (!this->has_work() && debugger::isDebuggerQueueEmpty()) {
