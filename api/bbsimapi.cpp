@@ -410,6 +410,7 @@ static void processNextQueuedMessage() {
   */
 bool waitAndProcess(sched::base *sched, vm::all *all) {
 	static message_type msg[1024];
+	
 	if (debugger::isInSimDebuggingMode() && !messageQ.empty()) {
 		processNextQueuedMessage();
 	} else {
@@ -433,7 +434,6 @@ bool waitAndProcess(sched::base *sched, vm::all *all) {
 
 bool pollAndProcess(sched::base *sched, vm::all *all) {
 	static message_type msg[1024];
-	
 	switch (vm::determinism::getSimulationMode()) {
 		case REALTIME :
 			while (my_tcp_socket->available()) {
@@ -623,8 +623,8 @@ sendMessageTCP(message *msg)
 #ifdef SIMD
 	if (msg->command != DEBUG) {
 		setCurrentLocalTime((deterministic_timestamp)msg->timestamp);
+		nbProcessedMsg++;
 	}
-	nbProcessedMsg++;
 #endif
     switch(msg->command) {
   /*Initilize the blocks's ID*/
@@ -983,6 +983,7 @@ debugGetMsgs(void)
 #else
 	message_type msg[1024];
 	message_type *m;
+	
 	switch (vm::determinism::getSimulationMode()) {
 		case REALTIME :
 			pollAndProcess(NULL, NULL);

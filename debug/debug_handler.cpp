@@ -254,7 +254,10 @@ namespace debugger {
     }
     
     bool isDebuggerQueueEmpty(void){
-		return (messageQueue == NULL || messageQueue->empty());
+		if (messageQueue == NULL) {
+			return true;
+		}
+		return messageQueue->empty();
 	}
 
 

@@ -80,7 +80,7 @@ base::do_loop(void)
 	if (!this->has_work() && debugger::isDebuggerQueueEmpty()) {
 		if (hasComputed && (determinism::getSimulationMode() == determinism::DETERMINISTIC1)) {
 			determinism::workEnd();
-			hasComputed = false;			
+			hasComputed = false;	
 		}
 		hasWork = api::waitAndProcess(this, state.all);
 	}
