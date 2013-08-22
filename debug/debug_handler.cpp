@@ -111,15 +111,14 @@ namespace debugger {
         all = debugAll;
         setupFactList();
         messageQueue = new std::queue<api::message_type*>();
+        rcvMessageList = new std::list<struct msgListContainer*>();
     }
 
     /*setup MPI debugging mode*/
     void initMpiDebug(vm::all *debugAll){
         messageQueue = new std::queue<api::message_type*>();
         all = debugAll;
-        if (api::world->rank()!=MASTER){
-            setupFactList();
-        }
+        setupFactList();
         rcvMessageList = new std::list<struct msgListContainer*>();
     }
 
@@ -141,6 +140,16 @@ namespace debugger {
     /*indicate to go into MPI debugging mode*/
     void setMpiDebuggingMode(bool setting){
         isMpiDebug  = setting;
+    }
+
+    void cleanUp(void){
+        if (isInSimDebuggingMode()||isInMpiDebuggingMode()){
+            delete rcvMessageList;
+            delete messageQueue;
+        } else if (isInSimDebuggingMode()||isInMpiDebuggingMode()
+                   ||isInDebuggingMode()){
+            listFree(getFactList());
+        }
     }
 
 
@@ -703,8 +712,7 @@ namespace debugger {
                     /*if quit command was specified*/
                     if (isInMpiDebuggingMode())
                         api::end();
-                    listFree(getFactList());
-                    delete messageQueue;
+                    cleanUp();
                     exit(0);
                     break;
 
@@ -774,6 +782,7 @@ namespace debugger {
             if (serializationMode)
                 sendMsg(-1,ENDSER,"",BROADCAST);
             api::end();
+            cleanUp();
             exit(0);
 
         } else if (instruction == PAUSE){
