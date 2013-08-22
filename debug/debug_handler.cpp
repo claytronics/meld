@@ -9,7 +9,7 @@
    The debugger has three different modes: normal, mpi, and simulation.
    These different modes are set within from the command line when meld
    is executed in which a debugger global var is used to indicate the mode.
-   These are set in meld.cpp
+   These are set in meld.cpp, then main meld file.
 
    COMMAND LINE INITIATIVES
    In each mode a command line prompt is initiated in which the user
