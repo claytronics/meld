@@ -60,7 +60,6 @@ SRCS = utils/utils.cpp \
 			 vm/external.cpp \
 			 vm/rule.cpp \
 			 vm/rule_matcher.cpp \
-			 vm/determinism.cpp \
 			 db/node.cpp \
 			 db/tuple.cpp \
 			 db/agg_configuration.cpp \
@@ -87,15 +86,17 @@ SRCS = utils/utils.cpp \
 			 debug/debug_prompt.cpp \
 			 debug/debug_handler.cpp \
 			 debug/debug_list.cpp \
-			 api/bbsimapi.cpp \
+			 api/mpi.cpp \
 			 #sched/thread/threaded.cpp \
 			 #sched/thread/assert.cpp \
-
+			 		 
+ifeq (-DSIMD, $(DETERMINISM))
+	SRCS += vm/determinism.cpp
+endif
 
 OBJS = $(patsubst %.cpp,%.o,$(SRCS))
 
-all: meld print 
-
+all: meld print
 	echo $(OBJS)
 
 -include Makefile.externs

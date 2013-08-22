@@ -13,6 +13,7 @@
 #include "debug/debug_handler.hpp"
 #include "vm/determinism.hpp"
 
+
 using namespace db;
 using namespace vm;
 using namespace vm::determinism;
@@ -179,11 +180,11 @@ inline face_t operator++(face_t& f, int) {
   const db::node::node_id node, deterministic_timestamp duration);
 
   static bool ready(false);
-#ifdef SIMD
+  /* deterministic mode */
   static bool polling(false);
   static std::queue<message_type*> messageQ;
   static uint nbProcessedMsg = 0;
-#endif
+  
   /*Stores the scheduler*/
   static sched::base *sched_state(NULL);
   vm::predicate* neighbor_pred(NULL);
@@ -302,24 +303,6 @@ onLocalVM(const db::node::node_id id){
   return false;
 }
 
-/*Polls the socket for any message and processes the message*/
- //~ bool
- //~ pollAndProcess(sched::base *sched, vm::all *all)
- //~ {
-  //~ message_type *reply;
-//~ 
-  //~ /*Change the name of the poll function here*/
-  //~ if((reply =(message_type*)tcpPool()) == NULL) {
-    //~ if(ensembleFinished(sched_state))
-      //~ return false;
-    //~ else
-      //~ return true;
-  //~ }
-  //~ processMessage(reply);
-  //~ return true;
-//~ }
-
-
 /*API function to send the SETCOLOR command to the simulator*/
 void
 set_color(db::node *n, const int r, const int g, const int b)
@@ -330,11 +313,7 @@ set_color(db::node *n, const int r, const int g, const int b)
 
   colorMessage->size=7 * sizeof(message_type);
   colorMessage->command=SET_COLOR;
-#ifdef SIMD
   colorMessage->timestamp=getCurrentLocalTime();
-#else
-  colorMessage->timestamp=0;
-#endif  
   colorMessage->node=(message_type)n->get_id();
   colorMessage->data.color.r=r;
   colorMessage->data.color.g=g;
@@ -397,20 +376,20 @@ set_color(db::node *n, const int r, const int g, const int b)
 	 resumeComputation(ts, duration);
   }
 
-static void processNextQueuedMessage() {
+  static void processNextQueuedMessage() {
 	message_type *m = NULL;
 	m = messageQ.front();
 	processMessage(m);
 	messageQ.pop();
 	delete[] m;
-}
+  }
+
 
  /* Wait for at least one incoming message. // Read and process all
   * the received messages.
   */
 bool waitAndProcess(sched::base *sched, vm::all *all) {
-	static message_type msg[1024];
-	
+	static message_type msg[1024];	
 	if (debugger::isInSimDebuggingMode() && !messageQ.empty()) {
 		processNextQueuedMessage();
 	} else {
@@ -434,6 +413,7 @@ bool waitAndProcess(sched::base *sched, vm::all *all) {
 
 bool pollAndProcess(sched::base *sched, vm::all *all) {
 	static message_type msg[1024];
+	
 	switch (vm::determinism::getSimulationMode()) {
 		case REALTIME :
 			while (my_tcp_socket->available()) {
@@ -522,11 +502,7 @@ message* msga=(message*)calloc((msg_size+ sizeof(message_type)), 1);
 
    msga->size = (message_type)msg_size;
    msga->command = SEND_MESSAGE;
-#ifdef SIMD
-  msga->timestamp = getCurrentLocalTime();
-#else
-  msga->timestamp = 0;
-#endif 
+   msga->timestamp = getCurrentLocalTime();
    msga->node = from->get_id();
    msga->data.send_message.face= 0; //(dynamic_cast<serial_node*>(from))->get_face(to);
    msga->data.send_message.dest_nodeID = to;
@@ -580,9 +556,6 @@ static message_type *
 tcpPool()
 {
   static message_type msg[1024];
-#ifdef SIMD
-	if(mustQueueMessages()) return NULL;
-#endif
   try {
     if(my_tcp_socket->available())
     {
@@ -620,12 +593,12 @@ sendMessageTCP(message *msg)
     cout << id << " :Processing " << msgcmd2str[reply[1]] << endl;
     assert(reply!=NULL);
     message* msg=(message*)reply;
-#ifdef SIMD
+    
 	if (msg->command != DEBUG) {
 		setCurrentLocalTime((deterministic_timestamp)msg->timestamp);
 		nbProcessedMsg++;
 	}
-#endif
+	
     switch(msg->command) {
   /*Initilize the blocks's ID*/
       case SETID:
@@ -683,8 +656,7 @@ sendMessageTCP(message *msg)
       sleep(1);
       usleep(200);
       break;
-
-#ifdef SIMD      
+    
       case SET_DETERMINISTIC_MODE:
 		handleSetDeterministicMode((deterministic_timestamp)reply[2],
 		 (db::node::node_id)reply[3], (simulationMode)reply[4]);
@@ -698,7 +670,7 @@ sendMessageTCP(message *msg)
       case END_POLL:
 		 polling = false;
 	  break;
-#endif
+
       default: cerr << "Unrecognized message " << reply[1] << endl;
     }
   }
@@ -978,9 +950,6 @@ handleShake(const deterministic_timestamp ts, const db::node::node_id node,
 void
 debugGetMsgs(void)
 {
-#ifndef SIMD
-	pollAndProcess(NULL, NULL);
-#else
 	message_type msg[1024];
 	message_type *m;
 	
@@ -1009,7 +978,6 @@ debugGetMsgs(void)
 		default:
 			break;
 	}
-#endif
 }
 
 void
@@ -1019,9 +987,6 @@ debugBroadcastMsg(message_type *msg, size_t messageSize)
 void
 debugWaitMsg(void)
 {
-#ifndef SIMD
-	waitAndProcess(NULL, NULL);
-#else
 	message_type msg[1024];
 	message_type *m;
 	bool debugMsgReceived = false;
@@ -1051,7 +1016,6 @@ debugWaitMsg(void)
 		default:
 			break;
 	}
-#endif
 }
 
 /* Output the database in a synchronized manner */
@@ -1071,12 +1035,19 @@ debugWaitMsg(void)
 void
 debugSendMsg(int destination,message_type* msg, size_t messageSize)
 {
-#if SIMD
   msg[2] = (message_type) getCurrentLocalTime();
-#endif
   sendMessageTCP((message*)msg);
   delete[] msg;
 }
+
+bool regularPollAndProcess(sched::base *sched, vm::all *all) {
+	static uint i = 1;
+	if ( (i%5) == 0) {
+		pollAndProcess(sched, all); 
+	}
+	i++;
+}
+
 }
 
 // Local Variables:

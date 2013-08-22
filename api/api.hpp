@@ -83,13 +83,16 @@ namespace api {
     extern void set_color(db::node *n, const int r, const int g, const int b);
     extern void debugGetMsgs(void);
     
+    
+#ifdef SIMD
     /* Deterministic Simulation */
     extern void computationPause();
     extern void workEnd();
     extern void timeInfo();
-    //extern uint nbReceivedMsg;
     extern bool waitAndProcess(sched::base *sched, vm::all *all);
-    
+#endif
+
+	extern bool regularPollAndProcess(sched::base *sched, vm::all *all);
     
 } // namespace api
 #endif

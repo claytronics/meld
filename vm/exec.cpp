@@ -8,7 +8,9 @@
 #include "vm/exec.hpp"
 #include "vm/tuple.hpp"
 #include "vm/match.hpp"
+#ifdef SIMD
 #include "vm/determinism.hpp"
+#endif
 #include "db/tuple.hpp"
 #include "process/machine.hpp"
 #include "debug/debug_handler.hpp"
@@ -24,7 +26,6 @@ static boost::mutex print_mtx;
 
 using namespace vm;
 using namespace vm::instr;
-using namespace vm::determinism;
 using namespace std;
 using namespace db;
 using namespace runtime;
@@ -1998,8 +1999,8 @@ execute(pcounter pc, state& state)
    {
 eval_loop:
 #ifdef SIMD
-	checkAndWaitUntilCanCompute();
-	incrCurrentLocalTime(pc);
+	vm::determinism::checkAndWaitUntilCanCompute();
+	vm::determinism::incrCurrentLocalTime(pc);
 #endif
 
 #ifdef DEBUG_MODE

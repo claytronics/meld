@@ -951,9 +951,9 @@ namespace debugger {
         size_t bufSize = api::MAXLENGTH*SIZE;//bytes
         api::message_type msgSize = bufSize-SIZE;//according to message spec
 #ifdef SIMD
-        api::message_type timeStamp = 0;
-#else 
 		api::message_type timeStamp = vm::determinism::getCurrentLocalTime();
+#else 
+		api::message_type timeStamp = 0;
 #endif
         api::message_type nodeId = api::getNodeID();
 

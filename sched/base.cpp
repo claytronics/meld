@@ -8,7 +8,9 @@
 #include "process/machine.hpp"
 #include "api/api.hpp"
 #include "debug/debug_handler.hpp"
+#ifdef SIMD
 #include "vm/determinism.hpp"
+#endif
 
 
 using namespace std;
