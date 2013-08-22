@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <functional>
 #include <cmath>
+#include <sstream>
 
 #include "vm/exec.hpp"
 #include "vm/tuple.hpp"
@@ -15,6 +16,10 @@
 //#define DEBUG_INSTRS
 //#define DEBUG_RULES
 //#define DEBUG_REMOVE
+
+#if defined(DEBUG_SENDS)
+static boost::mutex print_mtx;
+#endif
 
 using namespace vm;
 using namespace vm::instr;
@@ -381,7 +386,11 @@ execute_send_self(tuple *tuple, state& state)
      * execute_send_self sends a tuple to the current node
      */
 #if defined(DEBUG_MODE) || defined(DEBUG_SENDS)
-   cout << "\t" << *tuple << " " << state.count << " -> self " << state.node->get_id() << " (" << state.depth << ")" << endl;
+   print_mtx.lock();
+   ostringstream ss;
+   ss << "\t" << *tuple << " " << state.count << " -> self " << state.node->get_id() << " (" << state.depth << ")" << endl;
+   cout << ss.str();
+   print_mtx.unlock();
 #endif
    if(tuple->is_action()) {
       if(state.count > 0)
@@ -453,7 +462,11 @@ execute_send(const pcounter& pc, state& state)
      execute_send_self(tuple, state);
    } else {
 #if defined(DEBUG_MODE) || defined(DEBUG_SENDS)
-      cout << "\t" << *tuple << " " << state.count << " -> " << dest_val << " (" << state.depth << ")" << endl;
+      print_mtx.lock();
+      ostringstream ss;
+      ss << "\t" << *tuple << " " << state.count << " -> " << dest_val << " (" << state.depth << ")" << endl;
+      cout << ss.str();
+      print_mtx.unlock();
 #endif
 
       debugMsg << "\t-" << *tuple << " -> Node: "

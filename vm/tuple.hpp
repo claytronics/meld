@@ -96,9 +96,7 @@ namespace vm
    inline bool is_cycle(void) const { return pred->is_cycle_pred(); }
    
    void print(std::ostream&) const;
-#ifdef USE_UI
-	json_spirit::Value dump_json(void) const;
-#endif
+
    
    tuple *copy_except(const field_num) const;
    tuple *copy(void) const;

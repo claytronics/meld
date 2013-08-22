@@ -20,9 +20,7 @@
 #include "runtime/string.hpp"
 #include "queue/heap_implementation.hpp"
 #include "vm/import.hpp"
-#ifdef USE_UI
-#include <json_spirit.h>
-#endif
+
 
 namespace process {
    class router;
@@ -129,9 +127,7 @@ public:
    void print_rules(std::ostream&) const;
    void print_program(std::ostream&) const;
    void print_bytecode_by_predicate(std::ostream&, const std::string&) const;
-#ifdef USE_UI
-	json_spirit::Value dump_json(void) const;
-#endif
+
    
    predicate* get_predicate(const predicate_id&) const;
    predicate* get_route_predicate(const size_t&) const;
