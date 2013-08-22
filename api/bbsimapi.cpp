@@ -212,6 +212,7 @@ inline face_t operator++(face_t& f, int) {
 
     for (int i=0; i<27; i++) 
 		msgcmd2str[i] = NULL;
+
     msgcmd2str[SETID] = "SETID";
     msgcmd2str[STOP] = "STOP";
     msgcmd2str[ADD_NEIGHBOR] = "ADD_NEIGHBOR";
@@ -232,11 +233,12 @@ inline face_t operator++(face_t& f, int) {
     try{
     /* Calling the connect*/
       initTCP();
-      check_pre(schedular);
-      while(!isReady())
-        waitAndProcess(NULL,NULL);
     } catch(std::exception &e) {
       throw machine_error("can't connect to simulator");
+    }
+    check_pre(schedular);
+    while(!isReady()) {
+        waitAndProcess(NULL,NULL);
     }
  }
 
@@ -389,7 +391,7 @@ set_color(db::node *n, const int r, const int g, const int b)
   * the received messages.
   */
 bool waitAndProcess(sched::base *sched, vm::all *all) {
-	static message_type msg[1024];	
+	static message_type msg[api::MAXLENGTH];	
 	if (debugger::isInSimDebuggingMode() && !messageQ.empty()) {
 		processNextQueuedMessage();
 	} else {
@@ -412,8 +414,7 @@ bool waitAndProcess(sched::base *sched, vm::all *all) {
   }
 
 bool pollAndProcess(sched::base *sched, vm::all *all) {
-	static message_type msg[1024];
-	
+	static message_type msg[api::MAXLENGTH];
 	switch (vm::determinism::getSimulationMode()) {
 		case REALTIME :
 			while (my_tcp_socket->available()) {
@@ -457,7 +458,6 @@ bool pollAndProcess(sched::base *sched, vm::all *all) {
 		default:
 			break;
 	}
-	
     if(ensembleFinished(sched_state)) {
 		return false;
     } else {
@@ -555,7 +555,7 @@ initTCP()
 static message_type *
 tcpPool()
 {
-  static message_type msg[1024];
+  static message_type msg[api::MAXLENGTH];
   try {
     if(my_tcp_socket->available())
     {
@@ -647,7 +647,10 @@ sendMessageTCP(message *msg)
        (int)reply[4], (int)reply[5], (int)reply[6]);
       break;
 
-      case DEBUG: 
+      case DEBUG:
+		while (!ready) { 
+			waitAndProcess(NULL, NULL);
+		}
 		handleDebugMessage((utils::byte*)reply, (size_t)reply[0]);
       break;
 
@@ -817,9 +820,6 @@ handleDebugMessage(utils::byte* reply, size_t totalSize)
 	debugger::messageQueue->push((message_type*)m);
 }
 
-
-
-
 static void 
   handleAddNeighbor(const deterministic_timestamp ts, const db::node::node_id in,
     const db::node::node_id out, const face_t face)
@@ -950,7 +950,7 @@ handleShake(const deterministic_timestamp ts, const db::node::node_id node,
 void 
 debugGetMsgs(void)
 {
-	message_type msg[1024];
+	static message_type msg[api::MAXLENGTH];
 	message_type *m;
 	
 	switch (vm::determinism::getSimulationMode()) {
@@ -987,7 +987,7 @@ debugBroadcastMsg(message_type *msg, size_t messageSize)
 void 
 debugWaitMsg(void)
 {
-	message_type msg[1024];
+	static message_type msg[api::MAXLENGTH];
 	message_type *m;
 	bool debugMsgReceived = false;
 	switch (vm::determinism::getSimulationMode()) {
@@ -1042,10 +1042,17 @@ debugSendMsg(int destination,message_type* msg, size_t messageSize)
 
 bool regularPollAndProcess(sched::base *sched, vm::all *all) {
 	static uint i = 1;
+	
 	if ( (i%5) == 0) {
-		pollAndProcess(sched, all); 
+		pollAndProcess(sched, all);
 	}
 	i++;
+	
+	if(ensembleFinished(sched_state)) {
+		return false;
+    } else {
+		return true;
+	}
 }
 
 }

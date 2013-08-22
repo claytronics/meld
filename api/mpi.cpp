@@ -522,9 +522,9 @@ namespace api {
     
     bool regularPollAndProcess(sched::base *sched, vm::all *all) {
 		static uint i = 1;
-		//if ( (i%10) == 0) {
+		if ( (i%10) == 0) {
 			pollAndProcess(sched, all); 
-		//}
+		}
 		i++;
 	}
 

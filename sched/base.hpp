@@ -181,7 +181,7 @@ namespace sched
 
 #ifdef SIMD
    private:
-		virtual bool has_work(void) const { return true; }
+		virtual bool has_work(void) const = 0;
 #endif
    };
 

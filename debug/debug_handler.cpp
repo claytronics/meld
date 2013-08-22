@@ -512,7 +512,7 @@ namespace debugger {
                     api::debugWaitMsg();
                     receiveMsg();
             } else if (isInSimDebuggingMode()){
-					if (isSystemPaused && messageQueue->empty()) {
+					if (messageQueue->empty()) {
 						api::debugWaitMsg();
 					}
 					receiveMsg(false);
