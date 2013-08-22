@@ -78,7 +78,7 @@ base::do_loop(void)
 		hasWork = api::pollAndProcess(this, state.all);
 	}
 	if (!this->has_work() && debugger::isDebuggerQueueEmpty()) {
-		if (hasComputed && determinism::getSimulationMode() == determinism::DETERMINISTIC1) {
+		if (hasComputed && (determinism::getSimulationMode() == determinism::DETERMINISTIC1)) {
 			determinism::workEnd();
 			hasComputed = false;			
 		}

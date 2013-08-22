@@ -410,7 +410,7 @@ static void processNextQueuedMessage() {
   */
 bool waitAndProcess(sched::base *sched, vm::all *all) {
 	static message_type msg[1024];
-	if (debugger::isInSimDebuggingMode() && vm::determinism::getSimulationMode() == DETERMINISTIC1 && !messageQ.empty()) {
+	if (debugger::isInSimDebuggingMode() && !messageQ.empty()) {
 		processNextQueuedMessage();
 	} else {
 		try {
