@@ -32,7 +32,7 @@ help(void)
 	cerr << "\t-s \t\tshows database" << endl;
    cerr << "\t-d \t\tdump database (debug option)" << endl;
    cerr << "\t-h \t\tshow this screen" << endl;
-   cerr << "\t-D MPI|VM|SIM \t\tgo into debugging mode" << endl;
+   cerr << "\t-D MPI|SIM \t\tgo into debugging mode" << endl;
 
 
    exit(EXIT_SUCCESS);
