@@ -126,6 +126,9 @@ run_program(int argc, char **argv, const char *program, const vm::machine_argume
               data_file == NULL ? string("") : string(data_file));
 
   /*BBSIM API Init*/
+
+  /*INITIALIZING TWICE IS A MEMORY LEAK... it should have a compilation flag
+   *  --DAVE */
   //api::init(argc, argv, mac.get_all()->ALL_THREADS[0]);
   if (debugger::isInMpiDebuggingMode()){
     api::debugInit(mac.get_all());
