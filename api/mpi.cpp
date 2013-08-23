@@ -298,7 +298,7 @@ namespace api {
           ref: http://www.cse.ohio-state.edu/siefast/group/publications/da2000-otdar.pdf
           page: 3
         */
-        return msgList->empty();
+        return msgList->empty()&&sendMsgs.empty()&&recvMsgs.empty();
     }
 
     void dumpDB(std::ostream &out, const db::database::map_nodes &nodes){}
