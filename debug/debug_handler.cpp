@@ -83,6 +83,9 @@
 #include "debug/debug_handler.hpp"
 #include "utils/serialization.hpp"
 #include "utils/types.hpp"
+#ifdef SIMD
+#include "vm/determinism.hpp"
+#endif
 
 using namespace std;
 using namespace vm;
@@ -105,7 +108,7 @@ namespace debugger {
 
     /*message Queue to handle incomming messages*/
     /*the api layer should use this when handling with debuf functions*/
-    std::queue<api::message_type*> *messageQueue;
+    std::queue<api::message_type*> *messageQueue = NULL;
 
 
     /*>>> THE FOLLOWING FOUR ARE USED FOR SYCHRONIZATION <<< */
@@ -117,6 +120,7 @@ namespace debugger {
     /*the program is suspended in the do_loop function
      *see (sched/base.cpp)*/
     bool isPausedInWorkLoop = false;
+    bool isPausedInDeterministicPollLoop = false;
     /*the program has reached a breakpoint*/
     static bool isPausedAtBreakpoint = false;
 
@@ -256,6 +260,13 @@ namespace debugger {
     debugList getFactList(void){
         return factBreakList;
     }
+    
+    bool isDebuggerQueueEmpty(void){
+		if (messageQueue == NULL) {
+			return true;
+		}
+		return messageQueue->empty();
+	}
 
 
     /**********************************************************************/
@@ -440,6 +451,9 @@ namespace debugger {
         else if (isInSimDebuggingMode()) {
            MSG << "<=======VM#" <<
                 api::getNodeID()
+#ifdef SIMD
+                << " at time " << vm::determinism::getCurrentLocalTime() 
+#endif
                 << "===================================================>"
                 << endl << msg;
             sendMsg(api::getNodeID(),type,MSG.str());
@@ -491,7 +505,6 @@ namespace debugger {
 
         isSystemPaused = true;
         while(isSystemPaused) {
-
             /*if is in MPI mode, recieve messages*/
             /*will breakout of loop if CONTINUE message is
              * specified which is handled by debugController*/
@@ -499,8 +512,10 @@ namespace debugger {
                     api::debugWaitMsg();
                     receiveMsg();
             } else if (isInSimDebuggingMode()){
-                receiveMsg();
-
+					if (messageQueue->empty()) {
+						api::debugWaitMsg();
+					}
+					receiveMsg(false);
             /*for normal debugging mode*/
             } else {
                 sleep(1);
@@ -731,6 +746,9 @@ namespace debugger {
                     if (isPausedAtBreakpoint){
                         break;
                     }
+                    if (isPausedInDeterministicPollLoop) {
+						break;
+					}
                     /*if it never left a pause loop (continue would have been called
                      * and pause message repaused it without leaving loop)*/
                     if (isSystemPaused){
@@ -753,6 +771,7 @@ namespace debugger {
                     /*unleash all bounds to system*/
                     isPausedAtBreakpoint = false;
                     isPausedInWorkLoop = false;
+                    isPausedInDeterministicPollLoop = false;
                     continueExecution();
                     break;
 
@@ -799,6 +818,7 @@ namespace debugger {
                      *want to run a certain way*/
                     isPausedAtBreakpoint = false;
                     isPausedInWorkLoop = false;
+                    isPausedInDeterministicPollLoop = false;
                     continueExecution();
                     break;
 
@@ -938,7 +958,11 @@ namespace debugger {
         size_t contentSize = content.length() + 1;
         size_t bufSize = api::MAXLENGTH*SIZE;//bytes
         api::message_type msgSize = bufSize-SIZE;//according to message spec
-        api::message_type timeStamp = 0;
+#ifdef SIMD
+		api::message_type timeStamp = vm::determinism::getCurrentLocalTime();
+#else 
+		api::message_type timeStamp = 0;
+#endif
         api::message_type nodeId = api::getNodeID();
 
         /*message size in bytes*/
@@ -1021,7 +1045,7 @@ namespace debugger {
     /*RECIEVEMSG--populate the queue of messages
      * from the mpi layer and handle them
      * until there are no more messages*/
-    void receiveMsg(void){
+    void receiveMsg(bool poll){
 
         utils::byte *msg;
         int instruction;
@@ -1033,8 +1057,10 @@ namespace debugger {
 
         struct msgListContainer* msgContainer;
 
-        /*load the message queue with messages*/
-        api::debugGetMsgs();
+		if (poll) {
+			/*load the message queue with messages*/
+			api::debugGetMsgs();
+		}
 
         while(!messageQueue->empty()){
             /*process each message until empty*/
@@ -1073,7 +1099,6 @@ namespace debugger {
 
             /*check to see if a total message has been sent*/
             msgContainer = checkAndGet();
-
             /*messages are ready to be processed*/
             if (msgContainer!= NULL){
                 instruction = msgContainer->instruction;
@@ -1137,7 +1162,6 @@ namespace debugger {
          for (it = rcvMessageList->begin();it!=rcvMessageList->end();it++){
 
              contain = *it;
-
              /*a message that matches already came from a node, insert it with
               * that node*/
              if (contain->instruction == instruction && contain->node == node){
@@ -1208,7 +1232,7 @@ namespace debugger {
         ostringstream msg;
 
         msg << "#######################################" << endl <<endl;
-
+		
         for (it = rcvMessageList->begin();
              it!=rcvMessageList->end();it++){
             contain = *it;
@@ -1217,16 +1241,15 @@ namespace debugger {
             msg << "node: " << contain->node << endl;
             msg << "========================" << endl;
             msgList = contain->msglist;
-            for (iter = msgList->begin();iter!=msgList->end();iter++){
-                elem = *iter;
-                msg << "\t*****************" << endl;
-                msg << "\tpriority: " << elem->priority << endl;
-                msg << "\tcontent: " << elem->content << endl;
-                msg << "\t*****************" << endl;
-            }
-            msg << "========================" << endl;
-        }
-
+           	for (iter = msgList->begin();iter!=msgList->end();iter++){
+				elem = *iter;
+				msg << "\t*****************" << endl;
+				msg << "\tpriority: " << elem->priority << endl;
+				msg << "\tcontent: " << elem->content << endl;
+				msg << "\t*****************" << endl;
+			}
+			msg << "========================" << endl;
+		}
         printf("%s",msg.str().c_str());
     }
 

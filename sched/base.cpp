@@ -8,6 +8,9 @@
 #include "process/machine.hpp"
 #include "api/api.hpp"
 #include "debug/debug_handler.hpp"
+#ifdef SIMD
+#include "vm/determinism.hpp"
+#endif
 
 
 using namespace std;
@@ -50,20 +53,19 @@ void
 base::do_loop(void)
 {
   db::node *node(NULL);
-
+  bool hasComputed = true;
+  bool hasWork;
+  
   while(true) {
-
       if (debugger::serializationMode){
           debugger::serializedPause();
       }
-
-          //api::serializeBeginExec();
       while ((node = get_work())) {
           // Current VM has local work, process work
           do_work(node);
           finish_work(node);
+          hasComputed = true;
       }
-
       if (debugger::isInMpiDebuggingMode()||debugger::isInSimDebuggingMode()){
           debugger::receiveMsg();
           if (debugger::isTheSystemPaused()){
@@ -73,13 +75,26 @@ base::do_loop(void)
           }
       }
 
-      bool hasWork = api::pollAndProcess(this, state.all);
-      bool ensembleFinished = false;
-      if (!hasWork)
-          ensembleFinished = api::ensembleFinished(this);
-          //api::serializeEndExec();
-      if (ensembleFinished)
-          break;
+#ifdef SIMD
+    if ((determinism::getSimulationMode() == determinism::REALTIME)) {
+		hasWork = api::pollAndProcess(this, state.all);
+	}
+	if (!this->has_work() && debugger::isDebuggerQueueEmpty()) {
+		if (hasComputed && (determinism::getSimulationMode() == determinism::DETERMINISTIC1)) {
+			determinism::workEnd();
+			hasComputed = false;
+		}
+		hasWork = api::waitAndProcess(this, state.all);
+	}
+# else
+	hasWork = api::pollAndProcess(this, state.all);
+#endif
+	bool ensembleFinished = false;
+	if (!hasWork)
+		ensembleFinished = api::ensembleFinished(this);
+	//api::serializeEndExec();
+	if (ensembleFinished)
+		break;
   }
 }
 

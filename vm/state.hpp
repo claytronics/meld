@@ -21,8 +21,7 @@ namespace sched {
 }
 
 namespace vm {
-	
-typedef size_t deterministic_timestamp;
+
 static const size_t NUM_REGS = 32;
 
 class state

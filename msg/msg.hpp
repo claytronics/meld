@@ -65,6 +65,11 @@ namespace msg{
       struct {
         message_type face;
       } delNeighbor;
+      
+      // CMD_WORK_END (DETERMINISM)
+      struct {
+		message_type nbRecMsg;
+	  } workEnd;
 
     //CMD TAP
       struct{

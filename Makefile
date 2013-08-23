@@ -14,6 +14,7 @@ PROFILING = #-pg
 OPTIMIZATIONS = -O0
 ARCH = -march=x86-64
 #DEBUG = -g -DDEBUG_RULES
+DETERMINISM = -DSIMD
 WARNINGS = -Wall -Wextra #-Werror
 C0X = -std=c++0x
 
@@ -89,15 +90,17 @@ SRCS = utils/utils.cpp \
 			 debug/debug_prompt.cpp \
 			 debug/debug_handler.cpp \
 			 debug/debug_list.cpp \
-			 api/mpi.cpp \
-			 #api/mpi.cpp /
+			 api/bbsimapi.cpp \
 			 #sched/thread/threaded.cpp \
 			 #sched/thread/assert.cpp \
+
+ifeq (-DSIMD, $(DETERMINISM))
+	SRCS += vm/determinism.cpp
+endif
 
 OBJS = $(patsubst %.cpp,%.o,$(SRCS))
 
 all: meld print
-
 	echo $(OBJS)
 
 -include Makefile.externs

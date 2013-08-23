@@ -514,5 +514,18 @@ namespace api {
  * Unimplemented functions in MPI
  */
     void set_color(db::node *n, const int r, const int g, const int b) {}
+    /* Deterministic Simulation */
+    void computationPause() {}
+    void workEnd() {}
+    void timeInfo() {}
+    bool waitAndProcess(sched::base *sched, vm::all *all) {}
+    
+    bool regularPollAndProcess(sched::base *sched, vm::all *all) {
+		static uint i = 1;
+		if ( (i%10) == 0) {
+			pollAndProcess(sched, all); 
+		}
+		i++;
+	}
 
 } /* namespace api */

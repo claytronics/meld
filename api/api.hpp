@@ -25,7 +25,6 @@ namespace api {
     extern boost::mpi::communicator *world;
     extern boost::asio::ip::tcp::socket *tcp_socket;
 
-
     /* Given a node destination, compute the process id that the node
      * belongs to, serialize the data for MPI and send the data
      */
@@ -83,5 +82,17 @@ namespace api {
 
     extern void set_color(db::node *n, const int r, const int g, const int b);
     extern void debugGetMsgs(void);
+    
+    
+#ifdef SIMD
+    /* Deterministic Simulation */
+    extern void computationPause();
+    extern void workEnd();
+    extern void timeInfo();
+    extern bool waitAndProcess(sched::base *sched, vm::all *all);
+#endif
+
+	extern bool regularPollAndProcess(sched::base *sched, vm::all *all);
+    
 } // namespace api
 #endif

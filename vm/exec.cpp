@@ -8,6 +8,9 @@
 #include "vm/exec.hpp"
 #include "vm/tuple.hpp"
 #include "vm/match.hpp"
+#ifdef SIMD
+#include "vm/determinism.hpp"
+#endif
 #include "db/tuple.hpp"
 #include "process/machine.hpp"
 #include "debug/debug_handler.hpp"
@@ -1995,7 +1998,10 @@ execute(pcounter pc, state& state)
    for(; ; pc = advance(pc))
    {
 eval_loop:
-
+#ifdef SIMD
+	vm::determinism::checkAndWaitUntilCanCompute();
+	vm::determinism::incrCurrentLocalTime(pc);
+#endif
 
 #ifdef DEBUG_MODE
 		if(state.print_instrs)

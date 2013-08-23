@@ -11,7 +11,7 @@
 
 namespace vm
 {
-   
+
 typedef enum {
    EXECUTION_OK,
    EXECUTION_CONSUMED

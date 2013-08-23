@@ -11,9 +11,12 @@
 #include "sched/serial.hpp"
 #include "msg/msg.hpp"
 #include "debug/debug_handler.hpp"
+#include "vm/determinism.hpp"
+
 
 using namespace db;
 using namespace vm;
+using namespace vm::determinism;
 using namespace utils;
 using namespace process;
 using namespace debugger;
@@ -35,12 +38,19 @@ using namespace msg;
 #define ACCEL 14
 #define SHAKE 15
 
+#define SET_DETERMINISTIC_MODE		20
+#define RESUME_COMPUTATION			21
+#define COMPUTATION_PAUSE			22
+#define POLL_START					23
+#define END_POLL					24
+#define	WORK_END					25
+#define TIME_INFO					26
+
 // debug messages for simulation
 // #define DEBUG
 
 namespace api
 {
-
 
   enum face_t {
    INVALID_FACE = -1,
@@ -138,7 +148,7 @@ inline face_t operator++(face_t& f, int) {
   boost::mpi::communicator *world = NULL;
   
   /*Helper Functions*/
-  static const char* msgcmd2str[17];
+  static const char* msgcmd2str[27];
   static boost::asio::ip::tcp::socket *my_tcp_socket;
   static void processMessage(message_type* reply);
   static void addReceivedTuple(serial_node *no, size_t ts, db::simple_tuple *stpl);
@@ -164,8 +174,17 @@ inline face_t operator++(face_t& f, int) {
   static void handleDebugMessage(utils::byte* reply, size_t totalSize);
   static void sendMessageTCP(message *m);
 
-  static bool ready(false);
+	static void handleSetDeterministicMode(const deterministic_timestamp ts,
+  const db::node::node_id node, const simulationMode mode);
+	static void handleResumeComputation(const deterministic_timestamp ts,
+  const db::node::node_id node, deterministic_timestamp duration);
 
+  static bool ready(false);
+  /* deterministic mode */
+  static bool polling(false);
+  static std::queue<message_type*> messageQ;
+  static uint nbProcessedMsg = 0;
+  
   /*Stores the scheduler*/
   static sched::base *sched_state(NULL);
   vm::predicate* neighbor_pred(NULL);
@@ -191,8 +210,9 @@ inline face_t operator++(face_t& f, int) {
   { 
     if (schedular == NULL) return;
 
-    for (int i=0; i<17; i++) 
-    msgcmd2str[i] = NULL;
+    for (int i=0; i<27; i++) 
+		msgcmd2str[i] = NULL;
+
     msgcmd2str[SETID] = "SETID";
     msgcmd2str[STOP] = "STOP";
     msgcmd2str[ADD_NEIGHBOR] = "ADD_NEIGHBOR";
@@ -204,17 +224,23 @@ inline face_t operator++(face_t& f, int) {
     msgcmd2str[ACCEL] = "ACCEL";
     msgcmd2str[SHAKE] = "SHAKE";
     msgcmd2str[DEBUG] = "DEBUG";
-
+    msgcmd2str[SET_DETERMINISTIC_MODE] = "SET_DETERMINISTIC_MODE";
+    msgcmd2str[RESUME_COMPUTATION] = "RESUME_COMPUTATION";
+    msgcmd2str[COMPUTATION_PAUSE] = "COMPUTATION_PAUSE";
+    msgcmd2str[WORK_END] = "WORK_END";
+    msgcmd2str[END_POLL] = "END_POLL";
+    msgcmd2str[POLL_START] = "POLL_START";
     try{
     /* Calling the connect*/
       initTCP();
-      check_pre(schedular);
-      while(!isReady())
-        pollAndProcess(NULL,NULL);
     } catch(std::exception &e) {
       throw machine_error("can't connect to simulator");
     }
-  }
+    check_pre(schedular);
+    while(!isReady()) {
+        waitAndProcess(NULL,NULL);
+    }
+ }
 
 void debugInit(vm::all *all)
 {
@@ -279,25 +305,6 @@ onLocalVM(const db::node::node_id id){
   return false;
 }
 
-
-/*Polls the socket for any message and processes the message*/
- bool 
- pollAndProcess(sched::base *sched, vm::all *all)
- {
-  message_type *reply;
-
-  /*Change the name of the poll function here*/
-  if((reply =(message_type*)tcpPool()) == NULL) {
-    if(ensembleFinished(sched_state))
-      return false;
-    else
-      return true;
-  }
-  processMessage(reply);
-  return true;
-}
-
-
 /*API function to send the SETCOLOR command to the simulator*/
 void 
 set_color(db::node *n, const int r, const int g, const int b)
@@ -308,7 +315,7 @@ set_color(db::node *n, const int r, const int g, const int b)
 
   colorMessage->size=7 * sizeof(message_type);
   colorMessage->command=SET_COLOR;
-  colorMessage->timestamp=0;
+  colorMessage->timestamp=getCurrentLocalTime();
   colorMessage->node=(message_type)n->get_id();
   colorMessage->data.color.r=r;
   colorMessage->data.color.g=g;
@@ -317,6 +324,145 @@ set_color(db::node *n, const int r, const int g, const int b)
 
   sendMessageTCP(colorMessage);
   free(colorMessage);
+}
+
+  void computationPause() {
+    message* pauseComputationMessage = (message*)calloc(4, sizeof(message_type));
+    pauseComputationMessage->size = 3 * sizeof(message_type);
+    pauseComputationMessage->command = COMPUTATION_PAUSE;
+    pauseComputationMessage->timestamp = (message_type) getCurrentLocalTime();
+	pauseComputationMessage->node = 0; //(message_type)n->get_id();
+    sendMessageTCP(pauseComputationMessage);
+    free(pauseComputationMessage);
+  }
+  
+   void workEnd() {
+    message* workEndMessage = (message*)calloc(5, sizeof(message_type));
+    workEndMessage->size = 4 * sizeof(message_type);
+    workEndMessage->command = WORK_END;
+    workEndMessage->timestamp = (message_type) getCurrentLocalTime();
+	workEndMessage->node = 0; //(message_type)n->get_id();
+	workEndMessage->data.workEnd.nbRecMsg = nbProcessedMsg;
+    sendMessageTCP(workEndMessage);
+    free(workEndMessage);
+  }
+  
+  void pollStart() {
+	polling = true;
+	message* pollStartMessage = (message*)calloc(4, sizeof(message_type));
+    pollStartMessage->size = 3 * sizeof(message_type);
+    pollStartMessage->command =  POLL_START;
+    pollStartMessage->timestamp = (message_type) getCurrentLocalTime();
+	pollStartMessage->node = 0; //(message_type)n->get_id();
+    sendMessageTCP(pollStartMessage);
+    free(pollStartMessage);
+  }
+  
+  void timeInfo(db::node *n) {
+    message* timeInfoMessage=(message*)calloc(4, sizeof(message_type));
+    timeInfoMessage->size=3 * sizeof(message_type);
+    timeInfoMessage->command = TIME_INFO;
+    timeInfoMessage->timestamp = (message_type) getCurrentLocalTime();
+    timeInfoMessage->node = 0; //(message_type)n->get_id();
+    sendMessageTCP(timeInfoMessage);
+    free(timeInfoMessage);
+  }
+  
+  void handleSetDeterministicMode(const deterministic_timestamp ts,
+    const db::node::node_id node, const simulationMode mode) {
+		setSimulationMode(mode);
+  }
+
+  void handleResumeComputation(const deterministic_timestamp ts,
+    const db::node::node_id node, deterministic_timestamp duration) {
+	 resumeComputation(ts, duration);
+  }
+
+  static void processNextQueuedMessage() {
+	message_type *m = NULL;
+	m = messageQ.front();
+	processMessage(m);
+	messageQ.pop();
+	delete[] m;
+  }
+
+
+ /* Wait for at least one incoming message. // Read and process all
+  * the received messages.
+  */
+bool waitAndProcess(sched::base *sched, vm::all *all) {
+	static message_type msg[api::MAXLENGTH];	
+	if (debugger::isInSimDebuggingMode() && !messageQ.empty()) {
+		processNextQueuedMessage();
+	} else {
+		try {
+		 // do {
+			  my_tcp_socket->read_some(boost::asio::buffer(msg, sizeof(message_type)));
+			  my_tcp_socket->read_some(boost::asio::buffer(msg + 1,  msg[0]));
+			  processMessage(msg);
+		 // } while(my_tcp_socket->available());
+		} catch(std::exception &e) {
+			cout<<"Could not recieve!"<<endl;
+			return false;
+		}
+	}
+    if(ensembleFinished(sched_state)) {
+		return false;
+    } else {
+		return true;
+	}
+  }
+
+bool pollAndProcess(sched::base *sched, vm::all *all) {
+	static message_type msg[api::MAXLENGTH];
+	switch (vm::determinism::getSimulationMode()) {
+		case REALTIME :
+			while (my_tcp_socket->available()) {
+				try {
+					my_tcp_socket->read_some(boost::asio::buffer(msg, sizeof(message_type)));
+					my_tcp_socket->read_some(boost::asio::buffer(msg + 1,  msg[0]));
+				} catch(std::exception &e) {
+					cout<<"Could not recieve!"<<endl;
+					return false;
+				}
+				processMessage(msg);
+			}
+			break;
+		case DETERMINISTIC1 :
+			pollStart();
+			while (polling) {
+				if (debugger::isInSimDebuggingMode()) {
+					while (polling && !messageQ.empty()) {
+						processNextQueuedMessage();
+					}
+				}
+				if (polling && (!debugger::isInSimDebuggingMode() || debugger::isDebuggerQueueEmpty())) {
+					try {
+						my_tcp_socket->read_some(boost::asio::buffer(msg, sizeof(message_type)));
+						my_tcp_socket->read_some(boost::asio::buffer(msg + 1,  msg[0]));
+						processMessage(msg);
+					} catch(std::exception &e) {
+						return false;
+					}
+				}
+				if (debugger::isInSimDebuggingMode()){
+					debugger::receiveMsg(false);
+					if (debugger::isTheSystemPaused()){
+						debugger::isPausedInDeterministicPollLoop = true;
+						debugger::display("PAUSED IN DETERMINISTIC POLL LOOP\n",debugger::PAUSE);
+						debugger::pauseIt();
+					  }
+				}
+			}
+			break;
+		default:
+			break;
+	}
+    if(ensembleFinished(sched_state)) {
+		return false;
+    } else {
+		return true;
+	}
 }
 
 /*Returns the node id for bbsimAPI*/
@@ -356,7 +502,7 @@ message* msga=(message*)calloc((msg_size+ sizeof(message_type)), 1);
  
    msga->size = (message_type)msg_size;
    msga->command = SEND_MESSAGE;
-   msga->timestamp = 0;//(message_type)ts;
+   msga->timestamp = getCurrentLocalTime();
    msga->node = from->get_id();
    msga->data.send_message.face= 0; //(dynamic_cast<serial_node*>(from))->get_face(to);
    msga->data.send_message.dest_nodeID = to;
@@ -409,7 +555,7 @@ initTCP()
 static message_type *
 tcpPool()
 {
-  static message_type msg[1024];
+  static message_type msg[api::MAXLENGTH];
   try {
     if(my_tcp_socket->available())
     {
@@ -443,10 +589,16 @@ sendMessageTCP(message *msg)
   static void 
   processMessage(message_type* reply)
   {
-    printf("%d:Processing %s %lud bytes for %lud\n",id, msgcmd2str[reply[1]], reply[0], reply[3]);
+    //printf("%d:Processing %s %lud bytes for %lud\n",id, msgcmd2str[reply[1]], reply[0], reply[3]);
+    cout << id << " :Processing " << msgcmd2str[reply[1]] << endl;
     assert(reply!=NULL);
     message* msg=(message*)reply;
-
+    
+	if (msg->command != DEBUG) {
+		setCurrentLocalTime((deterministic_timestamp)msg->timestamp);
+		nbProcessedMsg++;
+	}
+	
     switch(msg->command) {
   /*Initilize the blocks's ID*/
       case SETID: 
@@ -496,7 +648,10 @@ sendMessageTCP(message *msg)
       break;
 
       case DEBUG:
-       handleDebugMessage((utils::byte*)reply, (size_t)reply[0]);
+		while (!ready) { 
+			waitAndProcess(NULL, NULL);
+		}
+		handleDebugMessage((utils::byte*)reply, (size_t)reply[0]);
       break;
 
       case STOP:
@@ -504,6 +659,20 @@ sendMessageTCP(message *msg)
       sleep(1);
       usleep(200);
       break;
+    
+      case SET_DETERMINISTIC_MODE:
+		handleSetDeterministicMode((deterministic_timestamp)reply[2],
+		 (db::node::node_id)reply[3], (simulationMode)reply[4]);
+      break;
+      
+      case RESUME_COMPUTATION:
+		 handleResumeComputation((deterministic_timestamp)reply[2],
+		  (db::node::node_id)reply[3], (deterministic_timestamp)reply[4]);
+      break;
+      
+      case END_POLL:
+		 polling = false;
+	  break;
 
       default: cerr << "Unrecognized message " << reply[1] << endl;
     }
@@ -646,15 +815,10 @@ static void handleReceiveMessage(const deterministic_timestamp ts,
 static void
 handleDebugMessage(utils::byte* reply, size_t totalSize)
 {
- size_t msgSize=totalSize/sizeof(message_type);
- message_type* m = (message_type*) reply;
- message* msg= (message*)calloc(msgSize+1, sizeof(message_type));
- memcpy(msg,reply, totalSize+sizeof(message_type));
- debugger::messageQueue->push((message_type*)msg);
+	message_type *m = new message_type[MAXLENGTH];
+	memcpy(m, reply, reply[0]+sizeof(message_type));
+	debugger::messageQueue->push((message_type*)m);
 }
-
-
-
 
 static void 
   handleAddNeighbor(const deterministic_timestamp ts, const db::node::node_id in,
@@ -779,14 +943,41 @@ handleShake(const deterministic_timestamp ts, const db::node::node_id node,
   addReceivedTuple(no, ts, stpl);
 }
 }
+
 /*Helper functions end*/
 
 /*Debugger Messages*/
 void 
 debugGetMsgs(void)
 {
-  pollAndProcess(sched_state, debugger::all);
-  return;
+	static message_type msg[api::MAXLENGTH];
+	message_type *m;
+	
+	switch (vm::determinism::getSimulationMode()) {
+		case REALTIME :
+			pollAndProcess(NULL, NULL);
+			break;
+		case DETERMINISTIC1 :
+			while (my_tcp_socket->available()) {
+				try {
+					my_tcp_socket->read_some(boost::asio::buffer(msg, sizeof(message_type)));
+					my_tcp_socket->read_some(boost::asio::buffer(msg + 1,  msg[0]));
+					message* c =(message*)msg;
+					if (c->command == DEBUG) {
+						processMessage(msg);
+					} else {
+						m = new message_type[api::MAXLENGTH];
+						memcpy(m, msg, msg[0]+sizeof(message_type));
+						messageQ.push(m);
+					}
+				} catch(std::exception &e) {
+					cout<<"Could not recieve!"<<endl;
+				}
+			}
+			break;
+		default:
+			break;
+	}
 }
 
 void 
@@ -795,7 +986,37 @@ debugBroadcastMsg(message_type *msg, size_t messageSize)
 
 void 
 debugWaitMsg(void)
-{}
+{
+	static message_type msg[api::MAXLENGTH];
+	message_type *m;
+	bool debugMsgReceived = false;
+	switch (vm::determinism::getSimulationMode()) {
+		case REALTIME :
+			waitAndProcess(NULL, NULL);
+			break;
+		case DETERMINISTIC1 :
+			while (!debugMsgReceived) {
+				try {
+					my_tcp_socket->read_some(boost::asio::buffer(msg, sizeof(message_type)));
+					my_tcp_socket->read_some(boost::asio::buffer(msg + 1,  msg[0]));
+					message* c =(message*)msg;
+					if (c->command == DEBUG) {
+						processMessage(msg);
+						debugMsgReceived = true;
+					} else {
+						m = new message_type[api::MAXLENGTH];
+						memcpy(m, msg, msg[0]+sizeof(message_type));
+						messageQ.push(m);
+					}
+				} catch(std::exception &e) {
+					cout<<"Could not recieve!"<<endl;
+				}
+			}
+			break;
+		default:
+			break;
+	}
+}
 
 /* Output the database in a synchronized manner */
  void 
@@ -814,9 +1035,26 @@ debugWaitMsg(void)
 void 
 debugSendMsg(int destination,message_type* msg, size_t messageSize)
 {
+  msg[2] = (message_type) getCurrentLocalTime();
   sendMessageTCP((message*)msg);
   delete[] msg;
 }
+
+bool regularPollAndProcess(sched::base *sched, vm::all *all) {
+	static uint i = 1;
+	
+	if ( (i%5) == 0) {
+		pollAndProcess(sched, all);
+	}
+	i++;
+	
+	if(ensembleFinished(sched_state)) {
+		return false;
+    } else {
+		return true;
+	}
+}
+
 }
 
 // Local Variables:

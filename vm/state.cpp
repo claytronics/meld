@@ -4,6 +4,7 @@
 #include "process/machine.hpp"
 #include "vm/exec.hpp"
 #include "debug/debug_handler.hpp"
+#include "api/api.hpp"
 
 using namespace vm;
 using namespace db;
@@ -726,6 +727,7 @@ state::run_node(db::node *no)
          break;
       }
 		mark_active_rules();
+		api::regularPollAndProcess(sched,this->all);
 	}
 
 
@@ -799,6 +801,7 @@ state::state(sched::base *_sched, vm::all *_all):
 	predicates = new bool[all->PROGRAM->num_predicates()];
 	fill_n(predicates, all->PROGRAM->num_predicates(), false);
 	rule_queue.set_type(HEAP_INT_ASC);
+
 }
 
 state::state(vm::all *_all):

@@ -19,7 +19,7 @@ protected:
 
 private:
 
-   inline bool has_work(void) const { return !queue_nodes.empty(); }
+   bool has_work(void) const {return !queue_nodes.empty();}
 
    virtual void assert_end(void) const;
    virtual void assert_end_iteration(void) const;
@@ -35,7 +35,7 @@ public:
       assert(false);
    }
 
-	virtual db::simple_tuple_vector gather_active_tuples(db::node *, const vm::predicate_id);
+   virtual db::simple_tuple_vector gather_active_tuples(db::node *, const vm::predicate_id);
    virtual void gather_next_tuples(db::node *, db::simple_tuple_list&);
 
    virtual db::node* get_work(void);
