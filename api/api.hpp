@@ -90,9 +90,10 @@ namespace api {
     extern void workEnd();
     extern void timeInfo();
     extern bool waitAndProcess(sched::base *sched, vm::all *all);
+    extern bool isInBBSimMode();
 #endif
 
-	extern bool regularPollAndProcess(sched::base *sched, vm::all *all);
+	extern void regularPollAndProcess(sched::base *sched, vm::all *all);
     
 } // namespace api
 #endif

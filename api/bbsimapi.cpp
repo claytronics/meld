@@ -237,9 +237,7 @@ inline face_t operator++(face_t& f, int) {
       throw machine_error("can't connect to simulator");
     }
     check_pre(schedular);
-    while(!isReady()) {
-        waitAndProcess(NULL,NULL);
-    }
+    while(!isReady() && waitAndProcess(NULL,NULL));
  }
 
 void debugInit(vm::all *all)
@@ -386,23 +384,29 @@ set_color(db::node *n, const int r, const int g, const int b)
 	delete[] m;
   }
 
+bool readAMessage(message_type *msg) {
+	try {
+		my_tcp_socket->read_some(boost::asio::buffer(msg, sizeof(message_type)));
+		my_tcp_socket->read_some(boost::asio::buffer(msg + 1,  msg[0]));
+	} catch(std::exception &e) {
+			cout<<"Could not recieve !"<<endl;
+			stop_all = true;
+			return false;
+	}
+	return true;
+}
 
  /* Wait for at least one incoming message. // Read and process all
   * the received messages.
   */
 bool waitAndProcess(sched::base *sched, vm::all *all) {
-	static message_type msg[api::MAXLENGTH];	
+	static message_type msg[api::MAXLENGTH];
 	if (debugger::isInSimDebuggingMode() && !messageQ.empty()) {
 		processNextQueuedMessage();
 	} else {
-		try {
-		 // do {
-			  my_tcp_socket->read_some(boost::asio::buffer(msg, sizeof(message_type)));
-			  my_tcp_socket->read_some(boost::asio::buffer(msg + 1,  msg[0]));
-			  processMessage(msg);
-		 // } while(my_tcp_socket->available());
-		} catch(std::exception &e) {
-			cout<<"Could not recieve!"<<endl;
+		if (readAMessage(msg)) {
+			processMessage(msg);
+		} else {
 			return false;
 		}
 	}
@@ -415,17 +419,15 @@ bool waitAndProcess(sched::base *sched, vm::all *all) {
 
 bool pollAndProcess(sched::base *sched, vm::all *all) {
 	static message_type msg[api::MAXLENGTH];
+	static message_type lastPoll = 0;
 	switch (vm::determinism::getSimulationMode()) {
 		case REALTIME :
 			while (my_tcp_socket->available()) {
-				try {
-					my_tcp_socket->read_some(boost::asio::buffer(msg, sizeof(message_type)));
-					my_tcp_socket->read_some(boost::asio::buffer(msg + 1,  msg[0]));
-				} catch(std::exception &e) {
-					cout<<"Could not recieve!"<<endl;
+				if (readAMessage(msg)) {
+					processMessage(msg);
+				} else {
 					return false;
 				}
-				processMessage(msg);
 			}
 			break;
 		case DETERMINISTIC1 :
@@ -437,11 +439,9 @@ bool pollAndProcess(sched::base *sched, vm::all *all) {
 					}
 				}
 				if (polling && (!debugger::isInSimDebuggingMode() || debugger::isDebuggerQueueEmpty())) {
-					try {
-						my_tcp_socket->read_some(boost::asio::buffer(msg, sizeof(message_type)));
-						my_tcp_socket->read_some(boost::asio::buffer(msg + 1,  msg[0]));
+					if (readAMessage(msg)) {
 						processMessage(msg);
-					} catch(std::exception &e) {
+					} else {
 						return false;
 					}
 				}
@@ -538,18 +538,18 @@ end(void)
 static void 
 initTCP()
 {
-  try {
-    boost::asio::io_service io_service;
-    tcp::resolver resolver(io_service);
-  /*Change the arguments from hard-coded to variables*/
-    tcp::resolver::query query(tcp::v4(), "127.0.0.1", "5000");
-    tcp::resolver::iterator iterator = resolver.resolve(query);
+	  try {
+		boost::asio::io_service io_service;
+		tcp::resolver resolver(io_service);
+	  /*Change the arguments from hard-coded to variables*/
+		tcp::resolver::query query(tcp::v4(), "127.0.0.1", "5000");
+		tcp::resolver::iterator iterator = resolver.resolve(query);
 
-    my_tcp_socket = new tcp::socket(io_service);
-    my_tcp_socket->connect(*iterator);
-  } catch(std::exception &e) {
-    cout<<"Could not connect!"<<endl;
-  }
+		my_tcp_socket = new tcp::socket(io_service);
+		my_tcp_socket->connect(*iterator);
+	  } catch(std::exception &e) {
+		cout<<"Could not connect!"<<endl;
+	  }
 }
 
 static message_type *
@@ -566,7 +566,7 @@ tcpPool()
       return msg;   
     }
   } catch(std::exception &e) {
-    cout<<"Could not recieve!"<<endl;
+    cout<<"Could not recieve! 3"<<endl;
     return NULL;
   }
   return NULL;
@@ -648,9 +648,6 @@ sendMessageTCP(message *msg)
       break;
 
       case DEBUG:
-		while (!ready) { 
-			waitAndProcess(NULL, NULL);
-		}
 		handleDebugMessage((utils::byte*)reply, (size_t)reply[0]);
       break;
 
@@ -815,9 +812,15 @@ static void handleReceiveMessage(const deterministic_timestamp ts,
 static void
 handleDebugMessage(utils::byte* reply, size_t totalSize)
 {
-	message_type *m = new message_type[MAXLENGTH];
+	cout << api::MAXLENGTH << "/" << reply[0]+sizeof(message_type) << endl;
+	message_type *m = new message_type[api::MAXLENGTH];
 	memcpy(m, reply, reply[0]+sizeof(message_type));
+	while (!ready) { 
+		waitAndProcess(NULL, NULL);
+	}
+	cout << "pushing in queue..." << endl;
 	debugger::messageQueue->push((message_type*)m);
+	cout << "pushing done" << endl;
 }
 
 static void 
@@ -952,16 +955,18 @@ debugGetMsgs(void)
 {
 	static message_type msg[api::MAXLENGTH];
 	message_type *m;
-	
+	if (stop_all) {
+		exit(0);
+	}
 	switch (vm::determinism::getSimulationMode()) {
 		case REALTIME :
-			pollAndProcess(NULL, NULL);
+			if (!pollAndProcess(NULL, NULL)) {
+				exit(0);
+			}
 			break;
 		case DETERMINISTIC1 :
 			while (my_tcp_socket->available()) {
-				try {
-					my_tcp_socket->read_some(boost::asio::buffer(msg, sizeof(message_type)));
-					my_tcp_socket->read_some(boost::asio::buffer(msg + 1,  msg[0]));
+				if (readAMessage(msg)) {
 					message* c =(message*)msg;
 					if (c->command == DEBUG) {
 						processMessage(msg);
@@ -970,8 +975,8 @@ debugGetMsgs(void)
 						memcpy(m, msg, msg[0]+sizeof(message_type));
 						messageQ.push(m);
 					}
-				} catch(std::exception &e) {
-					cout<<"Could not recieve!"<<endl;
+				} else {
+					exit(0);
 				}
 			}
 			break;
@@ -992,13 +997,13 @@ debugWaitMsg(void)
 	bool debugMsgReceived = false;
 	switch (vm::determinism::getSimulationMode()) {
 		case REALTIME :
-			waitAndProcess(NULL, NULL);
+			if (!waitAndProcess(NULL, NULL)) {
+				exit(0);
+			}
 			break;
 		case DETERMINISTIC1 :
 			while (!debugMsgReceived) {
-				try {
-					my_tcp_socket->read_some(boost::asio::buffer(msg, sizeof(message_type)));
-					my_tcp_socket->read_some(boost::asio::buffer(msg + 1,  msg[0]));
+				if (readAMessage(msg)) {
 					message* c =(message*)msg;
 					if (c->command == DEBUG) {
 						processMessage(msg);
@@ -1008,8 +1013,8 @@ debugWaitMsg(void)
 						memcpy(m, msg, msg[0]+sizeof(message_type));
 						messageQ.push(m);
 					}
-				} catch(std::exception &e) {
-					cout<<"Could not recieve!"<<endl;
+				} else {
+					exit(0);
 				}
 			}
 			break;
@@ -1040,20 +1045,23 @@ debugSendMsg(int destination,message_type* msg, size_t messageSize)
   delete[] msg;
 }
 
-bool regularPollAndProcess(sched::base *sched, vm::all *all) {
+void regularPollAndProcess(sched::base *sched, vm::all *all) {
 	static uint i = 1;
 	
-	if ( (i%5) == 0) {
-		pollAndProcess(sched, all);
-	}
-	i++;
-	
-	if(ensembleFinished(sched_state)) {
-		return false;
-    } else {
-		return true;
+	switch (vm::determinism::getSimulationMode()) {
+		case REALTIME :
+			if ( (i%5) == 0) {
+				pollAndProcess(sched, all);
+			}
+			i++;
+			break;
+		case DETERMINISTIC1 :
+				pollAndProcess(sched, all);
+			break;
 	}
 }
+
+	bool isInBBSimMode() {return true;}
 
 }
 

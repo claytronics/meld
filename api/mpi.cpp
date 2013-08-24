@@ -518,9 +518,12 @@ namespace api {
     void computationPause() {}
     void workEnd() {}
     void timeInfo() {}
-    bool waitAndProcess(sched::base *sched, vm::all *all) {}
     
-    bool regularPollAndProcess(sched::base *sched, vm::all *all) {
+    /* Thanks to isInBBSimMode, waitAndProcess is not called */
+    bool isInBBSimMode() { return false; }
+    bool waitAndProcess(sched::base *sched, vm::all *all) { return false; }
+	
+    void regularPollAndProcess(sched::base *sched, vm::all *all) {
 		static uint i = 1;
 		if ( (i%10) == 0) {
 			pollAndProcess(sched, all); 
