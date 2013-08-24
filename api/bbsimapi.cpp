@@ -419,7 +419,6 @@ bool waitAndProcess(sched::base *sched, vm::all *all) {
 
 bool pollAndProcess(sched::base *sched, vm::all *all) {
 	static message_type msg[api::MAXLENGTH];
-	static message_type lastPoll = 0;
 	switch (vm::determinism::getSimulationMode()) {
 		case REALTIME :
 			while (my_tcp_socket->available()) {
@@ -1049,7 +1048,8 @@ void regularPollAndProcess(sched::base *sched, vm::all *all) {
 	static uint i = 1;
 	
 	switch (vm::determinism::getSimulationMode()) {
-		case REALTIME :
+		case REALTIME:
+		case DETERMINISTIC2:
 			if ( (i%5) == 0) {
 				pollAndProcess(sched, all);
 			}
