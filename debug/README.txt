@@ -14,14 +14,7 @@ Dave Campbell --dncswim76@gmail.com
 A.   HOW TO RUN THE DEBUGGER
 ********************************************************************************
 
-     I. VM debugging MODE:
-
-        To run the debugger in VM debugging mode, the program must be compiled
-     using g++.  To run in VM mode, enter:
-
-        ./meld -c sl -f <meld program. -D VM
-
-     II. MPI debugging MODE:
+     I. MPI debugging MODE:
 
          To run the debugger in mpi debugging mode, the program must be compiled
      using the mpic++ compiler.  Once compiled, you may execute the program
@@ -41,7 +34,7 @@ A.   HOW TO RUN THE DEBUGGER
      NOTE: To be able to run the boost mpi, you will need to download the
      'openmpi-bin' package.
 
-     III. SIMULATOR Debugging MODE
+     II. SIMULATOR Debugging MODE
 
         Within the Simulator when executing the VMs, the -D SIM flag should be
         appended.  The path in the config.xml file should match yours and the
@@ -54,7 +47,7 @@ B.  THE DEBUGGING INTERFACE
 
     I. Setting Breakpoints
 
-        A Breakpoint has six different types:
+        A Breakpoint has five different types:
                      1. factDer (fact Derivation)
                      2. factCon (fact Consumation)
                      3. factRet (fact Retraction)
@@ -145,7 +138,7 @@ B.  THE DEBUGGING INTERFACE
             >mode V
 
             To go into serialization mode:
-            !!!!!NOT IMPLEMENTED YET!!!!!!!!
+            !!CANT USE IN SERIALIZATION MODE
             >mode S
 
             To do both:
@@ -163,10 +156,6 @@ B.  THE DEBUGGING INTERFACE
             they will be ignored, and the program will run as if
             they are not there.
 
-          -The block type sets a break point whenever a certain block executes
-             It is really only applicable to use block@<node#> to specify which
-             block you are referring to.
-
        VIII.  SIMULATION DEBUGGING
 
            -When in simulation debugging mode, before your type run into
@@ -179,11 +168,15 @@ B.  THE DEBUGGING INTERFACE
            -There are only specified names that will work for sense and action:
                  sense:  'tap','accel','shake'
                  action: 'red','orange','yellow'... (only VM colors)
+                 ex.  break action:orange@3
+
+
 
            -If the simulator is running and you want to stop it for debugging mode,
             you can press p anytime while the system is in exection (after continue
             or run command) to stop the system to probe.  This is most useful
             for when the blinky blocks have reached a sort of equilibrium.
+            !!!IMPORTANT:  This MUST be done in the simulator window, not command line.
 
 ********************************************************************************
 C.  HOW THE DEBUGGER IS IMPLEMENTED

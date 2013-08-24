@@ -17,9 +17,13 @@ ARCH = -march=x86-64
 DETERMINISM = -DSIMD
 WARNINGS = -Wall -Wextra #-Werror
 C0X = -std=c++0x
+
+#to remove depricated char* warnings
+NOSTRINGWARN = -Wno-write-strings
+
 UILIBRARIES = #-lwebsocketpp -ljson_spirit
 
-CFLAGS = $(ARCH) $(PROFILING) $(OPTIMIZATIONS) $(WARNINGS) $(DEBUG) $(DETERMINISM) $(INCLUDE_DIRS) $(COX)
+CFLAGS = $(ARCH) $(PROFILING) $(OPTIMIZATIONS) $(WARNINGS) $(DEBUG) $(INCLUDE_DIRS) $(COX) $(NOSTRINGWARN)
 
 LIBRARIES = -pthread -lpthread -lm -lreadline -lboost_thread-mt -lboost_system-mt \
 			-lboost_date_time-mt -lboost_regex-mt -ldl $(UILIBRARIES)
@@ -89,7 +93,7 @@ SRCS = utils/utils.cpp \
 			 api/bbsimapi.cpp \
 			 #sched/thread/threaded.cpp \
 			 #sched/thread/assert.cpp \
-			 		 
+
 ifeq (-DSIMD, $(DETERMINISM))
 	SRCS += vm/determinism.cpp
 endif

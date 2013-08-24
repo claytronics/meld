@@ -480,7 +480,7 @@ execute_send(const pcounter& pc, state& state)
 
    debugMsg << "\t-Fact has been derived" << endl;
    debugger::runBreakPoint("factDer",(char*)debugMsg.str().c_str(),
-		 (char*)tuple->pred_name().c_str(),
+                           (char*)tuple->pred_name().c_str(),
 		 (int)state.node->get_translated_id());
 }
 
@@ -1091,7 +1091,7 @@ execute_iter(pcounter pc, const utils::byte options, const utils::byte options_a
    }
 #endif
 
-	
+
 #define PUSH_CURRENT_STATE(TUPLE, TUPLE_LEAF, TUPLE_QUEUE, NEW_DEPTH)		\
 	tuple *old_tuple = state.tuple;										            \
    tuple_trie_leaf *old_tuple_leaf = state.tuple_leaf;		            	\
@@ -1103,7 +1103,7 @@ execute_iter(pcounter pc, const utils::byte options, const utils::byte options_a
 	state.tuple_queue = TUPLE_QUEUE;										            \
 	state.is_linear = this_is_linear || state.is_linear;                    \
    state.depth = !pred->is_cycle_pred() ? state.depth : max((NEW_DEPTH)+1, state.depth)
-	
+
 
 #define POP_STATE()								\
 	state.tuple = old_tuple;					\
@@ -1199,7 +1199,7 @@ execute_iter(pcounter pc, const utils::byte options, const utils::byte options_a
 					if(!stpl->can_be_consumed())
 						continue;
 
-						
+
 					PUSH_CURRENT_STATE(match_tuple, NULL, stpl, stpl->get_depth());
 
 
@@ -1223,7 +1223,7 @@ execute_iter(pcounter pc, const utils::byte options, const utils::byte options_a
 					if(!stpl->can_be_consumed())
 						continue;
 
-					
+
 					PUSH_CURRENT_STATE(match_tuple, NULL, stpl, stpl->get_depth());
 
 					if(iter_options_to_delete(options)) {
@@ -1322,7 +1322,7 @@ execute_iter(pcounter pc, const utils::byte options, const utils::byte options_a
       	if(!do_matches(pc, match_tuple, state))
 				continue;
 
-		
+
 			PUSH_CURRENT_STATE(match_tuple, NULL, stpl, stpl->get_depth());
 
 			if(iter_options_to_delete(options) || this_is_linear) {
@@ -1353,7 +1353,7 @@ execute_iter(pcounter pc, const utils::byte options, const utils::byte options_a
 	}
 
 #endif
-	
+
 	// current set of tuples
    if(!state.persistent_only) {
 		/* XXXX
@@ -1375,7 +1375,7 @@ execute_iter(pcounter pc, const utils::byte options, const utils::byte options_a
       	if(!do_matches(pc, match_tuple, state))
 				continue;
 
-		
+
 			PUSH_CURRENT_STATE(match_tuple, NULL, stpl, stpl->get_depth());
 
 			if(iter_options_to_delete(options) || pred->is_linear_pred()) {
@@ -1402,7 +1402,7 @@ execute_iter(pcounter pc, const utils::byte options, const utils::byte options_a
          }
 
 
-			if(ret == RETURN_LINEAR) { 
+			if(ret == RETURN_LINEAR) {
 
 				return ret;
          }
@@ -1695,7 +1695,7 @@ execute_remove(pcounter pc, state& state)
    debugMsg << "\t-Fact has been consumed" << endl;
 
    debugger::runBreakPoint("factCon",debugMsg.str().c_str(),
-		 (char*)tpl->pred_name().c_str(),
+                           (char*)tpl->pred_name().c_str(),
 		 (int)state.node->get_translated_id());
 }
 
@@ -1784,7 +1784,7 @@ execute_call(pcounter pc, state& state)
 static inline void
 execute_calle(pcounter pc, state& state)
 {
-   #define REGISTER_OFFSET 38 
+   #define REGISTER_OFFSET 38
    pcounter m(pc + CALL_BASE);
    const external_function_id id(call_extern_id(pc) + REGISTER_OFFSET);
    const size_t num_args(call_num_args(pc));
@@ -1792,14 +1792,14 @@ execute_calle(pcounter pc, state& state)
    external_function *f(lookup_external_function(id));
    const field_type ret_type(f->get_return_type());
    argument args[num_args];
-   
+
    for(size_t i(0); i < num_args; ++i)
       read_call_arg(args[i], f->get_arg_type(i), m, state);
-   
+
    assert(num_args == f->get_num_args());
-   
+
    argument ret;
-   
+
    // call function
    switch(num_args) {
       case 0:
@@ -1817,7 +1817,7 @@ execute_calle(pcounter pc, state& state)
       default:
          throw vm_exec_error("vm does not support external functions with more than 3 arguments");
    }
-   
+
    switch(ret_type) {
       case FIELD_INT:
          state.set_int(reg, ret.int_field);
@@ -1830,10 +1830,10 @@ execute_calle(pcounter pc, state& state)
          break;
 		case FIELD_STRING: {
 			rstring::ptr s((rstring::ptr)ret.ptr_field);
-			
+
 			state.set_string(reg, s);
 			state.add_string(s);
-			
+
 			break;
 		}
       case FIELD_LIST_FLOAT: {
