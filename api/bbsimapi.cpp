@@ -811,15 +811,12 @@ static void handleReceiveMessage(const deterministic_timestamp ts,
 static void
 handleDebugMessage(utils::byte* reply, size_t totalSize)
 {
-	cout << api::MAXLENGTH << "/" << reply[0]+sizeof(message_type) << endl;
 	message_type *m = new message_type[api::MAXLENGTH];
 	memcpy(m, reply, reply[0]+sizeof(message_type));
 	while (!ready) { 
 		waitAndProcess(NULL, NULL);
 	}
-	cout << "pushing in queue..." << endl;
 	debugger::messageQueue->push((message_type*)m);
-	cout << "pushing done" << endl;
 }
 
 static void 
