@@ -559,9 +559,7 @@ tcpPool()
     if(my_tcp_socket->available())
     {
       size_t length = my_tcp_socket->read_some(boost::asio::buffer(msg, sizeof(message_type)));
-      //cout<<"getting message of length "<< length<<endl;
       length = my_tcp_socket->read_some(boost::asio::buffer(msg + 1,  msg[0]));
-      //cout<<"Returning message of length "<< msg[0]<<endl;
       return msg;   
     }
   } catch(std::exception &e) {
@@ -812,7 +810,8 @@ static void
 handleDebugMessage(utils::byte* reply, size_t totalSize)
 {
 	message_type *m = new message_type[api::MAXLENGTH];
-	memcpy(m, reply, reply[0]+sizeof(message_type));
+	message_type *msg = (message_type*) reply;
+	memcpy(m, msg, msg[0]+sizeof(message_type));
 	while (!ready) { 
 		waitAndProcess(NULL, NULL);
 	}

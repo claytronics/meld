@@ -160,7 +160,8 @@ namespace vm {
 					break;
 				case DETERMINISTIC2:
 					computing = true;
-					currentComputationEndTime = currentLocalTime + d;
+					//currentComputationEndTime = currentLocalTime + d;
+					currentComputationEndTime = ts + d;
 					break;
 				default:
 					return;
