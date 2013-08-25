@@ -86,7 +86,6 @@ namespace api {
     
 #ifdef SIMD
     /* Deterministic Simulation */
-    extern void computationPause();
     extern void workEnd();
     extern void timeInfo();
     extern bool waitAndProcess(sched::base *sched, vm::all *all);

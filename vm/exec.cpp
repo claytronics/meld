@@ -1999,7 +1999,6 @@ execute(pcounter pc, state& state)
    {
 eval_loop:
 #ifdef SIMD
-	vm::determinism::checkAndWaitUntilCanCompute();
 	vm::determinism::incrCurrentLocalTime(pc);
 #endif
 

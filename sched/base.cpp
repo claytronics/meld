@@ -77,11 +77,11 @@ base::do_loop(void)
 
 #ifdef SIMD
 	if (api::isInBBSimMode()) {
-		if ((determinism::getSimulationMode() == determinism::REALTIME)) {
+		if (!determinism::isInDeterministicMode()) {
 			hasWork = api::pollAndProcess(this, state.all);
 		}
 		if (hasWork && !this->has_work() && debugger::isDebuggerQueueEmpty()) {
-			if (hasComputed && (determinism::getSimulationMode() == determinism::DETERMINISTIC1)) {
+			if (hasComputed && determinism::isInDeterministicMode()) {
 				determinism::workEnd();
 				hasComputed = false;
 			}

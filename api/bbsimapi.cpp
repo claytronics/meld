@@ -39,12 +39,10 @@ using namespace msg;
 #define SHAKE 15
 
 #define SET_DETERMINISTIC_MODE		20
-#define RESUME_COMPUTATION			21
-#define COMPUTATION_PAUSE			22
-#define POLL_START					23
-#define END_POLL					24
-#define	WORK_END					25
-#define TIME_INFO					26
+#define POLL_START					21
+#define END_POLL					22
+#define	WORK_END					23
+#define TIME_INFO					24
 
 // debug messages for simulation
 // #define DEBUG
@@ -175,9 +173,7 @@ inline face_t operator++(face_t& f, int) {
   static void sendMessageTCP(message *m);
 
 	static void handleSetDeterministicMode(const deterministic_timestamp ts,
-  const db::node::node_id node, const simulationMode mode);
-	static void handleResumeComputation(const deterministic_timestamp ts,
-  const db::node::node_id node, deterministic_timestamp duration);
+  const db::node::node_id node);
 
   static bool ready(false);
   /* deterministic mode */
@@ -210,7 +206,7 @@ inline face_t operator++(face_t& f, int) {
   { 
     if (schedular == NULL) return;
 
-    for (int i=0; i<27; i++) 
+    for (int i=0; i<25; i++) 
 		msgcmd2str[i] = NULL;
 
     msgcmd2str[SETID] = "SETID";
@@ -225,8 +221,6 @@ inline face_t operator++(face_t& f, int) {
     msgcmd2str[SHAKE] = "SHAKE";
     msgcmd2str[DEBUG] = "DEBUG";
     msgcmd2str[SET_DETERMINISTIC_MODE] = "SET_DETERMINISTIC_MODE";
-    msgcmd2str[RESUME_COMPUTATION] = "RESUME_COMPUTATION";
-    msgcmd2str[COMPUTATION_PAUSE] = "COMPUTATION_PAUSE";
     msgcmd2str[WORK_END] = "WORK_END";
     msgcmd2str[END_POLL] = "END_POLL";
     msgcmd2str[POLL_START] = "POLL_START";
@@ -323,16 +317,6 @@ set_color(db::node *n, const int r, const int g, const int b)
   sendMessageTCP(colorMessage);
   free(colorMessage);
 }
-
-  void computationPause() {
-    message* pauseComputationMessage = (message*)calloc(4, sizeof(message_type));
-    pauseComputationMessage->size = 3 * sizeof(message_type);
-    pauseComputationMessage->command = COMPUTATION_PAUSE;
-    pauseComputationMessage->timestamp = (message_type) getCurrentLocalTime();
-	pauseComputationMessage->node = 0; //(message_type)n->get_id();
-    sendMessageTCP(pauseComputationMessage);
-    free(pauseComputationMessage);
-  }
   
    void workEnd() {
     message* workEndMessage = (message*)calloc(5, sizeof(message_type));
@@ -367,13 +351,8 @@ set_color(db::node *n, const int r, const int g, const int b)
   }
   
   void handleSetDeterministicMode(const deterministic_timestamp ts,
-    const db::node::node_id node, const simulationMode mode) {
-		setSimulationMode(mode);
-  }
-
-  void handleResumeComputation(const deterministic_timestamp ts,
-    const db::node::node_id node, deterministic_timestamp duration) {
-	 resumeComputation(ts, duration);
+    const db::node::node_id node) {
+		setSimulationDeterministicMode();
   }
 
   static void processNextQueuedMessage() {
@@ -429,7 +408,7 @@ bool pollAndProcess(sched::base *sched, vm::all *all) {
 				}
 			}
 			break;
-		case DETERMINISTIC1 :
+		case DETERMINISTIC :
 			pollStart();
 			while (polling) {
 				if (debugger::isInSimDebuggingMode()) {
@@ -656,14 +635,9 @@ sendMessageTCP(message *msg)
     
       case SET_DETERMINISTIC_MODE:
 		handleSetDeterministicMode((deterministic_timestamp)reply[2],
-		 (db::node::node_id)reply[3], (simulationMode)reply[4]);
+		 (db::node::node_id)reply[3]);
       break;
-      
-      case RESUME_COMPUTATION:
-		 handleResumeComputation((deterministic_timestamp)reply[2],
-		  (db::node::node_id)reply[3], (deterministic_timestamp)reply[4]);
-      break;
-      
+            
       case END_POLL:
 		 polling = false;
 	  break;
@@ -959,7 +933,7 @@ debugGetMsgs(void)
 				exit(0);
 			}
 			break;
-		case DETERMINISTIC1 :
+		case DETERMINISTIC :
 			while (my_tcp_socket->available()) {
 				if (readAMessage(msg)) {
 					message* c =(message*)msg;
@@ -996,7 +970,7 @@ debugWaitMsg(void)
 				exit(0);
 			}
 			break;
-		case DETERMINISTIC1 :
+		case DETERMINISTIC :
 			while (!debugMsgReceived) {
 				if (readAMessage(msg)) {
 					message* c =(message*)msg;
@@ -1045,13 +1019,12 @@ void regularPollAndProcess(sched::base *sched, vm::all *all) {
 	
 	switch (vm::determinism::getSimulationMode()) {
 		case REALTIME:
-		case DETERMINISTIC2:
 			if ( (i%5) == 0) {
 				pollAndProcess(sched, all);
 			}
 			i++;
 			break;
-		case DETERMINISTIC1 :
+		case DETERMINISTIC :
 				pollAndProcess(sched, all);
 			break;
 	}
