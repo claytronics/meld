@@ -92,7 +92,7 @@ namespace vm {
 		 * double 1.7*10^308 : 64 bits with 52 bits for the mantissa
 		 *		and 11 bits for the exponent.
 		 */
-		static double currentLocalTime; // in microseconds
+		static double currentLocalTime = 0; // in microseconds
 		static deterministic_timestamp currentComputationEndTime = 0;
 		static simulationMode mode = REALTIME;
 		static bool computing = false;	
