@@ -86,13 +86,13 @@ namespace api {
     
 #ifdef SIMD
     /* Deterministic Simulation */
-    extern void computationPause();
     extern void workEnd();
     extern void timeInfo();
     extern bool waitAndProcess(sched::base *sched, vm::all *all);
 #endif
 
-	extern bool regularPollAndProcess(sched::base *sched, vm::all *all);
+	extern bool isInBBSimMode();
+	extern void regularPollAndProcess(sched::base *sched, vm::all *all);
     
 } // namespace api
 #endif

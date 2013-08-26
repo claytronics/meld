@@ -54,7 +54,7 @@ base::do_loop(void)
 {
   db::node *node(NULL);
   bool hasComputed = true;
-  bool hasWork;
+  bool hasWork = true;
   
   while(true) {
       if (debugger::serializationMode){
@@ -76,15 +76,19 @@ base::do_loop(void)
       }
 
 #ifdef SIMD
-    if ((determinism::getSimulationMode() == determinism::REALTIME)) {
-		hasWork = api::pollAndProcess(this, state.all);
-	}
-	if (!this->has_work() && debugger::isDebuggerQueueEmpty()) {
-		if (hasComputed && (determinism::getSimulationMode() == determinism::DETERMINISTIC1)) {
-			determinism::workEnd();
-			hasComputed = false;
+	if (api::isInBBSimMode()) {
+		if (!determinism::isInDeterministicMode()) {
+			hasWork = api::pollAndProcess(this, state.all);
 		}
-		hasWork = api::waitAndProcess(this, state.all);
+		if (hasWork && !this->has_work() && debugger::isDebuggerQueueEmpty()) {
+			if (hasComputed && determinism::isInDeterministicMode()) {
+				determinism::workEnd();
+				hasComputed = false;
+			}
+			hasWork = api::waitAndProcess(this, state.all);
+		}
+	} else {
+		hasWork = api::pollAndProcess(this, state.all);
 	}
 # else
 	hasWork = api::pollAndProcess(this, state.all);

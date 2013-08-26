@@ -92,116 +92,26 @@ namespace vm {
 		 * double 1.7*10^308 : 64 bits with 52 bits for the mantissa
 		 *		and 11 bits for the exponent.
 		 */
-		static double currentLocalTime; // in microseconds
-		static deterministic_timestamp currentComputationEndTime = 0;
+		static double currentLocalTime = 0; // in microseconds
 		static simulationMode mode = REALTIME;
 		static bool computing = false;	
 		static uint *opCycleTab = initOpCycleTab();
 		static uint *instrCycleTab = initInstrCycleTab();
 
-		void setSimulationMode(simulationMode m) {
-			mode = m;
+		void setSimulationDeterministicMode() {
+			mode = DETERMINISTIC;
 		}
 		
 		simulationMode getSimulationMode() {
 			return mode;
 		}
-
-		bool canCompute() {
-			switch(mode) {
-				case REALTIME:
-					return true;
-					break;
-				case DETERMINISTIC1:
-					return true;
-					break;
-				case DETERMINISTIC2:
-					return ((deterministic_timestamp)currentLocalTime < currentComputationEndTime);
-					break;
-				default:
-					return true;
-			}
-		}
 		
-		void checkAndWaitUntilCanCompute() {
-			switch(mode) {
-				case REALTIME:
-					break;
-				case DETERMINISTIC1:
-					//if (currentLocalTime%50 == 0)
-					//	api::timeInfo(NULL);
-					break;
-				case DETERMINISTIC2:
-					if(!canCompute()) {
-						if(currentComputationEndTime != 0)
-							computationPause();
-						while(!canCompute()) {
-							api::waitAndProcess(NULL,NULL);
-						}
-					}
-					break;
-			}
-		}
-		
-		bool mustQueueMessages() {
-			return ((mode == DETERMINISTIC2) && isComputing());
-		}
-		
-		bool isComputing() {
-			return computing;
-		}
-		
-		
-		void resumeComputation(deterministic_timestamp ts, deterministic_timestamp d) {
-			switch(mode) {
-				case REALTIME:
-					break;
-				case DETERMINISTIC1:
-					break;
-				case DETERMINISTIC2:
-					computing = true;
-					currentComputationEndTime = currentLocalTime + d;
-					break;
-				default:
-					return;
-			}
-		}
-		
-		void computationPause() {
-			switch(mode) {
-				case REALTIME:
-				case DETERMINISTIC1:
-					break;
-				case DETERMINISTIC2:
-					if (computing) {
-						computing = false;
-						setCurrentLocalTime(currentComputationEndTime);
-						api::computationPause();						
-						//cout << "computationPause" << endl;
-					}
-					break;
-				default:
-					break;
-			}
+		bool isInDeterministicMode() {
+			return (mode == DETERMINISTIC);
 		}
 		
 		void workEnd() {
-			switch(mode) {
-				case REALTIME:
-					break;
-				case DETERMINISTIC1:
-					break;
-				case DETERMINISTIC2:
-					if (!computing) { return; }
-					computing = false;
-					setCurrentLocalTime(currentComputationEndTime);
-					//cout << "WorkEnd" << endl;
-					break;
-				default:
-					break;
-			}
 			api::workEnd();
-			//cout << "WorkEnd sent" << endl;
 		}
 		
 		deterministic_timestamp getCurrentLocalTime() {
@@ -296,16 +206,7 @@ namespace vm {
 		}
 		
 		void setCurrentLocalTime(deterministic_timestamp time) {
-			switch(mode) {
-				case REALTIME:
-					break;
-				case DETERMINISTIC1:
-				case DETERMINISTIC2:
-					currentLocalTime = max(currentLocalTime, (double)time);
-					break;
-				default:
-					break;
-			}
+			currentLocalTime = max(currentLocalTime, (double)time);
 		}
 	}
 }
