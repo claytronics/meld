@@ -128,7 +128,7 @@ run_program(int argc, char **argv, const char *program, const vm::machine_argume
 
   /*INITIALIZING TWICE IS A MEMORY LEAK... it should have a compilation flag
    *  --DAVE */
-  api::init(argc, argv, mac.get_all()->ALL_THREADS[0]);
+  //api::init(argc, argv, mac.get_all()->ALL_THREADS[0]);
   if (api::isInBBSimMode()) {
 	api::init(argc, argv, mac.get_all()->ALL_THREADS[0]);
   }
