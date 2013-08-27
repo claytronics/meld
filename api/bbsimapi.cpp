@@ -398,7 +398,6 @@ bool waitAndProcess(sched::base *sched, vm::all *all) {
 
 bool pollAndProcess(sched::base *sched, vm::all *all) {
 	static message_type msg[api::MAXLENGTH];
-	static deterministic_timestamp lastPoll = 1; 
 	switch (vm::determinism::getSimulationMode()) {
 		case REALTIME :
 			while (my_tcp_socket->available()) {
@@ -410,9 +409,6 @@ bool pollAndProcess(sched::base *sched, vm::all *all) {
 			}
 			break;
 		case DETERMINISTIC :
-			if ((determinism::getCurrentLocalTime() == lastPoll)) {
-				break;
-			}
 			pollStart();
 			while (polling) {
 				if (debugger::isInSimDebuggingMode()) {
@@ -435,8 +431,7 @@ bool pollAndProcess(sched::base *sched, vm::all *all) {
 						debugger::pauseIt();
 					  }
 				}
-			}			
-			lastPoll = determinism::getCurrentLocalTime();
+			}
 			break;
 		default:
 			break;
