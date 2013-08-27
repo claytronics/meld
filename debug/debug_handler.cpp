@@ -1110,7 +1110,8 @@ namespace debugger {
                 /* resetup*/
                 memset(specification,0,api::MAXLENGTH*SIZE);
                 messageQueue->pop();
-                memset(msg,0,api::MAXLENGTH*SIZE);
+                //memset(msg,0,api::MAXLENGTH*SIZE);
+                delete[] msg;
                 pos = 0;
                 continue;
             }
@@ -1138,7 +1139,8 @@ namespace debugger {
             /*set up the variables and buffers for next message*/
             memset(specification,0,api::MAXLENGTH*SIZE);
             messageQueue->pop();
-            memset(msg,0,api::MAXLENGTH*SIZE);
+            //memset(msg,0,api::MAXLENGTH*SIZE);
+            delete[] msg;
             pos = 0;
         }
     }
