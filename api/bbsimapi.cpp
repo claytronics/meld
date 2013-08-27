@@ -365,8 +365,8 @@ set_color(db::node *n, const int r, const int g, const int b)
 
 bool readAMessage(message_type *msg) {
 	try {
-		my_tcp_socket->read_some(boost::asio::buffer(msg, sizeof(message_type)));
-		my_tcp_socket->read_some(boost::asio::buffer(msg + 1,  msg[0]));
+		boost::asio::read(*my_tcp_socket, boost::asio::buffer(msg, sizeof(message_type)));
+		boost::asio::read(*my_tcp_socket, boost::asio::buffer(msg + 1,  msg[0]));
 	} catch(std::exception &e) {
 			cout<<"Could not recieve !"<<endl;
 			stop_all = true;
