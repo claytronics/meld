@@ -150,7 +150,7 @@ static inline void
 print_node(ostream& out, const node_val node)
 {
 
-   if(debugger::isInMpiDebuggingMode()||debugger::isInSimDebuggingMode()||debugger::isInDebuggingMode()){
+   if(debugger::isInMpiDebuggingMode()||debugger::isInDebuggingMode()){
     /*debugger used to correct dumping -- Dave*/
     out << "@" << debugger::all->
     

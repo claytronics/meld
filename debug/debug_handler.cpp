@@ -731,7 +731,11 @@ namespace debugger {
 
                 case DUMP:
                     if (specification == "all"){
-                        dumpSystemState(-1);
+                        if (isInSimDebuggingMode()) {
+                            dumpSystemState(api::getNodeID());
+                        } else {
+                            dumpSystemState(-1);
+                        }
                     } else {
                         dumpSystemState(atoi(specification.c_str()));
                     }
