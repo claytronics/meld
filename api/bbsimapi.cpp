@@ -1,5 +1,6 @@
 #include <iostream>
 #include <boost/asio.hpp>
+#include <boost/asio/ip/address.hpp>
 #include <string>
 
 #include "db/database.hpp"
@@ -520,11 +521,9 @@ namespace api
       boost::asio::io_service io_service;
       tcp::resolver resolver(io_service);
 	  /*Change the arguments from hard-coded to variables*/
-      tcp::resolver::query query(tcp::v4(), "127.0.0.1", "5000");
-      tcp::resolver::iterator iterator = resolver.resolve(query);
-
+      tcp::endpoint e(boost::asio::ip::address::from_string("127.0.0.1"), 5000);
       my_tcp_socket = new tcp::socket(io_service);
-      my_tcp_socket->connect(*iterator);
+      my_tcp_socket->connect(e);
     } catch(std::exception &e) {
       cout<<"Could not connect!"<<endl;
     }
