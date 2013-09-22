@@ -1,20 +1,27 @@
+meld VM
+=======
 
-Dependencies:
+This is a C++ bytecode VM for Meld.
+
+
+Dependencies
+-------------
 	- Boost
 		- MPI (optional)
 		- Threads
-   - libreadline
+  - libreadline
 	- A compiler
-		G++ 4.4/4.2, maybe 4.6
-		LLVM/Clang also works
+		- G++ 4.4/4.2, maybe 4.6
+		- LLVM/Clang also works
 
-Installation:
-	- Run boostrap.sh: sh ./bootstrap.sh
-	- Type make: make
 
-Execution:
-	./meld -f bytecodefile -c scheduler
-	Use ./meld -h for help
+Installation/Instructions
+-------------------------
+See Instructions.md
+
+
+Source Tree Overview
+--------------------
 
 Directories:
    - db: implements the database, including facts (tuples) and nodes
