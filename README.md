@@ -6,24 +6,24 @@ This is a C++ bytecode VM for Meld.
 
 Dependencies
 -------------
-	- Boost
-		- MPI (optional)
-		- Threads
+  - Boost
+    - MPI (optional)
+    - Threads
   - libreadline
-	- A compiler
-		- G++ 4.4/4.2, maybe 4.6
-		- LLVM/Clang also works
+    - A compiler
+      - G++ 4.4/4.2, maybe 4.6
+      - LLVM/Clang also works
 
 
 Installation/Instructions
 -------------------------
-See Instructions.md
+See [Instructions.md](https://github.com/claytronics/meld/blob/master/instructions.md)
 
 
 Source Tree Overview
 --------------------
 
-Directories:
+### Directories:
    - db: implements the database, including facts (tuples) and nodes
    - external: implements the available external functions (callable in meld programs)
    - mem: memory allocator for objects used during execution. This improves multithreaded performance since the default allocator is sequential.
@@ -38,6 +38,6 @@ Directories:
    - utils: utilities.
    - vm: the core of the virtual machine, executes VM instructions.
 
-Important files:
+### Important files:
    - meld.cpp: main meld program.
    - server.cpp: server program for using the web interface.
