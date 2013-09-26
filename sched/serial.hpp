@@ -34,8 +34,14 @@ public:
    {
       assert(false);
    }
-
-   virtual db::simple_tuple_vector gather_active_tuples(db::node *, const vm::predicate_id);
+   
+#ifdef COMPILE_MPI
+   virtual void new_work_remote(process::remote *, const db::node::node_id, message *)
+   {
+      assert(false);
+   }
+#endif
+   
    virtual void gather_next_tuples(db::node *, db::simple_tuple_list&);
 
    virtual db::node* get_work(void);

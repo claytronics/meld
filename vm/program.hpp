@@ -42,12 +42,16 @@ const size_t ADD_PRIORITY_PREDICATE_ID(5);
 const size_t SCHEDULE_NEXT_PREDICATE_ID(6);
 const size_t SETCOLOR2_PREDICATE_ID(7);
 
+#define VERSION_AT_LEAST(MAJ, MIN) (major_version > (MAJ) || (major_version == (MAJ) && minor_version >= (MIN)))
+
 class program
 {
 private:
 
    const std::string filename;
    uint32_t major_version, minor_version;
+
+   std::vector<type*> types;
 
    std::vector<import*> imported_predicates;
    std::vector<std::string> exported_predicates;
@@ -66,7 +70,7 @@ private:
 
 	code_size_t const_code_size;
 	byte_code const_code;
-	std::vector<field_type> const_types;
+	std::vector<type*> const_types;
    
    std::vector<predicate*> route_predicates;
    
@@ -92,6 +96,10 @@ private:
 public:
 
    strat_level MAX_STRAT_LEVEL;
+
+   inline size_t num_types(void) const { return types.size(); }
+
+   inline type* get_type(const size_t i) const { assert(i < types.size()); return types[i]; }
 
    inline size_t num_rules(void) const { return number_rules; }
 	inline size_t num_args_needed(void) const { return num_args; }
@@ -137,7 +145,7 @@ public:
       return code[id];
    }
 	inline byte_code get_const_bytecode(void) const { return const_code; }
-	inline field_type get_const_type(const const_id& id) const { return const_types[id]; }
+	inline type* get_const_type(const const_id& id) const { return const_types[id]; }
    
    size_t num_predicates(void) const { return predicates.size(); }
    size_t num_route_predicates(void) const { return route_predicates.size(); }
@@ -155,19 +163,12 @@ public:
 
    bool add_data_file(vm::program&);
 
-    void add_external_function(external_function_ptr ptr,size_t num_args,field_type ret_type,field_type *arg_type);
+    void add_external_function(external_function_ptr ptr, size_t num_args, type *ret_type, type **arg_type);
     ptr_val get_function_pointer(char *lib_path,char* func_name);
    
    explicit program(const std::string&);
    
    ~program(void);
-};
-
-class load_file_error : public std::runtime_error {
- public:
-    explicit load_file_error(const std::string& filename, const std::string& reason) :
-         std::runtime_error(std::string("unable to load byte-code file ") + filename + ": " + reason)
-    {}
 };
 
 }

@@ -124,8 +124,7 @@ namespace sched
       virtual void schedule_next(db::node *) { }
 
 	// GATHER QUEUE FACTS FROM NODE
-      virtual db::simple_tuple_vector gather_active_tuples(db::node *, const vm::predicate_id) { return db::simple_tuple_vector(); }
-      virtual void gather_next_tuples(db::node *, db::simple_tuple_list&) { }
+   virtual void gather_next_tuples(db::node *, db::simple_tuple_list&) { }
 
       virtual void init(const size_t) = 0;
       virtual void end(void) = 0;
