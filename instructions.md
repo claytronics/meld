@@ -26,8 +26,7 @@ brew install boost --with-mpi --without-single
 
 Use apt-get to install dependencies on Ubuntu:
 ```
-sudo apt-get install mpi-default-dev
-sudo apt-get install libboost-all-dev
+sudo apt-get install mpi-default-dev libboost-all-dev libreadline-dev
 ```
 
 Step 2: Compile the meld VM
