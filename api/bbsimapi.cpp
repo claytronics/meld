@@ -51,6 +51,8 @@ using namespace msg;
 namespace api
 {
 
+const char* apiTarget = "bbsim";
+
   enum face_t {
     INVALID_FACE = -1,
     BOTTOM = 0,
