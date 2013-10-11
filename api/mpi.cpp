@@ -32,6 +32,8 @@ namespace mpi = boost::mpi;
 
 namespace api {
 
+const char* apiTarget = "mpi";
+
     // Function Prototypes
     static void freeSendMsgs(void);
     static void processRecvMsgs(sched::base *sched, vm::all *all);
