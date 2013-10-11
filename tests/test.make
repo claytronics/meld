@@ -25,8 +25,12 @@ NODES=1
 
 top:	exec-$(TARGET)
 
+exec-bbsim:	$(mfile).m files/$(basename).test
+	@./mtest.sh "mpiexec -n $(NODES) ../meld -a bbsim -d -f $(mfile).m -c sl" $(basename)
+	this needs to be fixed
+
 exec-mpi:	$(mfile).m files/$(basename).test
-	@./mtest.sh "mpiexec -n $(NODES) ../meld -d -f $(mfile).m -c sl" $(basename)
+	@./mtest.sh "mpiexec -n $(NODES) ../meld -a mpi -d -f $(mfile).m -c sl" $(basename)
 
 $(mfile).m:	$(srcpath)
 	./mcl.sh $(srcpath) $(mfile)
