@@ -1,5 +1,6 @@
 *.o
-meld
+meld-mpi
+meld-bbsim
 print
 *.code
 *.ast
