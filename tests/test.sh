@@ -22,6 +22,9 @@ do_exit ()
 run_diff ()
 {
 	TO_RUN="${1}"
+	echo "================="
+	echo $1
+	echo "================="
 	${TO_RUN} > test.out
 	RET=$?
 	if [ $RET -eq 1 ]; then

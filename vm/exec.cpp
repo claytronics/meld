@@ -77,12 +77,10 @@ move_to_reg(const pcounter& m, state& state,
       const reg_num from_reg(val_field_reg(m));
       const tuple *tuple(state.get_tuple(from_reg));
 
-      switch(tuple->get_field_type(field)) {
+      switch(tuple->get_field_type(field)->get_type()) {
          case FIELD_INT: state.set_int(reg, tuple->get_int(field)); break;
          case FIELD_FLOAT: state.set_float(reg, tuple->get_float(field)); break;
-         case FIELD_LIST_INT: state.set_int_list(reg, tuple->get_int_list(field)); break;
-         case FIELD_LIST_FLOAT: state.set_float_list(reg, tuple->get_float_list(field)); break;
-         case FIELD_LIST_NODE: state.set_node_list(reg, tuple->get_node_list(field)); break;
+         case FIELD_LIST: state.set_cons(reg, tuple->get_cons(field)); break;
          case FIELD_NODE: state.set_node(reg, tuple->get_node(field)); break;
 			case FIELD_STRING: state.set_string(reg, tuple->get_string(field)); break;
          default: throw vm_exec_error("don't know how to move this field (move_to_reg)");
@@ -171,8 +169,8 @@ move_to_field(pcounter m, state& state, const instr_val& from)
 		tuple *tuple(state.get_tuple(val_field_reg(m)));
 
 		const field_num to_field(val_field_num(m));
-		const field_type typ(tuple->get_field_type(to_field));
-
+		const field_type typ(tuple->get_field_type(to_field)->get_type());
+		
 		switch(typ) {
 			case FIELD_INT:
 				tuple->set_int(to_field, state.all->get_const_int(cid));
@@ -180,11 +178,8 @@ move_to_field(pcounter m, state& state, const instr_val& from)
 			case FIELD_FLOAT:
 				tuple->set_float(to_field, state.all->get_const_float(cid));
 				break;
-         case FIELD_LIST_INT:
-            tuple->set_int_list(to_field, state.all->get_const_int_list(cid));
-            break;
-			case FIELD_LIST_FLOAT:
-				tuple->set_float_list(to_field, state.all->get_const_float_list(cid));
+         case FIELD_LIST:
+            tuple->set_cons(to_field, state.all->get_const_cons(cid));
 				break;
          case FIELD_NODE:
             tuple->set_node(to_field, state.all->get_const_node(cid));
@@ -199,22 +194,16 @@ move_to_field(pcounter m, state& state, const instr_val& from)
 
       tuple *to_tuple(state.get_tuple(val_field_reg(m)));
       const field_num to_field(val_field_num(m));
-
-      switch(to_tuple->get_field_type(to_field)) {
+      
+      switch(to_tuple->get_field_type(to_field)->get_type()) {
          case FIELD_INT:
             to_tuple->set_int(to_field, from_tuple->get_int(from_field));
             break;
          case FIELD_FLOAT:
             to_tuple->set_float(to_field, from_tuple->get_float(from_field));
             break;
-         case FIELD_LIST_INT:
-            to_tuple->set_int_list(to_field, from_tuple->get_int_list(from_field));
-            break;
-         case FIELD_LIST_FLOAT:
-            to_tuple->set_float_list(to_field, from_tuple->get_float_list(from_field));
-            break;
-         case FIELD_LIST_NODE:
-            to_tuple->set_node_list(to_field, from_tuple->get_node_list(from_field));
+         case FIELD_LIST:
+            to_tuple->set_cons(to_field, from_tuple->get_cons(from_field));
             break;
          case FIELD_NODE:
             to_tuple->set_node(to_field, from_tuple->get_node(from_field));
@@ -233,8 +222,8 @@ move_to_field(pcounter m, state& state, const instr_val& from)
          tuple->set_node(field, state.node->get_id());
       else if(val_is_reg(from)) {
          const reg_num reg(val_reg(from));
-
-         switch(tuple->get_field_type(field)) {
+         
+         switch(tuple->get_field_type(field)->get_type()) {
             case FIELD_INT:
                tuple->set_int(field, state.get_int(reg));
                break;
@@ -244,14 +233,8 @@ move_to_field(pcounter m, state& state, const instr_val& from)
             case FIELD_NODE:
                tuple->set_node(field, state.get_node(reg));
                break;
-            case FIELD_LIST_INT:
-               tuple->set_int_list(field, state.get_int_list(reg));
-               break;
-            case FIELD_LIST_FLOAT:
-               tuple->set_float_list(field, state.get_float_list(reg));
-               break;
-            case FIELD_LIST_NODE:
-               tuple->set_node_list(field, state.get_node_list(reg));
+            case FIELD_LIST:
+               tuple->set_cons(field, state.get_cons(reg));
                break;
 				case FIELD_STRING:
 					tuple->set_string(field, state.get_string(reg));
@@ -268,21 +251,28 @@ move_to_stack(pcounter pc, pcounter m, state& state, const instr_val& from)
 {
    if(val_is_pcounter(from)) {
       const int off((int)pcounter_offset_num(m));
-      state.get_stack_at(off)->ptr_field = (vm::ptr_val)advance(pc);
+      SET_FIELD_PTR(*(state.get_stack_at(off)), advance(pc));
    } else if(val_is_int(from)) {
 		const int_val it(pcounter_int(m));
 
 		pcounter_move_int(&m);
 
       const offset_num off(pcounter_offset_num(m));
-      state.get_stack_at(off)->int_field = it;
+      SET_FIELD_INT(*(state.get_stack_at(off)), it);
+   } else if(val_is_node(from)) {
+      const node_val n(pcounter_node(m));
+
+      pcounter_move_node(&m);
+
+      const offset_num off(pcounter_offset_num(m));
+      SET_FIELD_FLOAT(*(state.get_stack_at(off)), n);
    } else if(val_is_float(from)) {
 		const float_val flt(pcounter_float(m));
 
       pcounter_move_float(&m);
 
       const offset_num off(pcounter_offset_num(m));
-      state.get_stack_at(off)->float_field = flt;
+      SET_FIELD_FLOAT(*(state.get_stack_at(off)), flt);
 
    } else if(val_is_reg(from)) {
 		const reg_num reg(val_reg(from));
@@ -347,7 +337,7 @@ move_to_pcounter(pcounter& pc, const pcounter pm, state& state, const instr_val 
 {
    if(val_is_stack(from)) {
       const offset_num off(pcounter_offset_num(pm));
-      pc = (pcounter)(state.get_stack_at(off)->ptr_field);
+      pc = (pcounter)FIELD_PCOUNTER(*(state.get_stack_at(off)));
    } else if(val_is_ptr(from)) {
       const ptr_val val(pcounter_ptr(pm));
       pc = (pcounter)val;
@@ -555,6 +545,34 @@ float_val get_op_function<float_val>(const instr_val& val, pcounter& m, state& s
 }
 
 template <>
+tuple_field get_op_function<tuple_field>(const instr_val& val, pcounter& m, state& state)
+{
+   tuple_field ret;
+   if(val_is_int(val)) {
+      SET_FIELD_INT(ret, pcounter_int(m));
+      pcounter_move_int(&m);
+   } else if(val_is_host(val))
+      SET_FIELD_NODE(ret, state.node->get_id());
+   else if(val_is_float(val)) {
+      SET_FIELD_FLOAT(ret, pcounter_float(m));
+      pcounter_move_float(&m);
+   } else if(val_is_reg(val))
+      ret = state.get_reg(val_reg(val));
+   else if(val_is_field(val)) {
+      const tuple *tuple(state.get_tuple(val_field_reg(m)));
+      const field_num field(val_field_num(m));
+      
+      pcounter_move_field(&m);
+      
+      ret = tuple->get_field(field);
+   } else {
+      throw vm_exec_error("invalid data (get_op_function<tuple_field>)");
+   }
+
+   return ret;
+}
+
+template <>
 int_val get_op_function<int_val>(const instr_val& val, pcounter& m, state& state)
 {
    if(val_is_int(val)) {
@@ -622,69 +640,49 @@ ptr_val get_op_function<ptr_val>(const instr_val& val, pcounter& m, state& state
 }
 
 template <>
-int_list* get_op_function<int_list*>(const instr_val& val, pcounter& m, state& state)
+cons* get_op_function<cons*>(const instr_val& val, pcounter& m, state& state)
 {
    if(val_is_reg(val))
-      return state.get_int_list(val_reg(val));
+      return state.get_cons(val_reg(val));
    else if(val_is_field(val)) {
       const tuple *tuple(state.get_tuple(val_field_reg(m)));
       const field_num field(val_field_num(m));
 
       pcounter_move_field(&m);
-
-      return tuple->get_int_list(field);
+      
+      return tuple->get_cons(field);
    } else if(val_is_nil(val))
-      return int_list::null_list();
+      return cons::null_list();
 	else if(val_is_const(val)) {
 		const const_id cid(pcounter_const_id(m));
 
 		pcounter_move_const_id(&m);
-
-		return state.all->get_const_int_list(cid);
+		
+		return state.all->get_const_cons(cid);
 	} else
-      throw vm_exec_error("unable to get an int list (get_op_function<int_list*>)");
+      throw vm_exec_error("unable to get a cons (get_op_function<cons*>)");
 }
 
 template <>
-float_list* get_op_function<float_list*>(const instr_val& val, pcounter& m, state& state)
+struct1* get_op_function<struct1*>(const instr_val& val, pcounter& m, state& state)
 {
    if(val_is_reg(val))
-      return state.get_float_list(val_reg(val));
+      return state.get_struct(val_reg(val));
    else if(val_is_field(val)) {
       const tuple *tuple(state.get_tuple(val_field_reg(m)));
       const field_num field(val_field_num(m));
 
       pcounter_move_field(&m);
-
-      return tuple->get_float_list(field);
-   } else if(val_is_nil(val))
-      return float_list::null_list();
-   else if(val_is_const(val)) {
+      
+      return tuple->get_struct(field);
+   } else if(val_is_const(val)) {
 		const const_id cid(pcounter_const_id(m));
 
 		pcounter_move_const_id(&m);
-
-		return state.all->get_const_float_list(cid);
-   } else
-      throw vm_exec_error("unable to get a float list");
-}
-
-template <>
-node_list* get_op_function<node_list*>(const instr_val& val, pcounter& m, state& state)
-{
-   if(val_is_reg(val))
-      return state.get_node_list(val_reg(val));
-   else if(val_is_field(val)) {
-      const tuple *tuple(state.get_tuple(val_field_reg(m)));
-      const field_num field(val_field_num(m));
-
-      pcounter_move_field(&m);
-
-      return tuple->get_node_list(field);
-   } else if(val_is_nil(val))
-      return node_list::null_list();
-   else
-      throw vm_exec_error("unable to get an addr list");
+		
+		return state.all->get_const_struct(cid);
+	} else
+      throw vm_exec_error("unable to get a struct (get_op_function<struct1*>)");
 }
 
 template <>
@@ -729,6 +727,36 @@ static inline void set_op_function(const pcounter& m,
    const instr_val& dest, T val, state& state);
 
 template <>
+void set_op_function<struct1*>(const pcounter& m, const instr_val& dest,
+      struct1 *s, state& state)
+{
+   if(val_is_reg(dest))
+      state.set_struct(val_reg(dest), s);
+   else if(val_is_field(dest)) {
+      tuple *tuple(state.get_tuple(val_field_reg(m)));
+      const field_num field(val_field_num(m));
+      
+      tuple->set_struct(field, s);
+   } else
+      throw vm_exec_error("invalid destination for a struct value");
+}
+
+template <>
+void set_op_function<rstring*>(const pcounter& m, const instr_val& dest,
+      rstring *s, state& state)
+{
+   if(val_is_reg(dest))
+      state.set_string(val_reg(dest), s);
+   else if(val_is_field(dest)) {
+      tuple *tuple(state.get_tuple(val_field_reg(m)));
+      const field_num field(val_field_num(m));
+      
+      tuple->set_string(field, s);
+   } else
+      throw vm_exec_error("invalid destination for a string value");
+}
+
+template <>
 void set_op_function<bool_val>(const pcounter& m, const instr_val& dest,
    bool_val val, state& state)
 {
@@ -755,7 +783,7 @@ void set_op_function<int_val>(const pcounter& m, const instr_val& dest,
       tuple->set_int(field, val);
    } else if(val_is_stack(dest)) {
       const offset_num off(pcounter_offset_num(m));
-      state.get_stack_at(off)->int_field = val;
+      SET_FIELD_INT(*(state.get_stack_at(off)), val);
    } else
       throw vm_exec_error("invalid destination for int value");
 }
@@ -774,7 +802,7 @@ void set_op_function<float_val>(const pcounter& m, const instr_val& dest,
    } else if(val_is_stack(dest)) {
       const offset_num off(pcounter_offset_num(m));
 
-      state.get_stack_at(off)->float_field = val;
+      SET_FIELD_FLOAT(*(state.get_stack_at(off)), val);
    } else
       throw vm_exec_error("invalid destination for float value");
 }
@@ -795,48 +823,18 @@ void set_op_function<node_val>(const pcounter& m, const instr_val& dest,
 }
 
 template <>
-void set_op_function<int_list*>(const pcounter& m, const instr_val& dest,
-   int_list* val, state& state)
+void set_op_function<cons*>(const pcounter& m, const instr_val& dest,
+   cons* val, state& state)
 {
    if(val_is_reg(dest))
-      state.set_int_list(val_reg(dest), val);
+      state.set_cons(val_reg(dest), val);
    else if(val_is_field(dest)) {
       tuple *tuple(state.get_tuple(val_field_reg(m)));
       const field_num field(val_field_num(m));
-
-      tuple->set_int_list(field, val);
+      
+      tuple->set_cons(field, val);
    } else
-      throw vm_exec_error("invalid destination for int list value");
-}
-
-template <>
-void set_op_function<float_list*>(const pcounter& m, const instr_val& dest,
-   float_list* val, state& state)
-{
-   if(val_is_reg(dest))
-      state.set_float_list(val_reg(dest), val);
-   else if(val_is_field(dest)) {
-      tuple *tuple(state.get_tuple(val_field_reg(m)));
-      const field_num field(val_field_num(m));
-
-      tuple->set_float_list(field, val);
-   } else
-      throw vm_exec_error("invalid destination for float list value");
-}
-
-template <>
-void set_op_function<node_list*>(const pcounter& m, const instr_val& dest,
-   node_list* val, state& state)
-{
-   if(val_is_reg(dest))
-      state.set_node_list(val_reg(dest), val);
-   else if(val_is_field(dest)) {
-      tuple *tuple(state.get_tuple(val_field_reg(m)));
-      const field_num field(val_field_num(m));
-
-      tuple->set_node_list(field, val);
-   } else
-      throw vm_exec_error("invalid destination for addr list value");
+      throw vm_exec_error("invalid destination for cons value");
 }
 
 static inline void
@@ -924,8 +922,8 @@ do_match(const tuple *tuple, const field_num& field, const instr_val& val,
 {
    if(val_is_reg(val)) {
       const reg_num reg(val_reg(val));
-
-      switch(tuple->get_field_type(field)) {
+      
+      switch(tuple->get_field_type(field)->get_type()) {
          case FIELD_INT: return tuple->get_int(field) == state.get_int(reg);
          case FIELD_FLOAT: return tuple->get_float(field) == state.get_float(reg);
          case FIELD_NODE: return tuple->get_node(field) == state.get_node(reg);
@@ -936,8 +934,8 @@ do_match(const tuple *tuple, const field_num& field, const instr_val& val,
       const field_num field2(val_field_num(pc));
 
       pcounter_move_field(&pc);
-
-      switch(tuple->get_field_type(field)) {
+      
+      switch(tuple->get_field_type(field)->get_type()) {
          case FIELD_INT: return tuple->get_int(field) == tuple2->get_int(field2);
          case FIELD_FLOAT: return tuple->get_float(field) == tuple2->get_float(field2);
          case FIELD_NODE: return tuple->get_node(field) == tuple2->get_node(field2);
@@ -1001,8 +999,8 @@ build_match_object(match& m, pcounter pc, state& state, const predicate *pred)
       const instr_val val(iter_match_val(match));
 
       pcounter_move_match(&pc);
-
-      switch(pred->get_field_type(field)) {
+      
+      switch(pred->get_field_type(field)->get_type()) {
          case FIELD_INT: {
             const int_val i(get_op_function<int_val>(val, pc, state));
             m.match_int(field, i);
@@ -1025,7 +1023,6 @@ build_match_object(match& m, pcounter pc, state& state, const predicate *pred)
 
 typedef enum {
 	ITER_DB,
-	ITER_QUEUE,
 	ITER_LOCAL
 } iter_type_t;
 
@@ -1041,7 +1038,6 @@ private:
 	{
 		switch(l.first) {
 			case ITER_LOCAL:
-			case ITER_QUEUE:
 				return ((simple_tuple*)l.second)->get_tuple();
 			case ITER_DB:
 				return ((tuple_trie_leaf*)l.second)->get_underlying_tuple();
@@ -1057,8 +1053,8 @@ public:
 		tuple *t2(get_tuple(l2));
 
 		assert(t1 != NULL && t2 != NULL);
-
-		switch(pred->get_field_type(field)) {
+		
+		switch(pred->get_field_type(field)->get_type()) {
 			case FIELD_INT:
 				return t1->get_int(field) < t2->get_int(field);
 			case FIELD_FLOAT:
@@ -1122,19 +1118,6 @@ execute_iter(pcounter pc, const utils::byte options, const utils::byte options_a
 		typedef vector<iter_object, mem::allocator<iter_object> > vector_of_everything;
       vector_of_everything everything;
 
-#if 0
-      if(true) {
-         simple_tuple_vector queue_tuples(state.sched->gather_active_tuples(state.node, pred->get_id()));
-
-         for(simple_tuple_vector::iterator it(queue_tuples.begin()), end(queue_tuples.end());
-            it != end; ++it)
-         {
-            if(do_matches(pc, (*it)->get_tuple(), state))
-               everything.push_back(iter_object(ITER_QUEUE, (void*)*it));
-         }
-      }
-#endif
-
 		if(state.use_local_tuples) {
 			for(db::simple_tuple_list::iterator it(state.local_tuples.begin()), end(state.local_tuples.end());
 				it != end;
@@ -1191,31 +1174,6 @@ execute_iter(pcounter pc, const utils::byte options, const utils::byte options_a
 			         state.no_longer_using_linear_tuple(tuple_leaf); // not used during derivation
 				}
 				break;
-#if 0
-				case ITER_QUEUE: {
-					simple_tuple *stpl((simple_tuple*)p.second);
-					tuple *match_tuple(stpl->get_tuple());
-
-					if(!stpl->can_be_consumed())
-						continue;
-
-
-					PUSH_CURRENT_STATE(match_tuple, NULL, stpl, stpl->get_depth());
-
-
-					if(iter_options_to_delete(options))
-						stpl->will_delete(); // this will avoid future gathers of this tuple!
-
-					ret = execute(first, state);
-
-					POP_STATE();
-
-					if(!(ret == RETURN_LINEAR || ret == RETURN_DERIVED)) { // tuple not consumed
-						stpl->will_not_delete(); // oops, revert
-					}
-				}
-				break;
-#endif
 				case ITER_LOCAL: {
 					simple_tuple *stpl((simple_tuple*)p.second);
 					tuple *match_tuple(stpl->get_tuple());
@@ -1438,23 +1396,13 @@ execute_cons(pcounter pc, state& state)
    const instr_val head(cons_head(pc));
    const instr_val tail(cons_tail(pc));
    const instr_val dest(cons_dest(pc));
-
-#define implement_cons(ELEMENT, LIST) {                              \
-   const ELEMENT head_val(get_op_function<ELEMENT>(head, m, state)); \
-   LIST *ls(get_op_function<LIST*>(tail, m, state));                 \
-   LIST *new_list(new LIST(ls, head_val));                           \
-	state.add_ ## LIST (new_list);												\
-   set_op_function(m, dest, new_list, state);                        \
-   break;                                                            \
-}
-
-   switch(cons_type(pc)) {
-      case FIELD_LIST_INT: implement_cons(int_val, int_list);
-      case FIELD_LIST_FLOAT: implement_cons(float_val, float_list);
-      case FIELD_LIST_NODE: implement_cons(node_val, node_list);
-      default: break; // does not happen
-   }
-#undef implement_cons
+   list_type *ltype((list_type*)state.all->PROGRAM->get_type(cons_type(pc)));
+   
+   const tuple_field head_val(get_op_function<tuple_field>(head, m, state));
+   cons *ls(get_op_function<cons*>(tail, m, state));
+   cons *new_list(new cons(ls, head_val, ltype));
+	state.add_cons(new_list);
+   set_op_function(m, dest, new_list, state);
 }
 
 static inline void
@@ -1474,46 +1422,53 @@ static inline void
 execute_tail(pcounter& pc, state& state)
 {
    pcounter m = pc + TAIL_BASE;
-   const instr_val cons(tail_cons(pc));
+   const instr_val cons_val(tail_cons(pc));
    const instr_val dest(tail_dest(pc));
-
-#define implement_tail(TYPE)     {                    \
-   TYPE *ls(get_op_function<TYPE*>(cons, m, state));  \
-   TYPE *tail(ls->get_tail());                        \
-   set_op_function(m, dest, tail, state);             \
-   break;                                             \
+   
+   cons *ls(get_op_function<cons*>(cons_val, m, state));
+   cons *tail(ls->get_tail());
+   set_op_function(m, dest, tail, state);
 }
 
-   switch(tail_type(pc)) {
-      case FIELD_LIST_INT: implement_tail(int_list);
-      case FIELD_LIST_FLOAT: implement_tail(float_list);
-      case FIELD_LIST_NODE: implement_tail(node_list);
-      default: throw vm_exec_error("unknown list type in tail");
+static inline void
+move_typed_data(const pcounter& pc, type *t, const tuple_field& data,
+      const instr_val to, state& state)
+{
+   switch(t->get_type()) {
+      case FIELD_INT:
+         set_op_function<int_val>(pc, to, FIELD_INT(data), state);
+         break;
+      case FIELD_FLOAT:
+         set_op_function<float_val>(pc, to, FIELD_FLOAT(data), state);
+         break;
+      case FIELD_NODE:
+         set_op_function<node_val>(pc, to, FIELD_NODE(data), state);
+         break;
+      case FIELD_STRING:
+         set_op_function<rstring*>(pc, to, FIELD_STRING(data), state);
+         break;
+      case FIELD_LIST:
+         set_op_function<cons*>(pc, to, FIELD_CONS(data), state);
+         break;
+      case FIELD_STRUCT:
+         set_op_function<struct1*>(pc, to, FIELD_STRUCT(data), state);
+         break;
+      default:
+         throw vm_exec_error("unrecognized type (move_typed_data)");
    }
-#undef implement_tail
 }
 
 static inline void
 execute_head(pcounter& pc, state& state)
 {
    pcounter m = pc + HEAD_BASE;
-   const instr_val cons(head_cons(pc));
+   const instr_val cons_val(head_cons(pc));
    const instr_val dest(head_dest(pc));
 
-#define implement_head(LIST, ELEMENT) {               \
-   LIST *ls(get_op_function<LIST*>(cons, m, state));  \
-   const ELEMENT val(ls->get_head());                 \
-   set_op_function(m, dest, val, state);              \
-   break;                                             \
-}
-
-   switch(head_type(pc)) {
-      case FIELD_LIST_INT: implement_head(int_list, int_val);
-      case FIELD_LIST_FLOAT: implement_head(float_list, float_val);
-      case FIELD_LIST_NODE: implement_head(node_list, node_val);
-      default: throw vm_exec_error("unknown list type in head");
-   }
-#undef implement_head
+   cons *ls(get_op_function<cons*>(cons_val, m, state));
+   const tuple_field val(ls->get_head());
+   list_type *lt(ls->get_type());
+   move_typed_data(pc, lt->get_subtype(), val, dest, state);
 }
 
 static inline void
@@ -1580,8 +1535,8 @@ execute_delete(const pcounter pc, state& state)
       assert(fil_ind == i);
 
       m += index_size + val_size;
-
-      switch(pred->get_field_type(fil_ind)) {
+      
+      switch(pred->get_field_type(fil_ind)->get_type()) {
          case FIELD_INT:
             idx = get_op_function<int_val>(fil_val, m, state);
             mobj.match_int(fil_ind, idx);
@@ -1611,37 +1566,27 @@ read_call_arg(argument& arg, const field_type type, pcounter& m, state& state)
    switch(type) {
       case FIELD_INT: {
          const int_val val(get_op_function<int_val>(val_type, m, state));
-			arg.int_field = val;
+         SET_FIELD_INT(arg, val);
       }
       break;
       case FIELD_FLOAT: {
          const float_val val(get_op_function<float_val>(val_type, m, state));
-			arg.float_field = val;
+         SET_FIELD_FLOAT(arg, val);
       }
       break;
       case FIELD_NODE: {
          const node_val val(get_op_function<node_val>(val_type, m, state));
-			arg.node_field = val;
+         SET_FIELD_NODE(arg, val);
       }
       break;
-      case FIELD_LIST_FLOAT: {
-         const float_list *val(get_op_function<float_list*>(val_type, m, state));
-			arg.ptr_field = (ptr_val)val;
+      case FIELD_LIST: {
+         const cons *val(get_op_function<cons*>(val_type, m, state));
+         SET_FIELD_CONS(arg, val);
       }
       break;
-      case FIELD_LIST_INT: {
-         const int_list *val(get_op_function<int_list*>(val_type, m, state));
-			arg.ptr_field = (ptr_val)val;
-      }
-      break;
-		case FIELD_LIST_NODE: {
-			const node_list *val(get_op_function<node_list*>(val_type, m, state));
-			arg.ptr_field = (ptr_val)val;
-		}
-		break;
 		case FIELD_STRING: {
 			const rstring::ptr val(get_op_function<rstring::ptr>(val_type, m, state));
-			arg.ptr_field = (ptr_val)val;
+         SET_FIELD_STRING(arg, val);
 		}
 		break;
       default:
@@ -1707,12 +1652,12 @@ execute_call(pcounter pc, state& state)
    const size_t num_args(call_num_args(pc));
    const reg_num reg(call_dest(pc));
    external_function *f(lookup_external_function(id));
-   const field_type ret_type(f->get_return_type());
+   const type* ret_type(f->get_return_type());
    argument args[num_args];
 
    for(size_t i(0); i < num_args; ++i)
-      read_call_arg(args[i], f->get_arg_type(i), m, state);
-
+      read_call_arg(args[i], f->get_arg_type(i)->get_type(), m, state);
+   
    assert(num_args == f->get_num_args());
 
    argument ret;
@@ -1734,48 +1679,33 @@ execute_call(pcounter pc, state& state)
       default:
          throw vm_exec_error("vm does not support external functions with more than 3 arguments");
    }
-
-   switch(ret_type) {
+   
+   switch(ret_type->get_type()) {
       case FIELD_INT:
-         state.set_int(reg, ret.int_field);
+         state.set_int(reg, FIELD_INT(ret));
          break;
       case FIELD_FLOAT:
-         state.set_float(reg, ret.float_field);
+         state.set_float(reg, FIELD_FLOAT(ret));
          break;
       case FIELD_NODE:
-         state.set_node(reg, ret.node_field);
+         state.set_node(reg, FIELD_NODE(ret));
          break;
 		case FIELD_STRING: {
-			rstring::ptr s((rstring::ptr)ret.ptr_field);
-
+			rstring::ptr s(FIELD_STRING(ret));
+			
 			state.set_string(reg, s);
 			state.add_string(s);
 
 			break;
 		}
-      case FIELD_LIST_FLOAT: {
-         float_list *l((float_list *)ret.ptr_field);
+      case FIELD_LIST: {
+         cons *l(FIELD_CONS(ret));
 
-         state.set_float_list(reg, l);
-         if(!float_list::is_null(l))
-            state.add_float_list(l);
+         state.set_cons(reg, l);
+         if(!cons::is_null(l))
+            state.add_cons(l);
          break;
       }
-      case FIELD_LIST_INT: {
-         int_list *l((int_list *)ret.ptr_field);
-         state.set_int_list(reg, l);
-
-         if(!int_list::is_null(l))
-            state.add_int_list(l);
-         break;
-      }
-		case FIELD_LIST_NODE: {
-			node_list *l((node_list *)ret.ptr_field);
-			state.set_node_list(reg, l);
-			if(!node_list::is_null(l))
-				state.add_node_list(l);
-			break;
-		}
       default:
          throw vm_exec_error("invalid return type in call (execute_call)");
    }
@@ -1790,11 +1720,11 @@ execute_calle(pcounter pc, state& state)
    const size_t num_args(call_num_args(pc));
    const reg_num reg(call_dest(pc));
    external_function *f(lookup_external_function(id));
-   const field_type ret_type(f->get_return_type());
+   type *ret_type(f->get_return_type());
    argument args[num_args];
 
    for(size_t i(0); i < num_args; ++i)
-      read_call_arg(args[i], f->get_arg_type(i), m, state);
+      read_call_arg(args[i], f->get_arg_type(i)->get_type(), m, state);
 
    assert(num_args == f->get_num_args());
 
@@ -1818,47 +1748,40 @@ execute_calle(pcounter pc, state& state)
          throw vm_exec_error("vm does not support external functions with more than 3 arguments");
    }
 
-   switch(ret_type) {
+   switch(ret_type->get_type()) {
       case FIELD_INT:
-         state.set_int(reg, ret.int_field);
+         state.set_int(reg, FIELD_INT(ret));
          break;
       case FIELD_FLOAT:
-         state.set_float(reg, ret.float_field);
+         state.set_float(reg, FIELD_FLOAT(ret));
          break;
       case FIELD_NODE:
-         state.set_node(reg, ret.node_field);
+         state.set_node(reg, FIELD_NODE(ret));
          break;
 		case FIELD_STRING: {
-			rstring::ptr s((rstring::ptr)ret.ptr_field);
+			rstring::ptr s(FIELD_STRING(ret));
 
 			state.set_string(reg, s);
 			state.add_string(s);
 
 			break;
 		}
-      case FIELD_LIST_FLOAT: {
-         float_list *l((float_list *)ret.ptr_field);
+      case FIELD_LIST: {
+         runtime::cons *l(FIELD_CONS(ret));
 
-         state.set_float_list(reg, l);
-         if(!float_list::is_null(l))
-            state.add_float_list(l);
-         break;
-      }
-      case FIELD_LIST_INT: {
-         int_list *l((int_list *)ret.ptr_field);
-         state.set_int_list(reg, l);
+         state.set_cons(reg, l);
+         if(!runtime::cons::is_null(l))
+            state.add_cons(l);
 
-         if(!int_list::is_null(l))
-            state.add_int_list(l);
-         break;
-      }
-		case FIELD_LIST_NODE: {
-			node_list *l((node_list *)ret.ptr_field);
-			state.set_node_list(reg, l);
-			if(!node_list::is_null(l))
-				state.add_node_list(l);
 			break;
 		}
+      case FIELD_STRUCT: {
+         runtime::struct1 *s(FIELD_STRUCT(ret));
+
+         state.set_struct(reg, s);
+         state.add_struct(s);
+         break;
+      }
       default:
          throw vm_exec_error("invalid return type in call (execute_calle)");
    }
@@ -1912,6 +1835,47 @@ execute_new_node(const pcounter& pc, state& state)
 
 }
 
+static inline tuple_field
+axiom_read_data(pcounter& pc, type *t)
+{
+   tuple_field f;
+
+   switch(t->get_type()) {
+      case FIELD_INT:
+         SET_FIELD_INT(f, pcounter_int(pc));
+         pcounter_move_int(&pc);
+         break;
+      case FIELD_FLOAT:
+         SET_FIELD_FLOAT(f, pcounter_float(pc));
+         pcounter_move_float(&pc);
+         break;
+      case FIELD_NODE:
+         SET_FIELD_NODE(f, pcounter_node(pc));
+         pcounter_move_node(&pc);
+         break;
+      case FIELD_LIST:
+         if(*pc == 0) {
+            pc++;
+            SET_FIELD_CONS(f, runtime::cons::null_list());
+         } else if(*pc == 1) {
+            pc++;
+            list_type *lt((list_type*)t);
+            tuple_field head(axiom_read_data(pc, lt->get_subtype()));
+            tuple_field tail(axiom_read_data(pc, t));
+            runtime::cons *c(FIELD_CONS(tail));
+            runtime::cons *nc(new runtime::cons(c, head, lt));
+            SET_FIELD_CONS(f, nc);
+         } else {
+            assert(false);
+         }
+         break;
+
+      default: assert(false);
+   }
+
+   return f;
+}
+
 static inline void
 execute_new_axioms(pcounter pc, state& state)
 {
@@ -1931,56 +1895,46 @@ execute_new_axioms(pcounter pc, state& state)
             i != num_fields;
             ++i)
       {
-         switch(pred->get_field_type(i)) {
-            case FIELD_INT:
-               tpl->set_int(i, pcounter_int(pc));
-               pcounter_move_int(&pc);
-               break;
-            case FIELD_FLOAT:
-               tpl->set_float(i, pcounter_float(pc));
-               pcounter_move_float(&pc);
-               break;
-            case FIELD_NODE:
-               tpl->set_node(i, pcounter_node(pc));
-               pcounter_move_node(&pc);
-               break;
-            case FIELD_LIST_INT: {
-               stack_int_list s;
-
-               while(*pc++ == 1) {
-
-                  s.push(pcounter_int(pc));
-                  pcounter_move_int(&pc);
-               }
-
-               tpl->set_int_list(i, from_stack_to_list<stack_int_list, int_list>(s));
-            }
-            break;
-            case FIELD_LIST_FLOAT: {
-               stack_float_list s;
-
-               while(*pc++ == 1) {
-
-                  s.push(pcounter_float(pc));
-                  pcounter_move_float(&pc);
-               }
-               tpl->set_float_list(i, from_stack_to_list<stack_float_list, float_list>(s));
-            }
-            break;
-            case FIELD_LIST_NODE: {
-               stack_node_list s;
-               while(*pc++ == 1) {
-                  s.push(pcounter_node(pc));
-                  pcounter_move_node(&pc);
-               }
-               tpl->set_node_list(i, from_stack_to_list<stack_node_list, node_list>(s));
-            }
-            break;
-            default: assert(false);
-         }
+         tuple_field field(axiom_read_data(pc, pred->get_field_type(i)));
+         if(pred->get_field_type(i)->get_type() == FIELD_LIST)
+            tpl->set_cons(i, FIELD_CONS(field));
+         else
+            tpl->set_field(i, field);
       }
       execute_send_self(tpl, state);
    }
+}
+
+static inline void
+execute_make_struct(pcounter pc, state& state)
+{
+   const instr_val to(make_struct_to(pc));
+   struct_type *st((struct_type*)state.all->PROGRAM->get_type(make_struct_type(pc)));
+
+   pc += MAKE_STRUCT_BASE;
+   struct1 *s(new struct1(st));
+
+   for(size_t i(state.stack.size() - st->get_size()), j(0); i < state.stack.size(); ++i, ++j) {
+      s->set_data(j, state.stack[i]);
+   }
+   state.stack.resize(state.stack.size() - st->get_size());
+
+   set_op_function<struct1*>(pc, to, s, state);
+   state.add_struct(s);
+}
+
+static inline void
+execute_struct_val(pcounter pc, state& state)
+{
+   const size_t idx(struct_val_idx(pc));
+   const instr_val from(struct_val_from(pc));
+   const instr_val to(struct_val_to(pc));
+   pcounter m = pc + STRUCT_VAL_BASE;
+   struct1 *s(get_op_function<struct1*>(from, m, state));
+   struct_type *st(s->get_type());
+   type *t(st->get_type(idx));
+
+   move_typed_data(pc, t, s->get_data(idx), to, state);
 }
 
 static inline return_type
@@ -2209,6 +2163,14 @@ eval_loop:
               pc = fun->get_bytecode();
               goto eval_loop;
            }
+           break;
+
+         case MAKE_STRUCT_INSTR:
+           execute_make_struct(pc, state);
+           break;
+
+         case STRUCT_VAL_INSTR:
+           execute_struct_val(pc, state);
            break;
 
          default: throw vm_exec_error("unsupported instruction");

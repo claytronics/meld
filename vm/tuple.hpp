@@ -11,6 +11,7 @@
 #include "vm/predicate.hpp"
 #include "runtime/list.hpp"
 #include "runtime/string.hpp"
+#include "runtime/struct.hpp"
 #include "mem/allocator.hpp"
 #include "mem/base.hpp"
 #include "utils/types.hpp"
@@ -38,18 +39,17 @@ namespace vm
 #define define_set(NAME, TYPE, VAL)					\
     inline void set_ ## NAME (const field_num& field, TYPE val) { VAL; }
 
-    define_set(int, const int_val&, fields[field].int_field = val);
-    define_set(float, const float_val&, fields[field].float_field = val);
-    define_set(ptr, const ptr_val&, fields[field].ptr_field = val);
-    define_set(bool, const bool_val&, set_int(field, val ? 1 : 0));
-    define_set(node, const node_val&, fields[field].node_field = val);
-    define_set(string, const runtime::rstring::ptr, set_ptr(field, (ptr_val)val); val->inc_refs());
-    define_set(int_list, runtime::int_list*, set_ptr(field, (ptr_val)val); runtime::int_list::inc_refs(val));
-    define_set(float_list, runtime::float_list*, set_ptr(field, (ptr_val)val); runtime::float_list::inc_refs(val));
-    define_set(node_list, runtime::node_list*, set_ptr(field, (ptr_val)val); runtime::node_list::inc_refs(val));
+   define_set(int, const int_val&, SET_FIELD_INT(fields[field], val));
+   define_set(float, const float_val&, SET_FIELD_FLOAT(fields[field], val));
+   define_set(ptr, const ptr_val&, SET_FIELD_PTR(fields[field], val));
+   define_set(bool, const bool_val&, SET_FIELD_BOOL(fields[field], val));
+   define_set(node, const node_val&, SET_FIELD_NODE(fields[field], val));
+	define_set(string, const runtime::rstring::ptr, SET_FIELD_STRING(fields[field], val); val->inc_refs());
+   define_set(cons, runtime::cons*, SET_FIELD_CONS(fields[field], val); runtime::cons::inc_refs(val));
+   define_set(struct, runtime::struct1*, SET_FIELD_STRUCT(fields[field], val); val->inc_refs());
 
-    inline void set_nil(const field_num& field) { set_ptr(field, null_ptr_val); }
-    inline void set_field(const field_num& field, tuple_field& f) { fields[field] = f; }
+   inline void set_nil(const field_num& field) { SET_FIELD_CONS(fields[field], runtime::cons::null_list()); }
+   inline void set_field(const field_num& field, tuple_field& f) { fields[field] = f; }
 #undef define_set
 
     size_t num_fields(void) const { return pred->num_fields(); }
@@ -68,23 +68,21 @@ namespace vm
    void copy_runtime(void);
 
     static tuple* unpack(utils::byte *, const size_t, int *, vm::program *);
+   type* get_field_type(const field_num& field) const { return pred->get_field_type(field); }
 
-    field_type get_field_type(const field_num& field) const { return pred->get_field_type(field); }
+   tuple_field get_field(const field_num& field) const { return fields[field]; }
+   
+#define define_get(RET, NAME, VAL) \
+   inline RET get_ ## NAME (const field_num& field) const { return VAL; }
 
-    tuple_field get_field(const field_num& field) const { return fields[field]; }
-
-#define define_get(RET, NAME, VAL)					\
-    inline RET get_ ## NAME (const field_num& field) const { return VAL; }
-
-    define_get(int_val, int, fields[field].int_field);
-    define_get(float_val, float, fields[field].float_field);
-    define_get(ptr_val, ptr, fields[field].ptr_field);
-    define_get(bool_val, bool, get_int(field) ? true : false);
-    define_get(node_val, node, fields[field].node_field);
-    define_get(runtime::rstring::ptr, string, (runtime::rstring::ptr)get_ptr(field));
-    define_get(runtime::int_list*, int_list, (runtime::int_list*)get_ptr(field));
-    define_get(runtime::float_list*, float_list, (runtime::float_list*)get_ptr(field));
-    define_get(runtime::node_list*, node_list, (runtime::node_list*)get_ptr(field));
+   define_get(int_val, int, FIELD_INT(fields[field]));
+   define_get(float_val, float, FIELD_FLOAT(fields[field]));
+   define_get(ptr_val, ptr, FIELD_PTR(fields[field]));
+   define_get(bool_val, bool, FIELD_BOOL(fields[field]));
+   define_get(node_val, node, FIELD_NODE(fields[field]));
+	define_get(runtime::rstring::ptr, string, FIELD_STRING(fields[field]));
+   define_get(runtime::cons*, cons, FIELD_CONS(fields[field]));
+   define_get(runtime::struct1*, struct, FIELD_STRUCT(fields[field]));
 
 #undef define_get
 

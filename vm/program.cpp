@@ -11,6 +11,7 @@
 #include "db/database.hpp"
 #include "utils/types.hpp"
 #include "vm/state.hpp"
+#include "vm/reader.hpp"
 #include "version.hpp"
 
 
@@ -23,21 +24,6 @@ using namespace utils;
 
 namespace vm {
 
-static const size_t PREDICATE_DESCRIPTOR_SIZE = sizeof(code_size_t) +
-                                                PRED_DESCRIPTOR_BASE_SIZE +
-                                                PRED_ARGS_MAX +
-                                                PRED_NAME_SIZE_MAX +
-                                                PRED_AGG_INFO_MAX;
-#define READ_CODE(TO, SIZE) do { \
-	fp.read((char *)(TO), SIZE);	\
-	position += (SIZE);				\
-} while(false)
-#define SEEK_CODE(SIZE) do { \
-	fp.seekg(SIZE, ios_base::cur);	\
-	position += (SIZE);	\
-} while(false)
-#define VERSION_AT_LEAST(MAJ, MIN) (major_version > (MAJ) || (major_version == (MAJ) && minor_version >= (MIN)))
-
 // most integers in the byte-code have 4 bytes
 BOOST_STATIC_ASSERT(sizeof(uint_val) == 4);
 
@@ -45,35 +31,29 @@ program::program(const string& _filename):
    filename(_filename),
    init(NULL)
 {
-	size_t position(0);
-   
-   ifstream fp(filename.c_str(), ios::in | ios::binary);
-   
-   if(!fp.is_open())
-      throw load_file_error(filename, "unable to open file");
+   code_reader read(filename);
 
    // read magic
    uint32_t magic1, magic2;
-   READ_CODE(&magic1, sizeof(magic1));
-   READ_CODE(&magic2, sizeof(magic2));
+   read.read_type<uint32_t>(&magic1);
+   read.read_type<uint32_t>(&magic2);
    if(magic1 != MAGIC1 || magic2 != MAGIC2)
       throw load_file_error(filename, "not a meld byte code file");
 
    // read version
-   READ_CODE(&major_version, sizeof(uint32_t));
-   READ_CODE(&minor_version, sizeof(uint32_t));
+   read.read_type<uint32_t>(&major_version);
+   read.read_type<uint32_t>(&minor_version);
    if(!VERSION_AT_LEAST(0, 5))
       throw load_file_error(filename, string("unsupported byte code version"));
 
-   if(VERSION_AT_LEAST(0, 10))
+   if(VERSION_AT_LEAST(0, 11))
       throw load_file_error(filename, string("unsupported byte code version"));
 
    // read number of predicates
-   byte buf[PREDICATE_DESCRIPTOR_SIZE];
+   byte num_preds;
+	read.read_type<byte>(&num_preds);
    
-	READ_CODE(buf, sizeof(byte));
-   
-   const size_t num_predicates = (size_t)buf[0];
+   const size_t num_predicates = (size_t)num_preds;
    
    predicates.resize(num_predicates);
    code_size.resize(num_predicates);
@@ -81,32 +61,43 @@ program::program(const string& _filename):
 
    // skip nodes
    uint_val num_nodes;
-	READ_CODE(&num_nodes, sizeof(uint_val));
+	read.read_type<uint_val>(&num_nodes);
 
-	SEEK_CODE(num_nodes * database::node_size);
+	read.seek(num_nodes * database::node_size);
+
+   if(VERSION_AT_LEAST(0, 10)) {
+      // read number of types
+      byte ntypes;
+      read.read_type<byte>(&ntypes);
+      types.resize((size_t)ntypes);
+
+      for(size_t i(0); i < num_types(); ++i) {
+         types[i] = read_type_from_reader(read);
+      }
+   }
 
    // read imported/exported predicates
    if(VERSION_AT_LEAST(0, 9)) {
       uint32_t number_imported_predicates;
 
-      READ_CODE(&number_imported_predicates, sizeof(number_imported_predicates));
+      read.read_type<uint32_t>(&number_imported_predicates);
 
       for(uint32_t i(0); i < number_imported_predicates; ++i) {
          uint32_t size;
-         READ_CODE(&size, sizeof(size));
+         read.read_type<uint32_t>(&size);
 
          char buf_imp[size + 1];
-         READ_CODE(buf_imp, size);
+         read.read_any(buf_imp, size);
          buf_imp[size] = '\0';
 
-         READ_CODE(&size, sizeof(size));
+         read.read_type<uint32_t>(&size);
          char buf_as[size + 1];
-         READ_CODE(buf_as, size);
+         read.read_any(buf_as, size);
          buf_as[size] = '\0';
 
-         READ_CODE(&size, sizeof(size));
+         read.read_type<uint32_t>(&size);
          char buf_file[size + 1];
-         READ_CODE(buf_file, size);
+         read.read_any(buf_file, size);
          buf_file[size] = '\0';
 
          cout << "import " << buf_imp << " as " << buf_as << " from " << buf_file << endl;
@@ -117,13 +108,13 @@ program::program(const string& _filename):
 
       uint32_t number_exported_predicates;
 
-      READ_CODE(&number_exported_predicates, sizeof(number_exported_predicates));
+      read.read_type<uint32_t>(&number_exported_predicates);
 
       for(uint32_t i(0); i < number_exported_predicates; ++i) {
          uint32_t str_size;
-         READ_CODE(&str_size, sizeof(str_size));
+         read.read_type<uint32_t>(&str_size);
          char buf[str_size + 1];
-         READ_CODE(buf, str_size);
+         read.read_any(buf, str_size);
          buf[str_size] = '\0';
          exported_predicates.push_back(string(buf));
       }
@@ -133,27 +124,27 @@ program::program(const string& _filename):
 	// get number of args needed
 	byte n_args;
 
-	READ_CODE(&n_args, sizeof(byte));
+	read.read_type<byte>(&n_args);
 	num_args = (size_t)n_args;
 
    // get rule information
-   uint_val n_rules;
+   uint32_t n_rules;
 
-   READ_CODE(&n_rules, sizeof(uint_val));
+   read.read_type<uint32_t>(&n_rules);
 
    number_rules = n_rules;
 
    for(size_t i(0); i < n_rules; ++i) {
       // read rule string length
-      uint_val rule_len;
+      uint32_t rule_len;
 
-      READ_CODE(&rule_len, sizeof(uint_val));
+      read.read_type<uint32_t>(&rule_len);
 
       assert(rule_len > 0);
 
       char str[rule_len + 1];
 
-      READ_CODE(str, sizeof(char) * rule_len);
+      read.read_any(str, rule_len);
 
       str[rule_len] = '\0';
 
@@ -161,58 +152,56 @@ program::program(const string& _filename):
    }
 
 	// read string constants
-	int_val num_strings;
-	READ_CODE(&num_strings, sizeof(int_val));
+	uint32_t num_strings;
+	read.read_type<uint32_t>(&num_strings);
 	
 	default_strings.reserve(num_strings);
 	
-	for(int i(0); i < num_strings; ++i) {
-		int_val length;
+	for(uint32_t i(0); i < num_strings; ++i) {
+		uint32_t length;
 		
-		READ_CODE(&length, sizeof(int_val));
+		read.read_type<uint32_t>(&length);
 		
 		char str[length + 1];
-		READ_CODE(str, sizeof(char) * length);
+		read.read_any(str, length);
 		str[length] = '\0';
 		default_strings.push_back(runtime::rstring::make_default_string(str));
 	}
 	
 	// read constants code
-	uint_val num_constants;
-	READ_CODE(&num_constants, sizeof(uint_val));
+	uint32_t num_constants;
+	read.read_type<uint32_t>(&num_constants);
 	
 	// read constant types
 	const_types.resize(num_constants);
 	
 	for(uint_val i(0); i < num_constants; ++i) {
-		byte b;
-		READ_CODE(&b, sizeof(byte));
-		const_types[i] = (field_type)b;
+      const_types[i] = read_type_id_from_reader(read, types);
 	}
 	
 	// read constants code
-	READ_CODE(&const_code_size, sizeof(code_size_t));
+	read.read_type<code_size_t>(&const_code_size);
 	
 	const_code = new byte_code_el[const_code_size];
 	
-	READ_CODE(const_code, const_code_size);
+	read.read_any(const_code, const_code_size);
 
    MAX_STRAT_LEVEL = 0;
 
    if(VERSION_AT_LEAST(0, 6)) {
       // get function code
-      uint_val n_functions;
+      uint32_t n_functions;
 
-      READ_CODE(&n_functions, sizeof(uint_val));
+      read.read_type<uint32_t>(&n_functions);
 
       functions.resize(n_functions);
 
-      for(size_t i(0); i < n_functions; ++i) {
+      for(uint32_t i(0); i < n_functions; ++i) {
          code_size_t fun_size;
 
-         READ_CODE(&fun_size, sizeof(code_size_t));
+         read.read_type<code_size_t>(&fun_size);
          byte_code fun_code(new byte_code_el[fun_size]);
-         READ_CODE(fun_code, fun_size);
+         read.read_any(fun_code, fun_size);
 
          functions[i] = new vm::function(fun_code, fun_size);
       }
@@ -222,67 +211,59 @@ program::program(const string& _filename):
 
 if(major_version > 0 || minor_version >= 7) {
          // get external functions definitions
-         uint_val n_externs;
+         uint32_t n_externs;
 
-         READ_CODE(&n_externs, sizeof(uint_val));
+         read.read_type<uint32_t>(&n_externs);
 
-         for(size_t i(0); i < n_externs; ++i) {
-            uint_val extern_id;
+         for(uint32_t i(0); i < n_externs; ++i) {
+            uint32_t extern_id;
 
-            READ_CODE(&extern_id, sizeof(uint_val));
+            read.read_type<uint32_t>(&extern_id);
             char extern_name[256];
 
-            READ_CODE(extern_name, sizeof(extern_name));
+            read.read_any(extern_name, sizeof(extern_name));
 
             char skip_filename[1024];
 
-            READ_CODE(skip_filename, sizeof(skip_filename));
+            read.read_any(skip_filename, sizeof(skip_filename));
 
             ptr_val skip_ptr;
 
-            READ_CODE(&skip_ptr, sizeof(skip_ptr));
+            read.read_type<ptr_val>(&skip_ptr);
 
             //dlopen call
             //dlsym call
             skip_ptr = get_function_pointer(skip_filename,extern_name);
+            uint32_t num_args;
 
-            uint_val num_args;
+            read.read_type<uint32_t>(&num_args);
 
-            READ_CODE(&num_args, sizeof(num_args));
-
-            byte b;
-            READ_CODE(&b,sizeof(byte)); 
-            field_type ret_type = (field_type)b;
+            type *ret_type = read_type_id_from_reader(read, types);
 
             cout << "Id " << extern_id << " " << extern_name << " ";
             cout <<"Num_args "<<num_args<<endl;
 
-            field_type arg_type[num_args];
+            type *arg_type[num_args];
             if(num_args){
-
-                for(uint_val j(0); j != num_args; ++j) {
-                    byte b;
-                    READ_CODE(&b, sizeof(byte));
-                    arg_type[j] = (field_type)b;
-                    cout << field_type_string(arg_type[j]) << " ";
+                for(uint32_t j(0); j != num_args; ++j) {
+                     arg_type[j] = read_type_id_from_reader(read, types);
+                    cout << arg_type[j]->string() << " ";
                 }
 
-            add_external_function((external_function_ptr)skip_ptr,num_args,ret_type,arg_type);             
+               add_external_function((external_function_ptr)skip_ptr,num_args,ret_type,arg_type);             
             }else
-            add_external_function((external_function_ptr)skip_ptr,0,ret_type,NULL);
+               add_external_function((external_function_ptr)skip_ptr,0,ret_type,NULL);
             cout << endl;
-
          }
       }
    }
 
    // read predicate information
+   
    for(size_t i(0); i < num_predicates; ++i) {
       code_size_t size;
 
-		READ_CODE(buf, PREDICATE_DESCRIPTOR_SIZE);
-      
-      predicates[i] = predicate::make_predicate_from_buf((unsigned char*)buf, &size, (predicate_id)i);
+      predicates[i] = predicate::make_predicate_from_reader(read, &size, (predicate_id)i, major_version, minor_version, types);
       code_size[i] = size;
 
       MAX_STRAT_LEVEL = max(predicates[i]->get_strat_level() + 1, MAX_STRAT_LEVEL);
@@ -302,7 +283,7 @@ if(major_version > 0 || minor_version >= 7) {
 	// get global priority information
 	byte global_info;
 	
-	READ_CODE(&global_info, sizeof(byte));
+	read.read_type<byte>(&global_info);
 
    initial_priority.int_priority = 0;
    initial_priority.float_priority = 0.0;
@@ -320,18 +301,18 @@ if(major_version > 0 || minor_version >= 7) {
          byte type(0x0);
          byte asc_desc;
 
-         READ_CODE(&type, sizeof(byte));
+         read.read_type<byte>(&type);
          priority_type = FIELD_FLOAT;
          assert(type == 0x01);
 
-         READ_CODE(&asc_desc, sizeof(byte));
+         read.read_type<byte>(&asc_desc);
          if(asc_desc & 0x01)
             priority_order = PRIORITY_ASC;
          else
             priority_order = PRIORITY_DESC;
          priority_static = (asc_desc & 0x02) ? true : false;
 
-         READ_CODE(&initial_priority.float_priority, sizeof(float_val));
+         read.read_type<float_val>(&initial_priority.float_priority);
       }
       break;
       case 0x03: { // data file
@@ -339,8 +320,8 @@ if(major_version > 0 || minor_version >= 7) {
       }
       break;
       default:
-      priority_type = FIELD_FLOAT; 
-      priority_order = PRIORITY_DESC;
+         priority_type = FIELD_FLOAT; 
+         priority_order = PRIORITY_DESC;
       break;
    }
    
@@ -349,12 +330,12 @@ if(major_version > 0 || minor_version >= 7) {
       const size_t size = code_size[i];
       code[i] = new byte_code_el[size];
       
-		READ_CODE(code[i], size);
+		read.read_any(code[i], size);
    }
 
    // read rules code
-	uint_val num_rules_code;
-	READ_CODE(&num_rules_code, sizeof(uint_val));
+	uint32_t num_rules_code;
+	read.read_type<uint32_t>(&num_rules_code);
 
    assert(num_rules_code == number_rules);
 
@@ -362,30 +343,30 @@ if(major_version > 0 || minor_version >= 7) {
       code_size_t code_size;
       byte_code code;
 
-      READ_CODE(&code_size, sizeof(code_size_t));
+      read.read_type<code_size_t>(&code_size);
 
       code = new byte_code_el[code_size];
 
-      READ_CODE(code, code_size);
+      read.read_any(code, code_size);
 
       rules[i]->set_bytecode(code_size, code);
 
       byte is_persistent(0x0);
 
-      READ_CODE(&is_persistent, sizeof(byte));
+      read.read_type<byte>(&is_persistent);
 
       if(is_persistent == 0x1)
          rules[i]->set_as_persistent();
 
-      uint_val num_preds;
+      uint32_t num_preds;
 
-      READ_CODE(&num_preds, sizeof(uint_val));
+      read.read_type<uint32_t>(&num_preds);
 
       assert(num_preds < 10);
 
       for(size_t j(0); j < num_preds; ++j) {
          predicate_id id;
-         READ_CODE(&id, sizeof(predicate_id));
+         read.read_type<predicate_id>(&id);
          predicate *pred(predicates[id]);
 
          pred->affected_rules.push_back(i);
@@ -398,6 +379,9 @@ if(major_version > 0 || minor_version >= 7) {
 
 program::~program(void)
 {
+   for(size_t i(0); i < num_types(); ++i) {
+      delete types[i];
+   }
    for(size_t i(0); i < num_predicates(); ++i) {
       delete predicates[i];
       delete []code[i];
@@ -418,8 +402,7 @@ program::~program(void)
 }
 
 void 
-program::add_external_function(external_function_ptr ptr,size_t num_args,field_type
-        ret,field_type *arg){
+program::add_external_function(external_function_ptr ptr,size_t num_args,type *ret,type **arg){
 
 #define EXTERN(NAME) (external_function_ptr) NAME
 #define EXTERNAL0(NAME, RET) external0(EXTERN(NAME), RET)
@@ -603,6 +586,40 @@ program::print_predicates(ostream& cout) const
    }
 }
 
+#ifdef USE_UI
+using namespace json_spirit;
+
+Value
+program::dump_json(void) const
+{
+	Array preds_json;
+
+	for(size_t i(0); i < num_predicates(); ++i) {
+		Object obj;
+		predicate *pred(get_predicate((predicate_id)i));
+
+		UI_ADD_FIELD(obj, "name", pred->get_name());
+
+		Array field_types;
+
+		for(size_t j(0); j < pred->num_fields(); ++j) {
+         UI_ADD_ELEM(field_types, pred->get_field_type(j)->string());
+		}
+		UI_ADD_FIELD(obj, "fields", field_types);
+
+		UI_ADD_FIELD(obj, "route",
+				pred->is_route_pred() ? UI_YES : UI_NIL);
+		UI_ADD_FIELD(obj, "reverse_route",
+				pred->is_reverse_route_pred() ? UI_YES : UI_NIL);
+		UI_ADD_FIELD(obj, "linear",
+			pred->is_linear_pred() ? UI_YES : UI_NIL);
+
+		UI_ADD_ELEM(preds_json, obj);
+	}
+
+	return preds_json;
+}
+#endif
 
 predicate*
 program::get_predicate_by_name(const string& name) const
