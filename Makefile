@@ -49,7 +49,7 @@ endif
 
 CXXFLAGS = $(CFLAGS)
 LDFLAGS = $(PROFILING) $(LIBRARY_DIRS) $(LIBRARIES)
-COMPILE = $(CXX) $(CXXFLAGS) $(OBJS)
+COMPILE = $(CXX) $(CXXFLAGS) 
 
 SRCS = utils/utils.cpp \
 		 	utils/types.cpp \
@@ -91,8 +91,6 @@ SRCS = utils/utils.cpp \
 			 debug/debug_prompt.cpp \
 			 debug/debug_handler.cpp \
 			 debug/debug_list.cpp \
-			api/mpi.cpp
-#			 api/bbsimapi.cpp \
 			 #sched/thread/threaded.cpp \
 			 #sched/thread/assert.cpp \
 
@@ -102,7 +100,7 @@ endif
 
 OBJS = $(patsubst %.cpp,%.o,$(SRCS))
 
-all: meld print
+all: meld-mpi meld-bbsim print
 	echo $(OBJS)
 
 -include Makefile.externs
@@ -112,14 +110,14 @@ Makefile.externs:	Makefile
 	@for i in $(SRCS); do $(CXX) -g $(CXXFLAGS) -MM -MT $${i/%.cpp/.o} $$i >> Makefile.externs; done
 	@echo "Makefile.externs ready"
 
-meld: $(OBJS) meld.o
-	$(COMPILE) meld.o -o meld $(LDFLAGS)
+meld-mpi: $(OBJS) api/mpi.o meld.o
+	$(COMPILE) $^ -o $@ $(LDFLAGS)
 
-print: $(OBJS) print.o
-	$(COMPILE) print.o -o print $(LDFLAGS)
+meld-bbsim: $(OBJS) meld.o api/bbsimapi.o
+	$(COMPILE) $^ -o $@ $(LDFLAGS)
 
-#server: $(OBJS) server.o
-#	$(COMPILE) server.o -o server $(LDFLAGS)
+print: $(OBJS) print.o api/mpi.o
+	$(COMPILE) $^ -o $@ $(LDFLAGS)
 
 depend:
 	makedepend -- $(CXXFLAGS) -- $(shell find . -name '*.cpp')
