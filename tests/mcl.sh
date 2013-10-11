@@ -11,7 +11,7 @@ fi
 
 # test that compiler exists
 x=${MELDCL:-bad}
-if [ $x == "bad" ]; then
+if [ $x == bad ]; then
     echo "I cannot find env variable MELDCL defining path to meld compiler"
     exit -1
 fi
@@ -40,6 +40,10 @@ if [ $# == 2 ]; then
 	echo "Did you really mean to include the .m in your destination file?"
     fi
 fi
+if [ ${dest:-nothing-to-write-to} == nothing-to-write-to ]; then
+    echo "Error with output specification ($dest).  Bad path?"
+    exit 1
+fi
 echo "Will compile $src into $dest.m"
 
 /bin/rm -f /tmp/$$.script
@@ -66,13 +70,4 @@ else
     /bin/rm /tmp/$$.log
 fi
 /bin/rm -f /tmp/$$.script
-exit 0
-
-
-
-
-
-
-
-
-
+exit 
