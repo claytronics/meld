@@ -17,13 +17,16 @@ using namespace sched;
 static char *program = NULL;
 static char *data_file = NULL;
 static char *progname = NULL;
+static char checkedApiTarget = 0; // if set to 1, can exit successfully with zero args
 
 static void
 help(void)
 {
-	cerr << "meld: execute meld program" << endl;
+  cerr << "meld: execute meld program for " << api::apiTarget << endl;
 	cerr << "meld -f <program file> -c <scheduler> [options] -- arg1 arg2 ... argN" << endl;
 	cerr << "\t-f <name>\tmeld program" << endl;
+	cerr << "\t-a\tprint on stdout the target api" << endl;
+	cerr << "\t-a <name>\tmake sure <name> is proper target" << endl;
    cerr << "\t-r <data file>\tdata file for meld program" << endl;
 	help_schedulers();
 	cerr << "\t-t \t\ttime execution" << endl;
@@ -58,6 +61,25 @@ read_arguments(int argc, char **argv)
             argv++;
          }
          break;
+      case 'a': {
+	if (argc > 1) {
+	  // check that supplied arg matches apiTarget
+	  if (strcmp(argv[1], api::apiTarget)) {
+	    cerr << "Mismatch of request " << argv[1] << " and compiled for " << api::apiTarget << endl;
+	    exit(EXIT_FAILURE);
+	  }  else {
+	    // we are good, you can continue
+	    argc--;
+	    argv++;
+	    checkedApiTarget = 1;
+	  }
+	} else {
+	    cout << api::apiTarget << endl;
+	    exit(EXIT_SUCCESS);
+	  }
+      }
+	break;
+
          case 'r': {
             if(data_file != NULL || argc < 2)
                help();
@@ -110,7 +132,7 @@ read_arguments(int argc, char **argv)
 	     debugger::setSimDebuggingMode(true);
 	   } else {
 	     cout << "Unknow debug option" << endl;
-	     exit(0);
+	     exit(EXIT_FAILURE);
 	   }
 	   break;
 
@@ -141,9 +163,11 @@ main(int argc, char **argv)
       num_threads = 1;
    }
 
-   if(program == NULL && sched_type != SCHED_UNKNOWN) {
-		cerr << "Error: please provide a program to run" << endl;
-      return EXIT_FAILURE;
+   if ((program == NULL) && (sched_type != SCHED_UNKNOWN)) {
+    if (checkedApiTarget) return EXIT_SUCCESS;
+
+     cerr << "Error: please provide a program to run" << endl;
+     return EXIT_FAILURE;
    }
 
 	if(!file_exists(program)) {
