@@ -18,6 +18,8 @@
 #include "queue/safe_general_pqueue.hpp"
 
 namespace api {
+  extern const char* apiTarget;
+
     /* Type representing the message between interprocess communications */
     typedef uint64_t message_type;
     static const size_t MAXLENGTH = 512 / sizeof(message_type);
