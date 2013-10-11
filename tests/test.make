@@ -12,8 +12,9 @@
 # 
 
 # figure out the source file & compiled file
-base=$(FILE)
-basename=$(basename $(base))
+srcpath=$(FILE)
+srcname=$(notdir $(srcpath))
+basename=$(basename $(srcname))
 mfile=code/$(basename)
 
 # default target to test.  user can specify alternatives
@@ -25,8 +26,7 @@ NODES=1
 top:	exec-$(TARGET)
 
 exec-mpi:	$(mfile).m files/$(basename).test
-	mpiexec -n $(NODES) ../meld -d -f $(mfile).m -c sl > /tmp/mpi.output
-	diff /tmp/mpi.output files/$(basename).test
+	@./mtest.sh "mpiexec -n $(NODES) ../meld -d -f $(mfile).m -c sl" $(basename)
 
-$(mfile).m:	progs/$(base)
-	mcl.sh progs/$(base) $(mfile)
+$(mfile).m:	$(srcpath)
+	./mcl.sh $(srcpath) $(mfile)
