@@ -14,48 +14,50 @@ namespace mpi = boost::mpi;
 namespace db
 {
 
-database::database(const string& filename, create_node_fn _create_fn, vm::all *_all):
-   all(_all), create_fn(_create_fn), nodes_total(0)
-{
-   int_val num_nodes;
-   node::node_id fake_id;
-   node::node_id real_id;
+  database::database(const string& filename, create_node_fn _create_fn):
+    create_fn(_create_fn), nodes_total(0)
+  {
+    int_val num_nodes;
+    node::node_id fake_id;
+    node::node_id real_id;
 
-   ifstream fp(filename.c_str(), ios::in | ios::binary);
+    ifstream fp(filename.c_str(), ios::in | ios::binary);
 
-   fp.seekg(vm::MAGIC_SIZE, ios_base::cur); // skip magic
-   fp.seekg(2*sizeof(uint32_t), ios_base::cur); // skip version
+    fp.seekg(vm::MAGIC_SIZE, ios_base::cur); // skip magic
+    fp.seekg(2*sizeof(uint32_t), ios_base::cur); // skip version
 
-   fp.seekg(sizeof(byte), ios_base::cur); // skip number of definitions
+    fp.seekg(sizeof(byte), ios_base::cur); // skip number of definitions
 
-   fp.read((char*)&num_nodes, sizeof(int_val));
+    fp.read((char*)&num_nodes, sizeof(int_val));
 
-   nodes_total = num_nodes;
+    nodes_total = num_nodes;
 
-   max_node_id = 0;
-   max_translated_id = 0;
+    max_node_id = 0;
+    max_translated_id = 0;
 
-   // Create all of the nodes
-   for(size_t i(0); i < nodes_total; ++i) {
+    // Create all of the nodes
+    for(size_t i(0); i < nodes_total; ++i) {
       fp.read((char*)&fake_id, sizeof(node::node_id));
       fp.read((char*)&real_id, sizeof(node::node_id));
 
       // Implementation specific, create node
-      node *node(create_fn(fake_id, real_id, all));
+      node *node(create_fn(fake_id, real_id));
 
+#ifdef USERFRIENDLY
       translation[fake_id] = real_id;
       reverse_translation[real_id] = fake_id;
+#endif
 
       nodes[fake_id] = node;
 
       if(fake_id > max_node_id)
-         max_node_id = fake_id;
+	max_node_id = fake_id;
       if(real_id > max_translated_id)
-         max_translated_id = real_id;
-   }
+	max_translated_id = real_id;
+    }
 
-   original_max_node_id = max_node_id;
-}
+    original_max_node_id = max_node_id;
+  }
 }
 
 database::~database(void)
@@ -88,14 +90,16 @@ database::find_node(const node::node_id id) const
 node*
 database::create_node_id(const db::node::node_id id)
 {
-   utils::spinlock::scoped_lock l(mtx);
+  SCOPED_LOCK_ON_MTX(l);
 
    max_node_id = id;
    max_translated_id = id;
 
-   node *ret(create_fn(max_node_id, max_translated_id, all));
+   node *ret(create_fn(max_node_id, max_translated_id));
+#ifdef USERFRIENDLY
    translation[max_node_id] = max_translated_id;
    reverse_translation[max_translated_id] = max_node_id;
+#endif
    nodes[max_node_id] = ret;
 
    return ret;
@@ -104,7 +108,7 @@ database::create_node_id(const db::node::node_id id)
 node*
 database::create_node(void)
 {
-   utils::spinlock::scoped_lock l(mtx);
+  SCOPED_LOCK_ON_MTX(l);
 
   if(nodes.empty()) {
     max_node_id = 0;
@@ -114,15 +118,18 @@ database::create_node(void)
     ++max_translated_id;
   }
 
-   node *ret(create_fn(max_node_id, max_translated_id, all));
+  node *ret(create_fn(max_node_id, max_translated_id));
 
-   translation[max_node_id] = max_translated_id;
-   reverse_translation[max_translated_id] = max_node_id;
-   nodes[max_node_id] = ret;
+#ifdef USERFRIENDLY
+  translation[max_node_id] = max_translated_id;
+  reverse_translation[max_translated_id] = max_node_id;
+#endif
+  nodes[max_node_id] = ret;
 
-   return ret;
+  return ret;
 }
 
+#ifdef USERFRIENDLY
 node::node_id
 database::translate_real_to_fake_id(const node::node_id real_id) {
     return reverse_translation[real_id];
@@ -187,3 +194,9 @@ ostream& operator<<(ostream& cout, const database& db)
    db.print(cout);
    return cout;
 }
+#endif
+
+// Local Variables:
+// mode: C++
+// indent-tabs-mode: nil
+// End:
