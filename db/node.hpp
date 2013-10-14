@@ -29,91 +29,92 @@ namespace process { class process; class machine; }
 
 namespace db {
 
-class node: public mem::base
-{
-public:
+  class node: public mem::base
+  {
+  public:
 
-   typedef vm::node_val node_id;
+    typedef vm::node_val node_id;
 
-   typedef trie::delete_info delete_info;
+    typedef trie::delete_info delete_info;
 
-protected:
+  private:
 
-   vm::all *all;
+    node_id id;
+    node_id translation;
 
-private:
+    typedef std::map<vm::predicate_id, tuple_trie*,
+		     std::less<vm::predicate_id>,
+		     mem::allocator<std::pair<const vm::predicate_id,
+					      tuple_trie*> > > simple_tuple_map;
 
-	node_id id;
-   node_id translation;
+    typedef std::map<vm::predicate_id, tuple_aggregate*,
+		     std::less<vm::predicate_id>,
+		     mem::allocator<std::pair<const vm::predicate_id,
+					      tuple_aggregate*> > > aggregate_map;
 
-   typedef std::map<vm::predicate_id, tuple_trie*,
-               std::less<vm::predicate_id>,
-               mem::allocator<std::pair<const vm::predicate_id,
-                                 tuple_trie*> > > simple_tuple_map;
+    // tuple database
+    simple_tuple_map tuples;
 
-   typedef std::map<vm::predicate_id, tuple_aggregate*,
-               std::less<vm::predicate_id>,
-               mem::allocator<std::pair<const vm::predicate_id,
-                                 tuple_aggregate*> > > aggregate_map;
+    // sets of tuple aggregates
+    aggregate_map aggs;
 
-	// tuple database
-   simple_tuple_map tuples;
+    tuple_trie* get_storage(const vm::predicate*);
 
-   // sets of tuple aggregates
-   aggregate_map aggs;
+    // code to handle local stratification
+    friend class sched::base;
+    friend class process::process;
+    friend class process::machine;
 
-   tuple_trie* get_storage(const vm::predicate*);
+    sched::base *owner;
 
-   // code to handle local stratification
-   friend class sched::base;
-   friend class process::process;
-   friend class process::machine;
+  public:
 
-   sched::base *owner;
+    inline node_id get_id(void) const { return id; }
+    inline node_id get_translated_id(void) const { return translation; }
 
-public:
-
-   inline node_id get_id(void) const { return id; }
-   inline node_id get_translated_id(void) const { return translation; }
-
-   inline void set_owner(sched::base *_owner) { owner = _owner; }
-   inline sched::base *get_owner(void) const { return owner; }
+    inline void set_owner(sched::base *_owner) { owner = _owner; }
+    inline sched::base *get_owner(void) const { return owner; }
    
-   bool add_tuple(vm::tuple*, const vm::derivation_count, const vm::depth_t);
-   delete_info delete_tuple(vm::tuple *, const vm::derivation_count, const vm::depth_t);
+    bool add_tuple(vm::tuple*, const vm::derivation_count, const vm::depth_t);
+    delete_info delete_tuple(vm::tuple *, const vm::derivation_count, const vm::depth_t);
    
-   db::agg_configuration* add_agg_tuple(vm::tuple*, const vm::derivation_count, const vm::depth_t);
-   db::agg_configuration* remove_agg_tuple(vm::tuple*, const vm::derivation_count, const vm::depth_t);
+    db::agg_configuration* add_agg_tuple(vm::tuple*, const vm::derivation_count, const vm::depth_t);
+    db::agg_configuration* remove_agg_tuple(vm::tuple*, const vm::derivation_count, const vm::depth_t);
 
-   simple_tuple_list end_iteration(void);
+    simple_tuple_list end_iteration(void);
 
-   void delete_by_index(const vm::predicate*, const vm::match&);
-   void delete_by_leaf(const vm::predicate*, tuple_trie_leaf*, const vm::depth_t);
-   void delete_all(const vm::predicate*);
+    void delete_by_index(const vm::predicate*, const vm::match&);
+    void delete_by_leaf(const vm::predicate*, tuple_trie_leaf*, const vm::depth_t);
+    void delete_all(const vm::predicate*);
 
-   virtual void assert_end(void) const;
-   virtual void assert_end_iteration(void) const {}
-   void init(void);
+    virtual void assert_end(void) const;
+    virtual void assert_end_iteration(void) const {}
+    void init(void);
 
-   void match_predicate(const vm::predicate_id, tuple_vector&) const;
-   void match_predicate(const vm::predicate_id, const vm::match&, tuple_vector&) const;
+    void match_predicate(const vm::predicate_id, tuple_vector&) const;
+    void match_predicate(const vm::predicate_id, const vm::match&, tuple_vector&) const;
 
-   size_t count_total(const vm::predicate_id) const;
+    size_t count_total(const vm::predicate_id) const;
 
-   void print(std::ostream&) const;
-   void dump(std::ostream&) const;
+    void print(std::ostream&) const;
+    void dump(std::ostream&) const;
 
-	vm::rule_matcher matcher;
+    vm::rule_matcher matcher;	// used to take the program as an argument, but they all use the same program so we don't need to do that anymore
 
-   explicit node(const node_id, const node_id, vm::all *);
+    explicit node(const node_id, const node_id);
 
-   bool empty(void) const;
+    bool empty(void) const;
 
-   virtual ~node(void);
-};
+    virtual ~node(void);
+  };
 
-std::ostream& operator<<(std::ostream&, const node&);
+  std::ostream& operator<<(std::ostream&, const node&);
 
 }
 
 #endif
+
+// Local Variables:
+// mode: C++
+// indent-tabs-mode: nil
+// End:
