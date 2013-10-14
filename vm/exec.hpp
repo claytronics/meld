@@ -12,21 +12,27 @@
 namespace vm
 {
 
-typedef enum {
-   EXECUTION_OK,
-   EXECUTION_CONSUMED
-} execution_return;
+  typedef enum {
+    EXECUTION_OK,
+    EXECUTION_CONSUMED
+  } execution_return;
 
-execution_return execute_bytecode(byte_code, state&);
-void execute_rule(const rule_id, state&);
+  execution_return execute_bytecode(byte_code, state&);
+  void execute_rule(const rule_id, state&);
 
-class vm_exec_error : public std::runtime_error {
- public:
+  class vm_exec_error : public std::runtime_error {
+  public:
     explicit vm_exec_error(const std::string& msg) :
-         std::runtime_error(msg)
+      std::runtime_error(msg)
     {}
-};
+  };
 
 }
 
 #endif
+
+
+// Local Variables:
+// mode: C++
+// indent-tabs-mode: nil
+// End:
