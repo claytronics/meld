@@ -1,6 +1,7 @@
-
 #ifndef DATABASE_HPP
 #define DATABASE_HPP
+
+#define USERFRIENDLY 1
 
 #include <map>
 #include <fstream>
@@ -23,39 +24,45 @@ namespace db
   class database
   {
   public:
+
+#ifdef USERFRIENDLY
     // used to show ids in source code, not in VM
     typedef std::tr1::unordered_map<node::node_id, node::node_id,
-				    std::tr1::hash<node::node_id>,
-				    std::equal_to<node::node_id>,
-				    mem::allocator<
-				      std::pair<const node::node_id,
-						node::node_id> > > map_translate;
-  // node id->node data structure
-  typedef std::map<node::node_id, node*,
-		   std::less<node::node_id>,
-		   mem::allocator< std::pair<const node::node_id,
-					     node*> > > map_nodes;
-  // used to create a new node
-  typedef boost::function3<node*, node::node_id, node::node_id,
-			   vm::all *> create_node_fn;
+                                    std::tr1::hash<node::node_id>,
+                                    std::equal_to<node::node_id>,
+                                    mem::allocator<
+                                      std::pair<const node::node_id,
+                                                node::node_id> > > map_translate;
+#endif
+
+    // node id->node data structure
+    typedef std::map<node::node_id, node*,
+                     std::less<node::node_id>,
+                     mem::allocator< std::pair<const node::node_id,
+                                               node*> > > map_nodes;
+    // used to create a new node
+    typedef boost::function2<node*, node::node_id, node::node_id> create_node_fn;
 
   private:
-    vm::all *all;		// used so nodes can access stuff.  Should not be here
     create_node_fn create_fn;	// used to create nodes.
 
     map_nodes nodes;		// nodeid->node data structure
 
+#ifdef USERFRIENDLY
     // used for debugging to get src code name
     map_translate translation;
     map_translate reverse_translation;
+#endif
 
     // used to keep node ids uniq and track max number of nodes
     node::node_id original_max_node_id;
     node::node_id max_node_id;
     node::node_id max_translated_id;
 
+#ifdef MULTI_NODE_PER_PROC
     // used when creating a new node
     utils::spinlock mtx;
+#endif
 
   public:
     // node id is 32 bits.  Should be a parameter in the byte code to
@@ -85,22 +92,27 @@ namespace db
     node* create_node(void);
     node* create_node_id(const node::node_id);
 
+#ifdef USERFRIENDLY
     node::node_id translate_real_to_fake_id(const node::node_id real_id);
     node::node_id translate_fake_to_real_id(const node::node_id fake_id);
 
-    void print_db(std::ostream&) const;
     void print_db_debug(std::ostream&, unsigned int nodeNumber);
     void print_entire_db_debug(std::ostream&cout);
+#endif
+
+    void print_db(std::ostream&) const;
     void dump_db(std::ostream&) const;
 
     void print(std::ostream&) const;
 
-    explicit database(const std::string&, create_node_fn, vm::all *);
+    explicit database(const std::string&, create_node_fn);
 
     ~database(void);
-  };
-
+};
+  
+#ifdef USERFRIENDLY
   std::ostream& operator<<(std::ostream&, const database&);
+#endif
 
   class database_error : public std::runtime_error {
   public:
@@ -111,4 +123,16 @@ namespace db
 
 }
 
+// only need a spinlock if we have multiple db's per process
+#ifdef MULTI_NODE_PER_PROC
+# define SCOPED_LOCK_ON_MTX(var) utils::spinlock::scoped_lock var(mtx)
+#else
+# define SCOPED_LOCK_ON_MTX(var) 
 #endif
+
+#endif
+
+// Local Variables:
+// mode: C++
+// indent-tabs-mode: nil
+// End:
