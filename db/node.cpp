@@ -171,8 +171,8 @@ node::assert_end(void) const
    }
 }
 
-node::node(const node_id _id, const node_id _trans, vm::all *_all):
-   all(_all), id(_id), translation(_trans), owner(NULL), matcher(_all->PROGRAM)
+node::node(const node_id _id, const node_id _trans):
+  id(_id), translation(_trans), owner(NULL)
 {
 }
 
@@ -218,7 +218,7 @@ node::print(ostream& cout) const
    {
 		tuple_trie *tr(it->second);
 		predicate_id id(it->first);
-      const predicate *pred(all->PROGRAM->get_predicate(id));
+      const predicate *pred(All->PROGRAM->get_predicate(id));
 
 		ordered_tries.push_back(str_trie(pred->get_name(), tr));
 	}
@@ -269,3 +269,9 @@ operator<<(ostream& cout, const node& node)
 }
 
 }
+
+
+// Local Variables:
+// mode: C++
+// indent-tabs-mode: nil
+// End:
