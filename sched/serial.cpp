@@ -121,3 +121,9 @@ serial_local::gather_next_tuples(db::node *node, simple_tuple_list& ls)
   }
 
 }
+
+
+// Local Variables:
+// mode: C++
+// indent-tabs-mode: nil
+// End:
