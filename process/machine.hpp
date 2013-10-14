@@ -18,6 +18,8 @@
 #include "vm/state.hpp"
 #include "sched/base.hpp"
 
+extern vm::all* vm::All;
+
 namespace process
 {
 
@@ -25,8 +27,6 @@ namespace process
   {
 
   private:
-      vm::all *all;
-
     const std::string filename;
     const sched::scheduler_type sched_type;
 
@@ -41,32 +41,38 @@ namespace process
   public:
 
 
-   sched::scheduler_type get_sched_type(void) const { return sched_type; }
+    sched::scheduler_type get_sched_type(void) const { return sched_type; }
 
-   sched::base *get_scheduler(const vm::process_id id) { return this->all->ALL_THREADS[id]; }
+    sched::base *get_scheduler(const vm::process_id id) { return vm::All->ALL_THREADS[id]; }
 
-   vm::all *get_all(void) const { return this->all; }
+    vm::all *get_all(void) const { return vm::All; }
 
-   void run_action(sched::base *, db::node *, vm::tuple *, const bool from_other = false);
-   void route_self(sched::base *, db::node *, db::simple_tuple *, const vm::uint_val delay = 0);
+    void run_action(sched::base *, db::node *, vm::tuple *, const bool from_other = false);
+    void route_self(sched::base *, db::node *, db::simple_tuple *, const vm::uint_val delay = 0);
 
-   void route(const db::node *, sched::base *, const db::node::node_id, db::simple_tuple*, const vm::uint_val delay = 0);
+    void route(const db::node *, sched::base *, const db::node::node_id, db::simple_tuple*, const vm::uint_val delay = 0);
 
-   void init_thread(sched::base *);
-   void start(void);
+    void init_thread(sched::base *);
+    void start(void);
 
-   explicit machine(const std::string&, const size_t, const sched::scheduler_type, const vm::machine_arguments& args = vm::machine_arguments(), const std::string& data_file = std::string());
+    explicit machine(const std::string&, const size_t, const sched::scheduler_type, const vm::machine_arguments& args = vm::machine_arguments(), const std::string& data_file = std::string());
 
-   ~machine(void);
- };
+    ~machine(void);
+  };
 
- class machine_error : public std::runtime_error {
- public:
-  explicit machine_error(const std::string& msg) :
-  std::runtime_error(msg)
-  {}
-};
+  class machine_error : public std::runtime_error {
+  public:
+    explicit machine_error(const std::string& msg) :
+      std::runtime_error(msg)
+    {}
+  };
 
 }
 
 #endif
+
+
+// Local Variables:
+// mode: C++
+// indent-tabs-mode: nil
+// End:
