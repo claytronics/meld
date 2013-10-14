@@ -99,10 +99,10 @@ bool
 run_program(int argc, char **argv, const char *program, const vm::machine_arguments& margs, const char *data_file)
 {
 
-	assert(utils::file_exists(string(program)));
-	assert(num_threads > 0);
+  assert(utils::file_exists(string(program)));
+  assert(num_threads > 0);
 
-	try {
+  try {
     double start_time(0.0);
     execution_time tm;
 
@@ -110,61 +110,67 @@ run_program(int argc, char **argv, const char *program, const vm::machine_argume
 
     if(time_execution) {
 #ifdef COMPILE_MPI
-     if(is_mpi_sched(sched_type))
-      start_time = MPI_Wtime();
-    else
+      if(is_mpi_sched(sched_type))
+	start_time = MPI_Wtime();
+      else
 #endif
-    {
-      tm.start();
+	{
+	  tm.start();
+	}
     }
+
+    /*MPI Init*/
+    api::init(argc, argv, NULL);
+
+    machine mac(program, num_threads, sched_type, margs,
+		data_file == NULL ? string("") : string(data_file));
+
+
+    /*INITIALIZING TWICE IS A MEMORY LEAK... it should have a compilation flag
+     *  --DAVE */
+    //api::init(argc, argv, mac.get_all()->ALL_THREADS[0]);
+    if (api::isInBBSimMode()) {
+      api::init(argc, argv, mac.get_all()->ALL_THREADS[0]);
+    }
+    if (debugger::isInMpiDebuggingMode()){
+      api::debugInit(mac.get_all());
+    }
+    if (debugger::isInDebuggingMode()) {
+      debugger::debug(mac.get_all());
+      debugger::pauseIt();
+    } else if (debugger::isInSimDebuggingMode()){
+      debugger::initSimDebug(mac.get_all());
+      debugger::pauseIt();
+    }
+
+
+    mac.start();
+
+    if(time_execution) {
+      tm.stop();
+      size_t ms = tm.milliseconds();
+
+      cout << "Time: " << ms << " ms" << endl;
+    }
+
+  } catch(machine_error& err) {
+    finish();
+    throw err;
+  } catch(load_file_error& err) {
+    finish();
+    throw err;
+  } catch(db::database_error& err) {
+    finish();
+    throw err;
   }
 
-  /*MPI Init*/
-  api::init(argc, argv, NULL);
-
-  machine mac(program, num_threads, sched_type, margs,
-              data_file == NULL ? string("") : string(data_file));
-
-
-  /*INITIALIZING TWICE IS A MEMORY LEAK... it should have a compilation flag
-   *  --DAVE */
-  //api::init(argc, argv, mac.get_all()->ALL_THREADS[0]);
-  if (api::isInBBSimMode()) {
-	api::init(argc, argv, mac.get_all()->ALL_THREADS[0]);
-  }
-  if (debugger::isInMpiDebuggingMode()){
-    api::debugInit(mac.get_all());
-  }
-  if (debugger::isInDebuggingMode()) {
-    debugger::debug(mac.get_all());
-    debugger::pauseIt();
-  } else if (debugger::isInSimDebuggingMode()){
-    debugger::initSimDebug(mac.get_all());
-    debugger::pauseIt();
-  }
-
-
-  mac.start();
-
-  if(time_execution) {
-    tm.stop();
-    size_t ms = tm.milliseconds();
-
-    cout << "Time: " << ms << " ms" << endl;
-  }
-
-} catch(machine_error& err) {
   finish();
-  throw err;
-} catch(load_file_error& err) {
-  finish();
-  throw err;
-} catch(db::database_error& err) {
-  finish();
-  throw err;
+
+  return true;
 }
 
-finish();
 
-return true;
-}
+// Local Variables:
+// mode: C++
+// indent-tabs-mode: nil
+// End:
