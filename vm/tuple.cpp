@@ -155,18 +155,17 @@ print_float(ostream& out, const tuple_field& val)
    out << FIELD_FLOAT(val);
 }
 
+#ifdef USERFRIENDLY
 static inline void
 print_node(ostream& out, const tuple_field& val)
 {
-   if(debugger::isInMpiDebuggingMode()||debugger::isInDebuggingMode()){
+  if(debugger::isInMpiDebuggingMode()||debugger::isInDebuggingMode()){
     /*debugger used to correct dumping -- Dave*/
-    out << "@" << debugger::all->
-    
-        DATABASE-> translate_fake_to_real_id(FIELD_NODE(val));
-   }
-   else{
-      out<<"@"<<FIELD_NODE(val);
-   }
+    out << "@" << debugger::all->DATABASE-> translate_fake_to_real_id(FIELD_NODE(val));
+  }
+  else{
+    out<<"@"<<FIELD_NODE(val);
+  }
 }
 
 static inline void
@@ -245,6 +244,7 @@ tuple::print(ostream& cout) const
 
    cout << ")";
 }
+#endif
 
 #ifdef USE_UI
 using namespace json_spirit;
@@ -456,3 +456,8 @@ ostream& operator<<(ostream& cout, const vm::tuple& tuple)
 }
 
 }
+
+// Local Variables:
+// mode: C++
+// indent-tabs-mode: nil
+// End:
