@@ -23,6 +23,10 @@ namespace sched {
 
 namespace vm {
 
+extern all* All;                // global variable that holds pointer
+                                // to vm all structure.  Set by
+                                // process/machine.cpp in constructor.
+
 static const size_t NUM_REGS = 32;
 
 class state
@@ -201,3 +205,9 @@ public:
 }
 
 #endif
+
+
+// Local Variables:
+// mode: C++
+// indent-tabs-mode: nil
+// End:
