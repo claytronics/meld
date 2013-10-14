@@ -600,7 +600,11 @@ state::process_persistent_tuple(db::simple_tuple *stpl, vm::tuple *tpl)
             assert(dc != NULL);
 
             if(dc->get_count(stpl->get_depth()) == 0) {
-               vm::derivation_count deleted(deleter.delete_depths_above(stpl->get_depth()));
+	      //vm::derivation_count deleted(deleter.delete_depths_above(stpl->get_depth()));
+	      // if you need to access this for debugging purposes,
+	      // uncomment the above line and comment out the
+	      // following line.
+	      deleter.delete_depths_above(stpl->get_depth());
                if(deleter.to_delete()) {
                   setup(tpl, node, stpl->get_count(), stpl->get_depth());
                   persistent_only = true;
