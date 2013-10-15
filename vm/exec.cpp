@@ -30,6 +30,12 @@ using namespace std;
 using namespace db;
 using namespace runtime;
 
+#include "compileInfo.hpp"
+
+#ifdef SIMD
+declareCompileInfo(_det, "Deterministic");
+#endif
+
 namespace vm
 {
 
