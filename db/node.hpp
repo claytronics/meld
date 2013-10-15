@@ -40,7 +40,9 @@ namespace db {
   private:
 
     node_id id;
+#ifdef USERFRIENDLY
     node_id translation;
+#endif
 
     typedef std::map<vm::predicate_id, tuple_trie*,
 		     std::less<vm::predicate_id>,
@@ -70,7 +72,10 @@ namespace db {
   public:
 
     inline node_id get_id(void) const { return id; }
+
+#ifdef USERFRIENDLY
     inline node_id get_translated_id(void) const { return translation; }
+#endif
 
     inline void set_owner(sched::base *_owner) { owner = _owner; }
     inline sched::base *get_owner(void) const { return owner; }
@@ -101,7 +106,12 @@ namespace db {
 
     vm::rule_matcher matcher;	// used to take the program as an argument, but they all use the same program so we don't need to do that anymore
 
-    explicit node(const node_id, const node_id);
+    // first arg is id, second is user friendly translated id
+    explicit node(const node_id
+#ifdef USERFRIENDLY
+                  , const node_id
+#endif
+                  );
 
     bool empty(void) const;
 
