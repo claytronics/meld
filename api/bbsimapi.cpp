@@ -13,7 +13,7 @@
 #include "msg/msg.hpp"
 #include "debug/debug_handler.hpp"
 #include "vm/determinism.hpp"
-
+#include "compileInfo.hpp"
 
 using namespace db;
 using namespace vm;
@@ -48,10 +48,12 @@ using namespace msg;
 // debug messages for simulation
 // #define DEBUG
 
+declareCompileInfo(_target, "bbsim");
+
 namespace api
 {
 
-const char* apiTarget = "bbsim";
+  const char* apiTarget = "bbsim";
 
   enum face_t {
     INVALID_FACE = -1,
