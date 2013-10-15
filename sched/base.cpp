@@ -85,7 +85,7 @@ base::do_loop(void)
 				determinism::workEnd();
 				hasComputed = false;
 			}
-			hasWork = api::waitAndProcess(this);
+			hasWork = api::waitAndProcess();
 		}
 	} else {
 		hasWork = api::pollAndProcess(this);
