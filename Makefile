@@ -23,7 +23,7 @@ NOSTRINGWARN = -Wno-write-strings
 
 UILIBRARIES = #-lwebsocketpp -ljson_spirit
 
-CFLAGS = $(ARCH) $(PROFILING) $(OPTIMIZATIONS) $(WARNINGS) $(DEBUG) $(INCLUDE_DIRS) $(COX) $(NOSTRINGWARN) $(DETERMINISM)
+CFLAGS = $(ARCH) $(PROFILING) $(OPTIMIZATIONS) $(WARNINGS) $(DEBUG) $(INCLUDE_DIRS) $(COX) $(NOSTRINGWARN) $(DETERMINISM) -DUSERFRIENDLY=1
 
 LIBRARIES = -pthread -lpthread -lm  -lboost_thread-mt -lboost_system-mt \
 			-lboost_date_time-mt -lboost_regex-mt -ldl $(UILIBRARIES)
