@@ -519,14 +519,19 @@ const char* apiTarget = "mpi";
 /*
  * Unimplemented functions in MPI
  */
-    void set_color(db::node *n, const int r, const int g, const int b) {}
+    void set_color(db::node *n, const int r, const int g, const int b) {
+      ignoreUnusedParamWarning(n);
+      ignoreUnusedParamWarning(r);
+      ignoreUnusedParamWarning(g);
+      ignoreUnusedParamWarning(b);
+    }
     /* Deterministic Simulation */
     void workEnd() {}
     void timeInfo() {}
     
     /* Thanks to isInBBSimMode, waitAndProcess is not called */
     bool isInBBSimMode() { return false; }
-    bool waitAndProcess(sched::base *sched) { return false; }
+    bool waitAndProcess() { return false; }
 	
     void regularPollAndProcess(sched::base *sched) {
 		static uint i = 1;
