@@ -37,7 +37,7 @@ namespace api {
     /* Check for any pending messages waiting to be received and add all of
      * the pending messages to the scheduler queue
      */
-    extern bool pollAndProcess(sched::base *sched, vm::all *all);
+    extern bool pollAndProcess(sched::base *sched);
     int getNodeID(void);
 
     /*
@@ -69,7 +69,7 @@ namespace api {
     /* === Debugger Functions === */
 
     /* initialize the debugger through the api */
-    extern void debugInit(vm::all *all);
+    extern void debugInit(void);
 
     /*
      * send a massage to a specified node, if broadcast specified, send to all
@@ -90,11 +90,11 @@ namespace api {
     /* Deterministic Simulation */
     extern void workEnd();
     extern void timeInfo();
-    extern bool waitAndProcess(sched::base *sched, vm::all *all);
+    extern bool waitAndProcess(sched::base *sched);
 #endif
 
 	extern bool isInBBSimMode();
-	extern void regularPollAndProcess(sched::base *sched, vm::all *all);
+	extern void regularPollAndProcess(sched::base *sched);
     
 } // namespace api
 #endif

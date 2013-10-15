@@ -20,24 +20,23 @@ namespace debugger {
 
   /*spawn the debbugging prompt as a separate thread to
     controll the main one*/
-  void debug(vm::all* debugAll){
+  void debug(void) {
 
     //start the list of break points to be used
     setupFactList();
 
     pthread_t tid;
-    pthread_create(&tid,NULL,run, debugAll);
+    pthread_create(&tid,NULL,run, NULL);
 
   }
 
 
   //continuously attend command line prompt for debugger
   //when the system is not paused
-  void *run(void* debugAll){
+  void *run(void*x) {
+    ignoreUnusedParamWarning(x);
 
     string inpt;
-
-    all = (vm::all*)debugAll;
 
     debugList factBreaks = getFactList();
 

@@ -38,14 +38,14 @@ serial_local::new_work(const node *, work& new_work)
   serial_local::assert_end(void) const
   {
     assert(!has_work());
-    assert_static_nodes_end(id, state.all);
+    assert_static_nodes_end(id, vm::All);
   }
 
   void
   serial_local::assert_end_iteration(void) const
   {
     assert(!has_work());
-    assert_static_nodes_end_iteration(id, state.all);
+    assert_static_nodes_end_iteration(id, vm::All);
   }
 
 
@@ -95,8 +95,8 @@ return NULL;
   void
   serial_local::init(const size_t)
   {
-    database::map_nodes::const_iterator it(state.all->DATABASE->nodes_begin());
-    database::map_nodes::const_iterator end(state.all->DATABASE->nodes_end());
+    database::map_nodes::const_iterator it(vm::All->DATABASE->nodes_begin());
+    database::map_nodes::const_iterator end(vm::All->DATABASE->nodes_end());
 
     for(; it != end; ++it)
       {

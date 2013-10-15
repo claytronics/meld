@@ -78,20 +78,20 @@ base::do_loop(void)
 #ifdef SIMD
 	if (api::isInBBSimMode()) {
 		if (!determinism::isInDeterministicMode()) {
-			hasWork = api::pollAndProcess(this, state.all);
+			hasWork = api::pollAndProcess(this);
 		}
 		if (hasWork && !this->has_work() && debugger::isDebuggerQueueEmpty()) {
 			if (hasComputed && determinism::isInDeterministicMode()) {
 				determinism::workEnd();
 				hasComputed = false;
 			}
-			hasWork = api::waitAndProcess(this, state.all);
+			hasWork = api::waitAndProcess(this);
 		}
 	} else {
-		hasWork = api::pollAndProcess(this, state.all);
+		hasWork = api::pollAndProcess(this);
 	}
 # else
-	hasWork = api::pollAndProcess(this, state.all);
+	hasWork = api::pollAndProcess(this);
 #endif
 	bool ensembleFinished = false;
 	if (!hasWork)
@@ -110,7 +110,7 @@ base::loop(void)
  mem::ensure_pool();
 
    // Init is based on scheduler type
- init(state.all->NUM_THREADS);
+ init(vm::All->NUM_THREADS);
 
  do_loop();
 
@@ -142,10 +142,10 @@ base::~base(void)
 	delete thread;
 }
 
-base::base(const vm::process_id _id, vm::all *_all):
+base::base(const vm::process_id _id):
 id(_id),
 thread(NULL),
-state(this, _all),
+state(this),
 iteration(0)
 #ifdef INSTRUMENTATION
 , processed_facts(0), sent_facts(0), ins_state(statistics::NOW_ACTIVE)

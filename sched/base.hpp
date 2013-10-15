@@ -83,7 +83,7 @@ namespace sched
 
    virtual void init_node(db::node *node)
    {
-      db::simple_tuple *stpl(db::simple_tuple::create_new(new vm::tuple(state.all->PROGRAM->get_init_predicate()), 0));
+     db::simple_tuple *stpl(db::simple_tuple::create_new(new vm::tuple(vm::All->PROGRAM->get_init_predicate()), 0));
       new_work_self(node, stpl);
       node->init();
       node->set_owner(this);
@@ -174,7 +174,7 @@ namespace sched
 
       static base* get_scheduler(void);
 
-      explicit base(const vm::process_id, vm::all *);
+      explicit base(const vm::process_id);
 
       virtual ~base(void);
 
@@ -187,3 +187,9 @@ namespace sched
 }
 
 #endif
+
+
+// Local Variables:
+// mode: C++
+// indent-tabs-mode: nil
+// End:

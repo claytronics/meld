@@ -55,8 +55,8 @@ namespace sched
 
     serial_local *find_scheduler(const db::node *) { return this; }
 
-    explicit serial_local(vm::all *all):
-      sched::base(0, all),
+    explicit serial_local(void):
+      sched::base(0),
       current_node(NULL)
     {
     }

@@ -220,7 +220,7 @@ namespace process
   void
   machine::execute_const_code(void)
   {
-    state st(vm::All);
+    vm::state st;
 
     // no node or tuple whatsoever
     st.setup(NULL, NULL, 0, 0);
@@ -329,7 +329,7 @@ namespace process
     // Instantiate the scheduler object
     switch(sched_type) {
     case SCHED_SERIAL:
-      vm::All->ALL_THREADS.push_back(dynamic_cast<sched::base*>(new sched::serial_local(vm::All)));
+      vm::All->ALL_THREADS.push_back(dynamic_cast<sched::base*>(new sched::serial_local()));
       break;
     case SCHED_UNKNOWN: assert(false); break;
     default: break;

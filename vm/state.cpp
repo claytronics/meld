@@ -115,14 +115,14 @@ state::cleanup(void)
 void
 state::copy_reg2const(const reg_num& reg_from, const const_id& cid)
 {
-   all->set_const(cid, regs[reg_from]);
-	switch(all->PROGRAM->get_const_type(cid)->get_type()) {
-		case FIELD_LIST:
-         runtime::cons::inc_refs(all->get_const_cons(cid)); break;
-		case FIELD_STRING:
-			all->get_const_string(cid)->inc_refs(); break;
-		default: break;
-	}
+  vm::All->set_const(cid, regs[reg_from]);
+  switch(vm::All->PROGRAM->get_const_type(cid)->get_type()) {
+  case FIELD_LIST:
+    runtime::cons::inc_refs(vm::All->get_const_cons(cid)); break;
+  case FIELD_STRING:
+    vm::All->get_const_string(cid)->inc_refs(); break;
+  default: break;
+  }
 }
 
 void
@@ -217,7 +217,7 @@ state::mark_active_rules(void)
 		rule_id rid(*it);
 		if(!rules[rid]) {
 			// we need check if at least one predicate was activated in this loop
-			vm::rule *rule(all->PROGRAM->get_rule(rid));
+			vm::rule *rule(vm::All->PROGRAM->get_rule(rid));
 			if(check_if_rule_predicate_activated(rule)) {
 				rules[rid] = true;
 				heap_priority pr;
@@ -441,7 +441,7 @@ state::mark_rules_using_local_tuples(db::simple_tuple_list& ls)
          delete stpl;
          it = ls.erase(it);
       } else if(tpl->is_action()) {
-         all->MACHINE->run_action(sched, node, tpl);
+	vm::All->MACHINE->run_action(sched, node, tpl);
          delete stpl;
          it = ls.erase(it);
       } else if(tpl->is_persistent() || tpl->is_reused()) {
@@ -551,7 +551,7 @@ state::process_persistent_tuple(db::simple_tuple *stpl, vm::tuple *tpl)
          setup(tpl, node, stpl->get_count(), stpl->get_depth());
          use_local_tuples = false;
          persistent_only = true;
-         execute_bytecode(all->PROGRAM->get_predicate_bytecode(tpl->get_predicate_id()), *this);
+         execute_bytecode(vm::All->PROGRAM->get_predicate_bytecode(tpl->get_predicate_id()), *this);
       }
 
 #ifdef USE_RULE_COUNTING
@@ -569,7 +569,7 @@ state::process_persistent_tuple(db::simple_tuple *stpl, vm::tuple *tpl)
 			setup(tpl, node, stpl->get_count(), stpl->get_depth());
 			persistent_only = true;
 			use_local_tuples = false;
-			execute_bytecode(all->PROGRAM->get_predicate_bytecode(tuple->get_predicate_id()), *this);
+			execute_bytecode(vm::All->PROGRAM->get_predicate_bytecode(tuple->get_predicate_id()), *this);
          delete stpl;
 		} else {
       	node::delete_info deleter(node->delete_tuple(tpl, -stpl->get_count(), stpl->get_depth()));
@@ -583,7 +583,7 @@ state::process_persistent_tuple(db::simple_tuple *stpl, vm::tuple *tpl)
          	setup(tpl, node, stpl->get_count(), stpl->get_depth());
          	persistent_only = true;
          	use_local_tuples = false;
-         	execute_bytecode(all->PROGRAM->get_predicate_bytecode(tuple->get_predicate_id()), *this);
+         	execute_bytecode(vm::All->PROGRAM->get_predicate_bytecode(tuple->get_predicate_id()), *this);
          	deleter();
 
 		debugger::runBreakPoint("factRet",
@@ -609,7 +609,7 @@ state::process_persistent_tuple(db::simple_tuple *stpl, vm::tuple *tpl)
                   setup(tpl, node, stpl->get_count(), stpl->get_depth());
                   persistent_only = true;
                   use_local_tuples = false;
-                  execute_bytecode(all->PROGRAM->get_predicate_bytecode(tuple->get_predicate_id()), *this);
+                  execute_bytecode(vm::All->PROGRAM->get_predicate_bytecode(tuple->get_predicate_id()), *this);
                   deleter();
          debugger::runBreakPoint("factRet","Fact has been retracted",
          (char*)tpl->pred_name().c_str(),
@@ -644,7 +644,7 @@ state::process_others(void)
 	{
 
 		/* no need to mark tuples */
-		all->MACHINE->route_self(sched, node, *it);
+	  vm::All->MACHINE->route_self(sched, node, *it);
 	}
 
 	generated_other_level.clear();
@@ -656,7 +656,7 @@ state::start_matching(void)
 #ifndef USE_RULE_COUNTING
 	predicates_to_check.clear();
 #endif
-	fill_n(predicates, all->PROGRAM->num_predicates(), false);
+	fill_n(predicates, vm::All->PROGRAM->num_predicates(), false);
 }
 
 // Reads the fact and check which rules can be applied and execute the rules
@@ -694,7 +694,7 @@ state::run_node(db::node *no)
 
 
 #ifdef DEBUG_RULES
-		cout<<node->get_id() << ":Run rule " << all->PROGRAM->get_rule(rule)->get_string() << endl;
+		cout<<node->get_id() << ":Run rule " << vm::All->PROGRAM->get_rule(rule)->get_string() << endl;
 #endif
 
 
@@ -721,7 +721,7 @@ state::run_node(db::node *no)
          break;
       }
 		mark_active_rules();
-		api::regularPollAndProcess(sched,this->all);
+		api::regularPollAndProcess(sched);
 	}
 
 
@@ -768,10 +768,10 @@ state::init_core_statistics(void)
       stat_instructions_executed = 0;
       stat_moves_executed = 0;
       stat_ops_executed = 0;
-      stat_predicate_proven = new size_t[all->PROGRAM->num_predicates()];
-      stat_predicate_applications = new size_t[all->PROGRAM->num_predicates()];
-      stat_predicate_success = new size_t[all->PROGRAM->num_predicates()];
-      for(size_t i(0); i < all->PROGRAM->num_predicates(); ++i) {
+      stat_predicate_proven = new size_t[vm::All->PROGRAM->num_predicates()];
+      stat_predicate_applications = new size_t[vm::All->PROGRAM->num_predicates()];
+      stat_predicate_success = new size_t[vm::All->PROGRAM->num_predicates()];
+      for(size_t i(0); i < vm::All->PROGRAM->num_predicates(); ++i) {
          stat_predicate_proven[i] = 0;
          stat_predicate_applications[i] = 0;
          stat_predicate_success[i] = 0;
@@ -780,31 +780,29 @@ state::init_core_statistics(void)
 }
 #endif
 
-state::state(sched::base *_sched, vm::all *_all):
+state::state(sched::base *_sched):
    sched(_sched)
 #ifdef DEBUG_MODE
    , print_instrs(false)
 #endif
-   , all(_all)
 {
 #ifdef CORE_STATISTICS
    init_core_statistics();
 #endif
-	rules = new bool[all->PROGRAM->num_rules()];
-	fill_n(rules, all->PROGRAM->num_rules(), false);
-	predicates = new bool[all->PROGRAM->num_predicates()];
-	fill_n(predicates, all->PROGRAM->num_predicates(), false);
+   rules = new bool[vm::All->PROGRAM->num_rules()];
+   fill_n(rules, vm::All->PROGRAM->num_rules(), false);
+   predicates = new bool[vm::All->PROGRAM->num_predicates()];
+   fill_n(predicates, vm::All->PROGRAM->num_predicates(), false);
 	rule_queue.set_type(HEAP_INT_ASC);
 
 }
 
-state::state(vm::all *_all):
+state::state(void):
    rules(NULL), predicates(NULL), sched(NULL)
 #ifdef DEBUG_MODE
    , print_instrs(false)
 #endif
    , persistent_only(false)
-   , all(_all)
 {
 #ifdef CORE_STATISTICS
    init_core_statistics();
@@ -827,14 +825,14 @@ state::~state(void)
 		cout << "\tmoves: " << stat_moves_executed << endl;
 		cout << "\tops: " << stat_ops_executed << endl;
       cout << "Proven predicates:" << endl;
-      for(size_t i(0); i < all->PROGRAM->num_predicates(); ++i)
-         cout << "\t" << all->PROGRAM->get_predicate(i)->get_name() << " " << stat_predicate_proven[i] << endl;
+      for(size_t i(0); i < vm::All->PROGRAM->num_predicates(); ++i)
+	cout << "\t" << vm::All->PROGRAM->get_predicate(i)->get_name() << " " << stat_predicate_proven[i] << endl;
       cout << "Applications predicate:" << endl;
-      for(size_t i(0); i < all->PROGRAM->num_predicates(); ++i)
-         cout << "\t" << all->PROGRAM->get_predicate(i)->get_name() << " " << stat_predicate_applications[i] << endl;
+      for(size_t i(0); i < vm::All->PROGRAM->num_predicates(); ++i)
+	cout << "\t" << vm::All->PROGRAM->get_predicate(i)->get_name() << " " << stat_predicate_applications[i] << endl;
       cout << "Successes predicate:" << endl;
-      for(size_t i(0); i < all->PROGRAM->num_predicates(); ++i)
-         cout << "\t" << all->PROGRAM->get_predicate(i)->get_name() << " " << stat_predicate_success[i] << endl;
+      for(size_t i(0); i < vm::All->PROGRAM->num_predicates(); ++i)
+	cout << "\t" << vm::All->PROGRAM->get_predicate(i)->get_name() << " " << stat_predicate_success[i] << endl;
       delete []stat_predicate_proven;
       delete []stat_predicate_applications;
       delete []stat_predicate_success;
@@ -846,3 +844,9 @@ state::~state(void)
 }
 
 }
+
+
+// Local Variables:
+// mode: C++
+// indent-tabs-mode: nil
+// End:

@@ -145,9 +145,6 @@ namespace debugger {
     /*number of messages the Master expects to recieve*/
     int numberExpected = 0;
 
-    /*used to store the state of the system to dump/print system*/
-    vm::all* all;
-
     /*cache ...rcvMessageList holds containters for
      * different lists of broken messages*/
     std::list<struct msgListContainer*>* rcvMessageList;
@@ -180,17 +177,15 @@ namespace debugger {
     /******************************************************************/
 
     /*setup simulation debugging mode*/
-    void initSimDebug(vm::all *debugAll){
-        all = debugAll;
+    void initSimDebug(void) {
         setupFactList();
         messageQueue = new std::queue<api::message_type*>();
         rcvMessageList = new std::list<struct msgListContainer*>();
     }
 
     /*setup MPI debugging mode*/
-    void initMpiDebug(vm::all *debugAll){
+    void initMpiDebug(void){
         messageQueue = new std::queue<api::message_type*>();
-        all = debugAll;
         setupFactList();
         rcvMessageList = new std::list<struct msgListContainer*>();
     }
@@ -568,10 +563,10 @@ namespace debugger {
 
         /*if a node is not specified by the dump command*/
         if (nodeNumber == -1)
-            all->DATABASE->print_entire_db_debug(msg);
+	  vm::All->DATABASE->print_entire_db_debug(msg);
         else
             /*print out only the given node*/
-            all->DATABASE->print_db_debug(msg,nodeNumber);
+	  vm::All->DATABASE->print_db_debug(msg,nodeNumber);
 
         display(msg.str(),PRINTCONTENT);
     }

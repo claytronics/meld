@@ -133,13 +133,13 @@ run_program(int argc, char **argv, const char *program, const vm::machine_argume
       api::init(argc, argv, mac.get_all()->ALL_THREADS[0]);
     }
     if (debugger::isInMpiDebuggingMode()){
-      api::debugInit(mac.get_all());
+      api::debugInit();
     }
     if (debugger::isInDebuggingMode()) {
-      debugger::debug(mac.get_all());
+      debugger::debug();
       debugger::pauseIt();
     } else if (debugger::isInSimDebuggingMode()){
-      debugger::initSimDebug(mac.get_all());
+      debugger::initSimDebug();
       debugger::pauseIt();
     }
 
