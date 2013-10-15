@@ -8,6 +8,7 @@
 #include "debug/debug_handler.hpp"
 #include "debug/debug_prompt.hpp"
 #include "interface.hpp"
+#include "compileInfo.hpp"
 
 using namespace utils;
 using namespace process;
@@ -19,10 +20,27 @@ static char *data_file = NULL;
 static char *progname = NULL;
 static char checkedApiTarget = 0; // if set to 1, can exit successfully with zero args
 
+namespace utils {
+  static char* compileInfo = NULL;
+
+  char*
+  addCompileInfo(char const* info)
+  {
+    int ciLen = 0;
+    int iLen = strlen(info);
+    
+    compileInfo = (char *)realloc(compileInfo, ciLen + 2 + iLen);
+    if (ciLen > 0) compileInfo[ciLen++] = ' ';
+    strcpy(compileInfo+ciLen, info);
+    ciLen += iLen;
+    return compileInfo;
+  }
+}
+
 static void
 help(void)
 {
-  cerr << "meld: execute meld program for " << api::apiTarget << endl;
+  cerr << "meld: execute meld program for " << (compileInfo?compileInfo:"??") << endl;
 	cerr << "meld -f <program file> -c <scheduler> [options] -- arg1 arg2 ... argN" << endl;
 	cerr << "\t-f <name>\tmeld program" << endl;
 	cerr << "\t-a\tprint on stdout the target api" << endl;
@@ -190,3 +208,9 @@ main(int argc, char **argv)
 
    return EXIT_SUCCESS;
 }
+
+
+// Local Variables:
+// mode: C++
+// indent-tabs-mode: nil
+// End:
