@@ -132,6 +132,8 @@ const char* apiTarget = "mpi";
         /* Given a node id and tuple, figure out the process id to send the
            tuple and id to be processed
         */
+      ignoreUnusedParamWarning(from);
+
         int dest = getVMId(to);
         message_type *msg = new message_type[MAXLENGTH];
         size_t msg_length = MAXLENGTH * sizeof(message_type);
@@ -240,7 +242,7 @@ const char* apiTarget = "mpi";
         }
     }
 
-    bool ensembleFinished(sched::base *sched) {
+    bool ensembleFinished() {
         /*
           Handle tokens sent using Safra's algorithm for termination detection
           ref: http://www.cse.ohio-state.edu/siefast/group/publications/da2000-otdar.pdf
