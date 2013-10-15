@@ -88,9 +88,9 @@ namespace api {
     
 #ifdef SIMD
     /* Deterministic Simulation */
-    extern void workEnd();
-    extern void timeInfo();
-    extern bool waitAndProcess(sched::base *sched);
+    extern void workEnd(void);
+    extern void timeInfo(void);
+    extern bool waitAndProcess(void);
 #endif
 
 	extern bool isInBBSimMode();
