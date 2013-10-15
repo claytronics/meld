@@ -405,7 +405,7 @@ namespace api
         return false;
       }
 	}
-    if(ensembleFinished(sched_state)) {
+    if(ensembleFinished()) {
       return false;
     } else {
       return true;
@@ -453,7 +453,7 @@ namespace api
     default:
       break;
 	}
-    if(ensembleFinished(sched_state)) {
+    if(ensembleFinished()) {
       return false;
     } else {
       return true;
@@ -581,14 +581,17 @@ namespace api
 
   /*Helper function Definitions*/
 
+  static db::node::node_id nodeId = 0;   // the id of this node from setid
+
   /*Handles the incoming commangs from the simulator*/
   static void 
   processMessage(message_type* reply)
   {
     //printf("%d:Processing %s %lud bytes for %lud\n",id, msgcmd2str[reply[1]], reply[0], reply[3]);
-    cout << id << " :Processing " << msgcmd2str[reply[1]] << endl;
     assert(reply!=NULL);
     message* msg=(message*)reply;
+    cout << id << " :Processing " << msgcmd2str[msg->command] << endl;
+    assert ((msg->node == 0)||(nodeId == 0)||((db::node::node_id)msg->node == nodeId));
     
 	if (msg->command != DEBUG) {
       setCurrentLocalTime((deterministic_timestamp)msg->timestamp);
@@ -599,7 +602,8 @@ namespace api
       /*Initilize the blocks's ID*/
     case SETID: 
       handleSetID((deterministic_timestamp) msg->timestamp, (db::node::node_id) msg->node);
-      id=(db::node::node_id) reply[3];
+      id=(db::node::node_id) msg->node;
+      nodeId = id;
       ready=true;
       break;
 
@@ -667,9 +671,8 @@ namespace api
   }
 
   bool
-  ensembleFinished(sched::base *sched)
+  ensembleFinished()
   {
-    ignoreUnusedParamWarning(sched);
     return stop_all;
   }
 
