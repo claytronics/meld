@@ -242,7 +242,7 @@ namespace api
       throw machine_error("can't connect to simulator");
     }
     check_pre(schedular);
-    while(!isReady() && waitAndProcess(NULL));
+    while(!isReady() && waitAndProcess());
   }
 
   void debugInit(void)
@@ -393,8 +393,7 @@ namespace api
   /* Wait for at least one incoming message. // Read and process all
    * the received messages.
    */
-  bool waitAndProcess(sched::base *sched) {
-	ignoreUnusedParamWarning(sched);
+  bool waitAndProcess() {
     static message_type msg[api::MAXLENGTH];
 	if (debugger::isInSimDebuggingMode() && !messageQ.empty()) {
       processNextQueuedMessage();
@@ -815,7 +814,7 @@ namespace api
 	message_type *msg = (message_type*) reply;
 	memcpy(m, msg, msg[0]+sizeof(message_type));
 	while (!ready) { 
-      waitAndProcess(NULL);
+      waitAndProcess();
 	}
 	debugger::messageQueue->push((message_type*)m);
   }
@@ -997,7 +996,7 @@ namespace api
 	bool debugMsgReceived = false;
 	switch (vm::determinism::getSimulationMode()) {
     case REALTIME :
-      if (!waitAndProcess(NULL)) {
+      if (!waitAndProcess()) {
         exit(0);
       }
       break;
