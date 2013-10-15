@@ -76,4 +76,7 @@ size_t random_unsigned(const size_t);
 
 }
 
+// use this if you know a parameter is unused, but you need it to be in the type signature.
+#define ignoreUnusedParamWarning(x) (void)x
+
 #endif
