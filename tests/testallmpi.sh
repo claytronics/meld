@@ -2,7 +2,7 @@
 if [ ${MELDCL:-unset} == unset ]; then
   echo "You need to set MELDCL to point to directory with meld compiler"
 fi
-../meld -a mpi
+../meld-mpi -a mpi
 if [ $? != 0 ]; then
     echo "vm is not compiled to use mpi"
     exit 1
