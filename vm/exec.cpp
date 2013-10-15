@@ -33,7 +33,7 @@ using namespace runtime;
 #include "compileInfo.hpp"
 
 #ifdef SIMD
-declareCompileInfo(_det, "Deterministic");
+declareCompileInfo(deterministicMode, "on");
 #endif
 
 namespace vm
@@ -52,21 +52,20 @@ enum return_type {
 static inline return_type execute(pcounter, state&);
 
 static inline node_val
-get_node_val(pcounter& m, state& state)
+get_node_val(pcounter& m)
 {
    const node_val ret(pcounter_node(m));
 
    pcounter_move_node(&m);
 
-   assert(ret <= state.all->DATABASE->max_id());
+   assert(ret <= vm::All->DATABASE->max_id());
 
    return ret;
 }
 
 static inline node_val
-get_node_val(const pcounter& m, state& state)
+get_node_val(const pcounter& m)
 {
-   (void)state;
    return pcounter_node(m);
 }
 
@@ -95,7 +94,7 @@ move_to_reg(const pcounter& m, state& state,
    } else if(val_is_host(from))
       state.set_node(reg, state.node->get_id());
    else if(val_is_node(from))
-      state.set_node(reg, get_node_val(m, state));
+      state.set_node(reg, get_node_val(m));
    else if(val_is_reg(from))
       state.copy_reg(val_reg(from), reg);
    else if(val_is_tuple(from)) {
@@ -136,7 +135,7 @@ move_to_field(pcounter m, state& state, const instr_val& from)
 
       tuple->set_int(val_field_num(m), i);
    } else if(val_is_node(from)) {
-      const node_val val(get_node_val(m, state));
+      const node_val val(get_node_val(m));
 
       tuple *tuple(state.get_tuple(val_field_reg(m)));
 
@@ -148,7 +147,7 @@ move_to_field(pcounter m, state& state, const instr_val& from)
 
 		tuple *tuple(state.get_tuple(val_field_reg(m)));
 
-		tuple->set_string(val_field_num(m), state.all->PROGRAM->get_default_string(id));
+		tuple->set_string(val_field_num(m), vm::All->PROGRAM->get_default_string(id));
 	} else if(val_is_arg(from)) {
 		const argument_id id(pcounter_argument_id(m));
 
@@ -156,7 +155,7 @@ move_to_field(pcounter m, state& state, const instr_val& from)
 
 		tuple *tuple(state.get_tuple(val_field_reg(m)));
 
-		tuple->set_string(val_field_num(m), state.all->get_argument(id));
+		tuple->set_string(val_field_num(m), vm::All->get_argument(id));
    } else if(val_is_stack(from)) {
       const offset_num off(pcounter_offset_num(m));
 
@@ -179,16 +178,16 @@ move_to_field(pcounter m, state& state, const instr_val& from)
 		
 		switch(typ) {
 			case FIELD_INT:
-				tuple->set_int(to_field, state.all->get_const_int(cid));
+				tuple->set_int(to_field, vm::All->get_const_int(cid));
 				break;
 			case FIELD_FLOAT:
-				tuple->set_float(to_field, state.all->get_const_float(cid));
+				tuple->set_float(to_field, vm::All->get_const_float(cid));
 				break;
          case FIELD_LIST:
-            tuple->set_cons(to_field, state.all->get_const_cons(cid));
+            tuple->set_cons(to_field, vm::All->get_const_cons(cid));
 				break;
          case FIELD_NODE:
-            tuple->set_node(to_field, state.all->get_const_node(cid));
+            tuple->set_node(to_field, vm::All->get_const_node(cid));
             break;
 			default: throw vm_exec_error("don't know how to move to " + field_type_string(typ) + " field (move_to_field from const)");
 		}
@@ -290,7 +289,7 @@ move_to_stack(pcounter pc, pcounter m, state& state, const instr_val& from)
 		pcounter_move_const_id(&m);
 
       const offset_num off(pcounter_offset_num(m));
-      *(state.get_stack_at(off)) = state.all->get_const(cid);
+      *(state.get_stack_at(off)) = vm::All->get_const(cid);
    } else
 		throw vm_exec_error("invalid move to stack (move_to_stack)");
 }
@@ -305,7 +304,7 @@ move_to_const(pcounter m, state& state, const instr_val& from)
 
 		const const_id cid(pcounter_const_id(m));
 
-		state.all->set_const_float(cid, flt);
+		vm::All->set_const_float(cid, flt);
 	} else if(val_is_int(from)) {
 		const int_val it(pcounter_int(m));
 
@@ -313,27 +312,27 @@ move_to_const(pcounter m, state& state, const instr_val& from)
 
 		const const_id cid(pcounter_int(m));
 
-		state.all->set_const_int(cid, it);
+		vm::All->set_const_int(cid, it);
 	} else if(val_is_reg(from)) {
 		const reg_num reg(val_reg(from));
 		const const_id cid(pcounter_const_id(m));
 
 		state.copy_reg2const(reg, cid);
 	} else if(val_is_node(from)) {
-		const node_val node(get_node_val(m, state));
+		const node_val node(get_node_val(m));
 
 		const const_id cid(pcounter_const_id(m));
-		state.all->set_const_node(cid, node);
+		vm::All->set_const_node(cid, node);
    } else if(val_is_string(from)) {
 		const uint_val id(pcounter_uint(m));
 
 		pcounter_move_uint(&m);
 
-      rstring::ptr str(state.all->PROGRAM->get_default_string(id));
+      rstring::ptr str(vm::All->PROGRAM->get_default_string(id));
 
 		const const_id cid(pcounter_const_id(m));
 
-      state.all->set_const_string(cid, str);
+      vm::All->set_const_string(cid, str);
 	} else
 		throw vm_exec_error("invalid move to const (move_to_const)");
 }
@@ -373,7 +372,7 @@ execute_move(pcounter& pc, state& state)
 static inline void
 execute_alloc(const pcounter& pc, state& state)
 {
-   tuple *tuple(state.all->PROGRAM->new_tuple(alloc_predicate(pc)));
+   tuple *tuple(vm::All->PROGRAM->new_tuple(alloc_predicate(pc)));
 
    state.set_tuple(alloc_reg(pc), tuple);
 }
@@ -393,7 +392,7 @@ execute_send_self(tuple *tuple, state& state)
 #endif
    if(tuple->is_action()) {
       if(state.count > 0)
-         state.all->MACHINE->run_action(state.sched,
+         vm::All->MACHINE->run_action(state.sched,
                state.node, tuple);
       else
          delete tuple;
@@ -426,7 +425,7 @@ execute_send_self(tuple *tuple, state& state)
       }
    } else {
       simple_tuple *stuple(new simple_tuple(tuple, state.count, state.depth));
-      state.all->MACHINE->route_self(state.sched, state.node, stuple);
+      vm::All->MACHINE->route_self(state.sched, state.node, stuple);
       state.add_generated_tuple(stuple);
    }
 }
@@ -471,7 +470,7 @@ execute_send(const pcounter& pc, state& state)
       debugMsg << "\t-" << *tuple << " -> Node: "
 	       << state.get_node(dest) << endl;
       simple_tuple *stuple(new simple_tuple(tuple, state.count, state.depth));
-      state.all->MACHINE->route(state.node, state.sched, (node::node_id)dest_val, stuple);
+      vm::All->MACHINE->route(state.node, state.sched, (node::node_id)dest_val, stuple);
    }
 
    debugMsg << "\t-Fact has been derived" << endl;
@@ -498,12 +497,12 @@ execute_send_delay(const pcounter& pc, state& state)
 #ifdef DEBUG_MODE
       cout << "\t" << *tuple << " -> self " << state.node->get_id() << endl;
 #endif
-      state.all->MACHINE->route_self(state.sched, state.node, stuple, send_delay_time(pc));
+      vm::All->MACHINE->route_self(state.sched, state.node, stuple, send_delay_time(pc));
    } else {
 #ifdef DEBUG_MODE
       cout << "\t" << *tuple << " -> " << dest_val << endl;
 #endif
-      state.all->MACHINE->route(state.node, state.sched, (node::node_id)dest_val, stuple, send_delay_time(pc));
+      vm::All->MACHINE->route(state.node, state.sched, (node::node_id)dest_val, stuple, send_delay_time(pc));
    }
 }
 
@@ -543,7 +542,7 @@ float_val get_op_function<float_val>(const instr_val& val, pcounter& m, state& s
 	} else if(val_is_const(val)) {
 		const const_id cid(pcounter_const_id(m));
 		pcounter_move_const_id(&m);
-		float_val val(state.all->get_const_float(cid));
+		float_val val(vm::All->get_const_float(cid));
 
 		return val;
    } else
@@ -599,7 +598,7 @@ int_val get_op_function<int_val>(const instr_val& val, pcounter& m, state& state
 
 		pcounter_move_const_id(&m);
 
-		return state.all->get_const_int(cid);
+		return vm::All->get_const_int(cid);
    } else
       throw vm_exec_error("invalid int for int op");
 }
@@ -610,7 +609,7 @@ node_val get_op_function<node_val>(const instr_val& val, pcounter& m, state& sta
    if(val_is_host(val))
       return state.node->get_id();
    else if(val_is_node(val))
-      return get_node_val(m, state);
+      return get_node_val(m);
    else if(val_is_reg(val))
       return state.get_node(val_reg(val));
    else if(val_is_field(val)) {
@@ -624,7 +623,7 @@ node_val get_op_function<node_val>(const instr_val& val, pcounter& m, state& sta
 		const const_id cid(pcounter_const_id(m));
 		pcounter_move_const_id(&m);
 
-		return state.all->get_const_node(cid);
+		return vm::All->get_const_node(cid);
    } else
       throw vm_exec_error("invalid node for node op (get_op_function<node_val>)");
 }
@@ -664,7 +663,7 @@ cons* get_op_function<cons*>(const instr_val& val, pcounter& m, state& state)
 
 		pcounter_move_const_id(&m);
 		
-		return state.all->get_const_cons(cid);
+		return vm::All->get_const_cons(cid);
 	} else
       throw vm_exec_error("unable to get a cons (get_op_function<cons*>)");
 }
@@ -686,7 +685,7 @@ struct1* get_op_function<struct1*>(const instr_val& val, pcounter& m, state& sta
 
 		pcounter_move_const_id(&m);
 		
-		return state.all->get_const_struct(cid);
+		return vm::All->get_const_struct(cid);
 	} else
       throw vm_exec_error("unable to get a struct (get_op_function<struct1*>)");
 }
@@ -708,13 +707,13 @@ rstring::ptr get_op_function<rstring::ptr>(const instr_val& val, pcounter& m, st
 
 		pcounter_move_uint(&m);
 
-		return state.all->PROGRAM->get_default_string(id);
+		return vm::All->PROGRAM->get_default_string(id);
 	} else if(val_is_arg(val)) {
 		const argument_id id(pcounter_argument_id(m));
 
 		pcounter_move_argument_id(&m);
 
-		rstring::ptr s(state.all->get_argument(id));
+		rstring::ptr s(vm::All->get_argument(id));
 		state.add_string(s);
 
 		return s;
@@ -723,7 +722,7 @@ rstring::ptr get_op_function<rstring::ptr>(const instr_val& val, pcounter& m, st
 
 		pcounter_move_const_id(&m);
 
-		return state.all->get_const_string(cid);
+		return vm::All->get_const_string(cid);
 	} else
 		throw vm_exec_error("unable to get a string");
 }
@@ -1402,7 +1401,7 @@ execute_cons(pcounter pc, state& state)
    const instr_val head(cons_head(pc));
    const instr_val tail(cons_tail(pc));
    const instr_val dest(cons_dest(pc));
-   list_type *ltype((list_type*)state.all->PROGRAM->get_type(cons_type(pc)));
+   list_type *ltype((list_type*)vm::All->PROGRAM->get_type(cons_type(pc)));
    
    const tuple_field head_val(get_op_function<tuple_field>(head, m, state));
    cons *ls(get_op_function<cons*>(tail, m, state));
@@ -1491,7 +1490,7 @@ execute_float(pcounter& pc, state& state)
 static inline pcounter
 execute_select(pcounter pc, state& state)
 {
-   if(state.node->get_id() > state.all->DATABASE->static_max_id())
+   if(state.node->get_id() > vm::All->DATABASE->static_max_id())
       return pc + select_size(pc);
 
    const pcounter hash_start(select_hash_start(pc));
@@ -1515,7 +1514,7 @@ execute_colocated(pcounter pc, state& state)
    //const node_val n1(get_op_function<node_val>(first, m, state));
    //const node_val n2(get_op_function<node_val>(second, m, state));
 
-   //state.set_bool(dest, state.all->MACHINE->same_place(n1, n2));
+   //state.set_bool(dest, vm::All->MACHINE->same_place(n1, n2));
    // TODO machine::same_place should probably be replaced by the API
    // interface
    state.set_bool(dest, true);
@@ -1525,7 +1524,7 @@ static inline void
 execute_delete(const pcounter pc, state& state)
 {
    const predicate_id id(delete_predicate(pc));
-   const predicate *pred(state.all->PROGRAM->get_predicate(id));
+   const predicate *pred(vm::All->PROGRAM->get_predicate(id));
    pcounter m(pc + DELETE_BASE);
    const size_t num_args(delete_num_args(pc));
    match mobj(pred);
@@ -1833,7 +1832,7 @@ static inline void
 execute_new_node(const pcounter& pc, state& state)
 {
    const reg_num reg(new_node_reg(pc));
-   node *new_node(state.all->DATABASE->create_node());
+   node *new_node(vm::All->DATABASE->create_node());
 
    state.sched->init_node(new_node);
 
@@ -1892,7 +1891,7 @@ execute_new_axioms(pcounter pc, state& state)
 
       // read axions until the end!
       predicate_id pid(predicate_get(pc, 0));
-      predicate *pred(state.all->PROGRAM->get_predicate(pid));
+      predicate *pred(vm::All->PROGRAM->get_predicate(pid));
       tuple *tpl(new tuple(pred));
 
       pc++;
@@ -1930,7 +1929,7 @@ static inline void
 execute_make_struct(pcounter pc, state& state)
 {
    const instr_val to(make_struct_to(pc));
-   struct_type *st((struct_type*)state.all->PROGRAM->get_type(make_struct_type(pc)));
+   struct_type *st((struct_type*)vm::All->PROGRAM->get_type(make_struct_type(pc)));
 
    pc += MAKE_STRUCT_BASE;
    struct1 *s(new struct1(st));
@@ -1979,10 +1978,10 @@ eval_loop:
 
 #ifdef DEBUG_MODE
 		if(state.print_instrs)
-         instr_print_simple(pc, 0, state.all->PROGRAM, cout);
+         instr_print_simple(pc, 0, vm::All->PROGRAM, cout);
 
 #elif defined(DEBUG_INSTRS)
-      instr_print_simple(pc, 0, state.all->PROGRAM, cout);
+      instr_print_simple(pc, 0, vm::All->PROGRAM, cout);
 #endif
 
 #ifdef CORE_STATISTICS
@@ -2042,7 +2041,7 @@ eval_loop:
          case ITER_INSTR: {
                tuple_vector matches;
                const predicate_id pred_id(iter_predicate(pc));
-               const predicate *pred(state.all->PROGRAM->get_predicate(pred_id));
+               const predicate *pred(vm::All->PROGRAM->get_predicate(pred_id));
                match mobj(pred);
 
 #ifdef CORE_STATISTICS
@@ -2179,7 +2178,7 @@ eval_loop:
 
          case CALLF_INSTR: {
               const vm::callf_id id(callf_get_id(pc));
-              function *fun(state.all->PROGRAM->get_function(id));
+              function *fun(vm::All->PROGRAM->get_function(id));
 
               pc = fun->get_bytecode();
               goto eval_loop;
@@ -2238,12 +2237,12 @@ void
 execute_rule(const rule_id rule_id, state& state)
 {
 #if defined(DEBUG_MODE) || defined(DEBUG_RULES)
-	cout << "Running rule " << state.all->PROGRAM->get_rule(rule_id)->get_string() << endl;
+	cout << "Running rule " << vm::All->PROGRAM->get_rule(rule_id)->get_string() << endl;
 #endif
 
-   //state.all->DATABASE->print_db(cout);
+   //vm::All->DATABASE->print_db(cout);
 
-	vm::rule *rule(state.all->PROGRAM->get_rule(rule_id));
+	vm::rule *rule(vm::All->PROGRAM->get_rule(rule_id));
 
    do_execute(rule->get_bytecode(), state);
 
