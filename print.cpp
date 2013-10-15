@@ -1,4 +1,3 @@
-
 #include <cstdlib>
 #include <iostream>
 
@@ -6,6 +5,24 @@
 
 using namespace vm;
 using namespace std;
+
+namespace xutils {
+  static char* compileInfo = NULL;
+
+  char*
+  addCompileInfo(char const* info)
+  {
+    int ciLen = 0;
+    int iLen = strlen(info);
+    
+    compileInfo = (char *)realloc(compileInfo, ciLen + 2 + iLen);
+    if (ciLen > 0) compileInfo[ciLen++] = ' ';
+    strcpy(compileInfo+ciLen, info);
+    ciLen += iLen;
+    return compileInfo;
+  }
+}
+
 
 int
 main(int argc, char **argv)
