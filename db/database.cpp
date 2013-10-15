@@ -2,6 +2,7 @@
 #include "db/database.hpp"
 #include "vm/state.hpp"
 #include "api/api.hpp"
+#include "compileInfo.hpp"
 
 using namespace db;
 using namespace std;
@@ -10,6 +11,14 @@ using namespace process;
 using namespace utils;
 using namespace api;
 namespace mpi = boost::mpi;
+
+#ifdef MULTI_NODE_PER_PROC
+declareCompileInfo(_mnp, "mtx");
+#endif
+
+#ifdef USERFRIENDLY
+declareCompileInfo(_uf, "userfriendly");
+#endif
 
 namespace db
 {
