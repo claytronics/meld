@@ -13,11 +13,11 @@ using namespace api;
 namespace mpi = boost::mpi;
 
 #ifdef MULTI_NODE_PER_PROC
-declareCompileInfo(_mnp, "mtx");
+declareCompileInfo(spinlock, "on");
 #endif
 
 #ifdef USERFRIENDLY
-declareCompileInfo(_uf, "userfriendly");
+declareCompileInfo(userfriendly, "yes");
 #endif
 
 namespace db
