@@ -124,5 +124,5 @@ depend:
 
 clean:
 	find . -name '*.o' | xargs rm -f
-	rm -f meld print Makefile.externs
+	rm -f meld-bbsim meld-mpi print Makefile.externs
 # DO NOT DELETE
