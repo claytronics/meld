@@ -2,17 +2,22 @@
 #ifndef _COMPILE_INFO_
 #define COMPILE_INFO
 
-namespace utils {
+namespace xutils {
 
 #ifndef BBHW
 char* addCompileInfo(char const* info);
-#define declareCompileInfo(x, y) char* x = utils::addCompileInfo(y)
 #else
-#define addCompileInfo(x)
-#define declareCompileInfo(x, y) 
+# define addCompileInfo(x)
 #endif
 
 }
+
+#ifndef BBHW
+# define declareCompileInfo(x, y) char* _ ## x = xutils::addCompileInfo(#x  ":" y)
+#else
+# define declareCompileInfo(x, y) 
+#endif
+
 
 #endif
 
