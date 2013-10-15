@@ -171,8 +171,16 @@ node::assert_end(void) const
    }
 }
 
-node::node(const node_id _id, const node_id _trans):
-  id(_id), translation(_trans), owner(NULL)
+node::node(const node_id _id
+#ifdef USERFRIENDLY
+           , const node_id _trans
+#endif
+           ):
+  id(_id),
+#ifdef USERFRIENDLY
+  translation(_trans), 
+#endif
+owner(NULL)
 {
 }
 
