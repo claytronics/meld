@@ -43,7 +43,6 @@ namespace debugger {
 
     extern std::queue<api::message_type*> *messageQueue;
     extern int numberExpected;
-    extern vm::all *all;
 
     extern bool isPausedInWorkLoop;
     extern bool isPausedInDeterministicPollLoop;
@@ -69,7 +68,7 @@ namespace debugger {
     void setupFactList(void);
     debugList getFactList(void);
     bool isDebuggerQueueEmpty(void);
-    void initSimDebug(vm::all *debugAll);
+    void initSimDebug(void);
     void setSimDebuggingMode(bool setting);
     void handleDebugMessage(uint64_t *msg);
     void display(std::string msg,int type);
@@ -80,7 +79,7 @@ namespace debugger {
     std::string getName(std::string specification);
     std::string getType(std::string specification);
     int characterInStringIndex(std::string str, char character);
-    void initMpiDebug(vm::all *debugAll);
+    void initMpiDebug(void);
     bool isInMpiDebuggingMode(void);
     void setMpiDebuggingMode(bool setting);
     void receiveMsg(bool poll=true);
