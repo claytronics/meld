@@ -95,7 +95,7 @@ base::do_loop(void)
 #endif
 	bool ensembleFinished = false;
 	if (!hasWork)
-		ensembleFinished = api::ensembleFinished(this);
+		ensembleFinished = api::ensembleFinished();
 	//api::serializeEndExec();
 	if (ensembleFinished)
 		break;
