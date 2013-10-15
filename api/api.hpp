@@ -45,7 +45,7 @@ namespace api {
      */
     extern void init(int argc, char **argv, sched::base*);
     extern void end(void);
-    extern bool ensembleFinished(sched::base *sched);
+    extern bool ensembleFinished(void);
 
     /* Return whether or not the node with id `id` belongs to the current
      * VM
