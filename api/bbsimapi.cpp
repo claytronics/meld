@@ -1,5 +1,6 @@
 #include <iostream>
 #include <boost/asio.hpp>
+#include <boost/asio/ip/address.hpp>
 #include <string>
 
 #include "db/database.hpp"
@@ -8,20 +9,26 @@
 #include "process/machine.hpp"
 #include "utils/utils.hpp"
 #include "api/api.hpp"
-#include "sched/nodes/sim.hpp"
-#include "sched/sim.hpp"
+#include "sched/serial.hpp"
+#include "msg/msg.hpp"
+#include "debug/debug_handler.hpp"
+#include "vm/determinism.hpp"
+
 
 using namespace db;
 using namespace vm;
+using namespace vm::determinism;
+using namespace utils;
 using namespace process;
+using namespace debugger;
 using boost::asio::ip::tcp;
-using sched::sim_node;
-using sched::sim_sched;
+using sched::serial_node;
 using sched::base;
 using namespace sched;
-
+using namespace msg;
 
 #define SETID 1
+#define DEBUG 16
 #define STOP 4
 #define ADD_NEIGHBOR 5
 #define REMOVE_NEIGHBOR 6
@@ -32,6 +39,11 @@ using namespace sched;
 #define ACCEL 14
 #define SHAKE 15
 
+#define SET_DETERMINISTIC_MODE		20
+#define POLL_START					21
+#define END_POLL					22
+#define	WORK_END					23
+#define TIME_INFO					24
 
 // debug messages for simulation
 // #define DEBUG
@@ -39,471 +51,861 @@ using namespace sched;
 namespace api
 {
 
-static void process_message(message_type* reply);
-static void add_received_tuple(sim_node *no, size_t ts, db::simple_tuple *stpl);
-static void add_neighbor(const size_t ts, sim_node *no, const node_val out, const face_t face, const int count);
-static void add_neighbor_count(const size_t ts, sim_node *no, const size_t total, const int count);
-static void add_vacant(const size_t ts,  sim_node *no, const face_t face, const int count);
-static void send_send_message(const sim_sched::work_info& info, const deterministic_timestamp ts);
-static void handle_setid(deterministic_timestamp ts, node::node_id node_id);
-static void handle_receive_message(const deterministic_timestamp ts, db::node::node_id node,
-      const face_t face, utils::byte *data, int offset, const int limit);
-static void handle_add_neighbor(const deterministic_timestamp ts, const db::node::node_id in,
-      const db::node::node_id out, const face_t face);
+const char* apiTarget = "bbsim";
 
-static void handle_remove_neighbor(const deterministic_timestamp ts,
-      const db::node::node_id in, const face_t face);
-static void handle_tap(const deterministic_timestamp ts, const db::node::node_id node);
-static void handle_accel(const deterministic_timestamp ts, const db::node::node_id node,
-      const int_val f);
-static void handle_shake(const deterministic_timestamp ts, const db::node::node_id node,
-      const int_val x, const int_val y, const int_val z);
+  enum face_t {
+    INVALID_FACE = -1,
+    BOTTOM = 0,
+    NORTH = 1,
+    EAST = 2,
+    WEST = 3,
+    SOUTH = 4,
+    TOP = 5
+  };
 
-static message_type *tcp_poll();
-static void init_tcp();
+  /*Storing the block's neighbor information*/
+
+  vm::node_val top;
+  vm::node_val bottom;
+  vm::node_val east;
+  vm::node_val west;
+  vm::node_val north;
+  vm::node_val south;
+
+  bool instantiated_flag(false);
+  size_t neighbor_count;
+  inline face_t& operator++(face_t &f)
+  {
+    f = static_cast<face_t>(f + 1);
+    return f;
+  }
+
+  inline face_t operator++(face_t& f, int) {
+    ++f;
+    return f;
+  }
 
 
 
 
+  /*Making compatible with simulator*/
+  static const vm::node_val NO_NEIGHBOR = (vm::node_val)-1;
 
-static sched::base *sched_state(NULL);
-vm::predicate* neighbor_pred(NULL);
-vm::predicate* tap_pred(NULL);
-vm::predicate* neighbor_count_pred(NULL);
-vm::predicate* accel_pred(NULL);
-vm::predicate* shake_pred(NULL);
-vm::predicate* vacant_pred(NULL);
-bool stop_all(false);
-utils::unix_timestamp start_time(0);
-/*Queues to be used.*/
-//queue::push_safe_linear_queue<sim_sched::message_type*> bbsimapi::socket_messages;
+  static const face_t INITIAL_FACE = BOTTOM;
+  static const face_t FINAL_FACE = TOP;
+  // returns a pointer to a certain face, allowing modification
 
-using namespace std;
+  static vm::node_val 
+  *get_node_at_face(const face_t face)
+  {
+    switch(face) {
+    case BOTTOM: return &bottom;
+    case NORTH: return &north;
+    case EAST: return &east;
+    case WEST: return &west;
+    case SOUTH: return &south;
+    case TOP: return &top;
+    default: assert(false);
+    }
+  }
 
-	
-void init(sched::base *schedular)
-{	
+  /*Get the block at a particular face*/
+  static face_t 
+  get_face(const vm::node_val node) 
+  {
+    if(node == bottom) return BOTTOM;
+    if(node == north) return NORTH;
+    if(node == east) return EAST;
+    if(node == west) return WEST;
+    if(node == south) return SOUTH;
+    if(node == top) return TOP;
+    return INVALID_FACE;
+  }
+
+  static inline bool 
+  has_been_instantiated(void)
+  {
+    return instantiated_flag;
+  }
+
+  static inline void 
+  inc_neighbor_count(void)
+  {
+    ++neighbor_count;
+  }
+
+  static inline void 
+  dec_neighbor_count(void)
+  {
+    --neighbor_count;
+  }
+
+  static inline size_t 
+  get_neighbor_count(void)
+  {
+    return neighbor_count;
+  }
+
+  boost::mpi::communicator *world = NULL;
+  
+  /*Helper Functions*/
+  static const char* msgcmd2str[27];
+  static boost::asio::ip::tcp::socket *my_tcp_socket;
+  static void processMessage(message_type* reply);
+  static void addReceivedTuple(serial_node *no, size_t ts, db::simple_tuple *stpl);
+  static void addNeighbor(const size_t ts, serial_node *no, const node_val out, const face_t face, const int count);
+  static void addNeighborCount(const size_t ts, serial_node *no, const size_t total, const int count);
+  static void addVacant(const size_t ts,  serial_node *no, const face_t face, const int count);
+  static void handleSetID(deterministic_timestamp ts, node::node_id node_id);
+  static void handleReceiveMessage(const deterministic_timestamp ts, db::node::node_id node,
+                                   const face_t face, db::node::node_id dest_id, utils::byte *data, int offset, const int limit);
+  static void handleAddNeighbor(const deterministic_timestamp ts, const db::node::node_id in,
+                                const db::node::node_id out, const face_t face);
+  static void handleRemoveNeighbor(const deterministic_timestamp ts,
+                                   const db::node::node_id in, const face_t face);
+  static void handleTap(const deterministic_timestamp ts, const db::node::node_id node);
+  static void handleAccel(const deterministic_timestamp ts, const db::node::node_id node,
+                          const int_val f);
+  static void handleShake(const deterministic_timestamp ts, const db::node::node_id node,
+                          const int_val x, const int_val y, const int_val z);
+  static void   check_pre(sched::base *schedular);
+  static bool isReady();
+  static message_type *tcpPool();
+  static void initTCP();
+  static void handleDebugMessage(utils::byte* reply, size_t totalSize);
+  static void sendMessageTCP(message *m);
+
+  static void handleSetDeterministicMode(const deterministic_timestamp ts,
+                                         const db::node::node_id node);
+
+  static bool ready(false);
+  /* deterministic mode */
+  static bool polling(false);
+  static std::queue<message_type*> messageQ;
+  static uint nbProcessedMsg = 0;
+  
+  /*Stores the scheduler*/
+  static sched::base *sched_state(NULL);
+  vm::predicate* neighbor_pred(NULL);
+  vm::predicate* tap_pred(NULL);
+  vm::predicate* neighbor_count_pred(NULL);
+  vm::predicate* accel_pred(NULL);
+  vm::predicate* shake_pred(NULL);
+  vm::predicate* vacant_pred(NULL);
+  bool stop_all(false);
+  static db::node::node_id id(0); 
+
+  using namespace std;
+
+  /*Returns the nodeID*/
+  int
+  getNodeID(void){
+    return id;
+  }
+
+  /*To initialize the connection to the simulator */
+  void 
+  init(int argc, char **argv, sched::base* schedular)
+  { 
+    if (schedular == NULL) return;
+
+    for (int i=0; i<25; i++) 
+      msgcmd2str[i] = NULL;
+
+    msgcmd2str[SETID] = "SETID";
+    msgcmd2str[STOP] = "STOP";
+    msgcmd2str[ADD_NEIGHBOR] = "ADD_NEIGHBOR";
+    msgcmd2str[REMOVE_NEIGHBOR] = "REMOVE_NEIGHBOR";
+    msgcmd2str[TAP] = "TAP";
+    msgcmd2str[SET_COLOR] = "SET_COLOR";
+    msgcmd2str[SEND_MESSAGE] = "SEND_MESSAGE";
+    msgcmd2str[RECEIVE_MESSAGE] = "RECEIVE_MESSAGE";
+    msgcmd2str[ACCEL] = "ACCEL";
+    msgcmd2str[SHAKE] = "SHAKE";
+    msgcmd2str[DEBUG] = "DEBUG";
+    msgcmd2str[SET_DETERMINISTIC_MODE] = "SET_DETERMINISTIC_MODE";
+    msgcmd2str[WORK_END] = "WORK_END";
+    msgcmd2str[END_POLL] = "END_POLL";
+    msgcmd2str[POLL_START] = "POLL_START";
+    try{
+      /* Calling the connect*/
+      initTCP();
+    } catch(std::exception &e) {
+      throw machine_error("can't connect to simulator");
+    }
+    check_pre(schedular);
+    while(!isReady() && waitAndProcess(NULL,NULL));
+  }
+
+  void debugInit(vm::all *all)
+  {
+    /*Initilize the debugger*/
+    return;
+  }
+
+
+  /*Checks the predicates to be used during execution*/
+  void 
+  check_pre(sched::base *schedular){
+
+    sched_state=schedular;
+
+    // cout<<"Setting the predicates"<<endl;  
+    neighbor_pred = (schedular->state).all->PROGRAM->get_predicate_by_name("neighbor");
+    if(neighbor_pred) {
+      assert(neighbor_pred->num_fields() == 2);
+    } else {
+      //   cerr << "No neighbor predicate found" << endl;
+    }
+
+    tap_pred = (schedular->state).all->PROGRAM->get_predicate_by_name("tap");
+    if(tap_pred) {
+      assert(tap_pred->num_fields() == 0);
+    } else {
+      //   cerr << "No tap predicate found" << endl;
+    }
+
+    neighbor_count_pred = (schedular->state).all->PROGRAM->get_predicate_by_name("neighborCount");
+    if(neighbor_count_pred) {
+      assert(neighbor_count_pred->num_fields() == 1);
+    } else {
+      //   cerr << "No neighbor_count predicate found" << endl;
+    }
+
+    accel_pred = (schedular->state).all->PROGRAM->get_predicate_by_name("accel");
+    if(accel_pred) {
+      assert(accel_pred->num_fields() == 1);
+    } else {
+      //   cerr << "No accel predicate found" << endl;
+    }
+
+    shake_pred = (schedular->state).all->PROGRAM->get_predicate_by_name("shake");
+    if(shake_pred) {
+      assert(shake_pred->num_fields() == 3);
+    } else {
+      //   cerr << "No shake predicate found" << endl;
+    }
+
+    vacant_pred = (schedular->state).all->PROGRAM->get_predicate_by_name("vacant");
+    if(vacant_pred) {
+      assert(vacant_pred->num_fields() == 1);
+    } else {
+      //   cerr << "No vacant predicate found" << endl;
+    }
+  }
+
+  /*Used in MPI, For BBSIM, used in the machine::route method*/
+  bool 
+  onLocalVM(const db::node::node_id id){
+    return false;
+  }
+
+  /*API function to send the SETCOLOR command to the simulator*/
+  void 
+  set_color(db::node *n, const int r, const int g, const int b)
+  {
+    message* colorMessage=(message*)calloc(8, sizeof(message_type));
+
+    cout<<n->get_id() << ":Sending SetColor"<<endl;
+
+    colorMessage->size=7 * sizeof(message_type);
+    colorMessage->command=SET_COLOR;
+    colorMessage->timestamp=getCurrentLocalTime();
+    colorMessage->node=(message_type)n->get_id();
+    colorMessage->data.color.r=r;
+    colorMessage->data.color.g=g;
+    colorMessage->data.color.b=b;
+    colorMessage->data.color.i=0;
+
+    sendMessageTCP(colorMessage);
+    free(colorMessage);
+  }
+  
+  void workEnd() {
+    message* workEndMessage = (message*)calloc(5, sizeof(message_type));
+    workEndMessage->size = 4 * sizeof(message_type);
+    workEndMessage->command = WORK_END;
+    workEndMessage->timestamp = (message_type) getCurrentLocalTime();
+	workEndMessage->node = 0; //(message_type)n->get_id();
+	workEndMessage->data.workEnd.nbRecMsg = nbProcessedMsg;
+    sendMessageTCP(workEndMessage);
+    free(workEndMessage);
+  }
+  
+  void pollStart() {
+	polling = true;
+	message* pollStartMessage = (message*)calloc(4, sizeof(message_type));
+    pollStartMessage->size = 3 * sizeof(message_type);
+    pollStartMessage->command =  POLL_START;
+    pollStartMessage->timestamp = (message_type) getCurrentLocalTime();
+	pollStartMessage->node = 0; //(message_type)n->get_id();
+    sendMessageTCP(pollStartMessage);
+    free(pollStartMessage);
+  }
+  
+  void timeInfo(db::node *n) {
+    message* timeInfoMessage=(message*)calloc(4, sizeof(message_type));
+    timeInfoMessage->size=3 * sizeof(message_type);
+    timeInfoMessage->command = TIME_INFO;
+    timeInfoMessage->timestamp = (message_type) getCurrentLocalTime();
+    timeInfoMessage->node = 0; //(message_type)n->get_id();
+    sendMessageTCP(timeInfoMessage);
+    free(timeInfoMessage);
+  }
+  
+  void handleSetDeterministicMode(const deterministic_timestamp ts,
+                                  const db::node::node_id node) {
+    setSimulationDeterministicMode();
+  }
+
+  static void processNextQueuedMessage() {
+	message_type *m = NULL;
+	m = messageQ.front();
+	processMessage(m);
+	messageQ.pop();
+	delete[] m;
+  }
+
+  bool readAMessage(message_type *msg) {
 	try {
-   	/* Calling the connect*/
- 	init_tcp();
-	sched_state=schedular;
+      boost::asio::read(*my_tcp_socket, boost::asio::buffer(msg, sizeof(message_type)));
+      boost::asio::read(*my_tcp_socket, boost::asio::buffer(msg + 1,  msg[0]));
 	} catch(std::exception &e) {
-		throw machine_error("can't connect to simulator");
+      cout<<"Could not recieve !"<<endl;
+      stop_all = true;
+      return false;
 	}
-	
-	// find neighbor predicate
-	neighbor_pred = (schedular->state).all->PROGRAM->get_predicate_by_name("neighbor");
-	if(neighbor_pred) {
-	  assert(neighbor_pred->num_fields() == 2);
+	return true;
+  }
+
+  /* Wait for at least one incoming message. // Read and process all
+   * the received messages.
+   */
+  bool waitAndProcess(sched::base *sched, vm::all *all) {
+	static message_type msg[api::MAXLENGTH];
+	if (debugger::isInSimDebuggingMode() && !messageQ.empty()) {
+      processNextQueuedMessage();
 	} else {
-	  cerr << "No neighbor predicate found" << endl;
+      if (readAMessage(msg)) {
+        processMessage(msg);
+      } else {
+        return false;
+      }
 	}
-
-	tap_pred = (schedular->state).all->PROGRAM->get_predicate_by_name("tap");
-	if(tap_pred) {
-	  assert(tap_pred->num_fields() == 0);
-	} else {
-	  cerr << "No tap predicate found" << endl;
+    if(ensembleFinished(sched_state)) {
+      return false;
+    } else {
+      return true;
 	}
+  }
 
-	neighbor_count_pred = (schedular->state).all->PROGRAM->get_predicate_by_name("neighborCount");
-	if(neighbor_count_pred) {
-	  assert(neighbor_count_pred->num_fields() == 1);
-	} else {
-	  cerr << "No neighbor_count predicate found" << endl;
-	}
-
-	accel_pred = (schedular->state).all->PROGRAM->get_predicate_by_name("accel");
-	if(accel_pred) {
-	  assert(accel_pred->num_fields() == 1);
-	} else {
-	  cerr << "No accel predicate found" << endl;
-	}
-
-	shake_pred = (schedular->state).all->PROGRAM->get_predicate_by_name("shake");
-	if(shake_pred) {
-	  assert(shake_pred->num_fields() == 3);
-	} else {
-	  cerr << "No shake predicate found" << endl;
-	}
-
-	vacant_pred = (schedular->state).all->PROGRAM->get_predicate_by_name("vacant");
-	if(vacant_pred) {
-	  assert(vacant_pred->num_fields() == 1);
-	} else {
-	  cerr << "No vacant predicate found" << endl;
-	}
-
-	start_time = utils::get_timestamp();
-}
-
-/*earlier master_get_work()*/
-bool poll(void)
-{
-	message_type *reply;
-  // size_t length;	
-
-	
-	/*Change the name of the poll function here*/
-		if((reply =(message_type*)tcp_poll()) == NULL) {
-      		//Send pending message is delelted.
-			//send_pending_messages();
-			//usleep(100);
-			return false;
-		}
-		process_message(reply);
-		return true;
-		
-}
-
-
-void set_color(db::node *n, const int r, const int g, const int b)
-{
-	message_type *data=new message_type[8];
-    size_t i(0);
-	
-	data[i++] = 7 * sizeof(message_type);
-	data[i++] = SET_COLOR;
-    data[i++] = 0;
-	data[i++] = (message_type)n->get_id();
-	data[i++] = (message_type)r; // R
-	data[i++] = (message_type)g; // G
-	data[i++] = (message_type)b; // B
-    data[i++] = 0; // intensity
-
-    send_message(data);
-	delete []data;
-	
-}
-
-
-void send_message(message_type *msg)
-{
-   boost::asio::write(*tcp_socket, boost::asio::buffer(msg, msg[0] + sizeof(message_type)));
-}
-
-/*tcp helper functions begin*/
-static void init_tcp()
-    {
-        try {
-            boost::asio::io_service io_service;
-            tcp::resolver resolver(io_service);
-	/*Change the arguments from hard-coded to variables*/
-            tcp::resolver::query query(tcp::v4(), "127.0.0.1", "5000");
-            tcp::resolver::iterator iterator = resolver.resolve(query);
-
-            tcp_socket = new tcp::socket(io_service);
-            tcp_socket->connect(*iterator);
-        } catch(std::exception &e) {
-            cout<<"Could not connect!"<<endl;
+  bool pollAndProcess(sched::base *sched, vm::all *all) {
+	static message_type msg[api::MAXLENGTH];
+	switch (vm::determinism::getSimulationMode()) {
+    case REALTIME :
+      while (my_tcp_socket->available()) {
+        if (readAMessage(msg)) {
+          processMessage(msg);
+        } else {
+          return false;
         }
-    }
-	
-static message_type *tcp_poll()
-    {
-        message_type msg[1024];
-        try {
-            if(tcp_socket->available())
-            {
-                size_t length = tcp_socket->read_some(boost::asio::buffer(msg, sizeof(message_type)));
-                length = tcp_socket->read_some(boost::asio::buffer(msg + 1,  msg[0]));
-                return msg;		
-            }
-        } catch(std::exception &e) {
-            cout<<"Could not recieve!"<<endl;
-            return NULL;
+      }
+      break;
+    case DETERMINISTIC :
+      pollStart();
+      while (polling) {
+        if (debugger::isInSimDebuggingMode()) {
+          while (polling && !messageQ.empty()) {
+            processNextQueuedMessage();
+          }
         }
-        return NULL;
+        if (polling && (!debugger::isInSimDebuggingMode() || debugger::isDebuggerQueueEmpty())) {
+          if (readAMessage(msg)) {
+            processMessage(msg);
+          } else {
+            return false;
+          }
+        }
+        if (debugger::isInSimDebuggingMode()){
+          debugger::receiveMsg(false);
+          if (debugger::isTheSystemPaused()){
+            debugger::isPausedInDeterministicPollLoop = true;
+            debugger::display("PAUSED IN DETERMINISTIC POLL LOOP\n",debugger::PAUSE);
+            debugger::pauseIt();
+          }
+        }
+      }
+      break;
+    default:
+      break;
+	}
+    if(ensembleFinished(sched_state)) {
+      return false;
+    } else {
+      return true;
+	}
+  }
+
+  /*Returns the node id for bbsimAPI*/
+  int 
+  getVMId(const db::node::node_id id)
+  {
+    return id;
+  }
+
+  /*Used in MPI*/
+  void 
+  serializeBeginExec(void)
+  {
+    return;
+  }
+ 
+  /*Used in MPI*/ 
+  void serializeEndExec(void)
+  {
+
+  }
+
+  /*Sends the "SEND_MESSAGE" command*/
+  void
+  sendMessage(const db::node* from, db::node::node_id to, db::simple_tuple* stpl)
+  {
+    //Find the tuple size
+    const size_t stpl_size(stpl->storage_size());
+    //  cout<<getNodeID<<":Stpl:"<<*stpl<<":Stpl size:"<<stpl_size<<endl;
+
+    //Compute the size field  
+    const size_t msg_size = 5 * sizeof(message_type) + stpl_size;
+
+    //Allocating the buffer for the message   msg_size + the space for msga->size field.
+    message* msga=(message*)calloc((msg_size+ sizeof(message_type)), 1);
+ 
+ 
+    msga->size = (message_type)msg_size;
+    msga->command = SEND_MESSAGE;
+    msga->timestamp = getCurrentLocalTime();
+    msga->node = from->get_id();
+    msga->data.send_message.face= 0; //(dynamic_cast<serial_node*>(from))->get_face(to);
+    msga->data.send_message.dest_nodeID = to;
+    cout << from->get_id() << " Send " << *stpl << "to "<< to<< endl;
+
+    /*Setting the position at the end of header to copy the tuple*/ 
+    int pos = 6 * sizeof(message_type);
+    stpl->pack((utils::byte*)msga, msg_size + sizeof(message_type), &pos);
+    // cout<<"Message Size:"<< msg_size<<" Pos:"<<pos<<" Assertion:"<<msg_size+sizeof(message_type)<<endl;
+    assert((size_t)pos == msg_size + sizeof(message_type));
+
+    simple_tuple::wipeout(stpl);
+    sendMessageTCP(msga);
+    free(msga);
+  }
+
+
+  /*Flags if VM can run now*/
+  bool 
+  isReady()
+  {
+    return ready;
+  }
+
+  void 
+  end(void)
+  {
+    return;
+  }
+
+
+  /*tcp helper functions begin*/
+  static void 
+  initTCP()
+  {
+    try {
+      boost::asio::io_service io_service;
+      tcp::resolver resolver(io_service);
+	  /*Change the arguments from hard-coded to variables*/
+      tcp::endpoint e(boost::asio::ip::address::from_string("127.0.0.1"), 5000);
+      my_tcp_socket = new tcp::socket(io_service);
+      my_tcp_socket->connect(e);
+    } catch(std::exception &e) {
+      cout<<"Could not connect!"<<endl;
     }
-/*TCP helper functions end*/
+  }
+
+  static message_type *
+  tcpPool()
+  {
+    static message_type msg[api::MAXLENGTH];
+    try {
+      if(my_tcp_socket->available())
+        {
+          size_t length = my_tcp_socket->read_some(boost::asio::buffer(msg, sizeof(message_type)));
+          length = my_tcp_socket->read_some(boost::asio::buffer(msg + 1,  msg[0]));
+          return msg;   
+        }
+    } catch(std::exception &e) {
+      cout<<"Could not recieve! 3"<<endl;
+      return NULL;
+    }
+    return NULL;
+  }
+
+  /*Sends the message over the socket*/
+  static void 
+  sendMessageTCP(message *msg)
+  {
+    boost::asio::write(*my_tcp_socket, boost::asio::buffer(msg, msg->size + sizeof(message_type)));
+  }
 
 
-/*Helper functions*/
+  /*TCP helper functions end*/
 
-static void process_message(message_type* reply){
-		
-		assert(reply!=NULL);
-		
-		switch(reply[1]) {
-			case SETID: /*Adding the setid command to the interface _ankit*/
-				handle_setid((deterministic_timestamp) reply[2], (db::node::node_id) reply[3]);
-				break;
-			case RECEIVE_MESSAGE:
-            	handle_receive_message((deterministic_timestamp)reply[2],
-                   (db::node::node_id)reply[3],
-                   (face_t)reply[4],
-                   (utils::byte*)reply,
-                   5 * sizeof(message_type),
-                   (int)(reply[0] + sizeof(message_type)));
-            	break;
-			case ADD_NEIGHBOR:
-            	handle_add_neighbor((deterministic_timestamp)reply[2],
-                  (db::node::node_id)reply[3],
-                  (db::node::node_id)reply[4],
-                  (face_t)reply[5]);
-            	break;
-         	case REMOVE_NEIGHBOR:
-            	handle_remove_neighbor((deterministic_timestamp)reply[2],
-                  (db::node::node_id)reply[3],
-                  (face_t)reply[4]);
-            	break;
-			case TAP:
-            	handle_tap((deterministic_timestamp)reply[2], (db::node::node_id)reply[3]);
-            	break;
-         	case ACCEL:
-            	handle_accel((deterministic_timestamp)reply[2],
-                  (db::node::node_id)reply[3],
+
+  /*Helper function Definitions*/
+
+  /*Handles the incoming commangs from the simulator*/
+  static void 
+  processMessage(message_type* reply)
+  {
+    //printf("%d:Processing %s %lud bytes for %lud\n",id, msgcmd2str[reply[1]], reply[0], reply[3]);
+    cout << id << " :Processing " << msgcmd2str[reply[1]] << endl;
+    assert(reply!=NULL);
+    message* msg=(message*)reply;
+    
+	if (msg->command != DEBUG) {
+      setCurrentLocalTime((deterministic_timestamp)msg->timestamp);
+      nbProcessedMsg++;
+	}
+	
+    switch(msg->command) {
+      /*Initilize the blocks's ID*/
+    case SETID: 
+      handleSetID((deterministic_timestamp) msg->timestamp, (db::node::node_id) msg->node);
+      id=(db::node::node_id) reply[3];
+      ready=true;
+      break;
+
+    case RECEIVE_MESSAGE:
+      handleReceiveMessage((deterministic_timestamp)msg->timestamp,
+                           (db::node::node_id)msg->node,
+                           (face_t)msg->data.receiveMessage.face,
+                           (db::node::node_id)msg->data.receiveMessage.from,
+                           (utils::byte*)reply,
+                           6 * sizeof(message_type),
+                           (int)(msg->size + sizeof(message_type)));
+      break;
+
+    case ADD_NEIGHBOR:
+      if(id==(db::node::node_id) msg->node)
+        handleAddNeighbor((deterministic_timestamp)msg->timestamp,
+                          (db::node::node_id)msg->node,
+                          (db::node::node_id)msg->data.addNeighbor.nid,
+                          (face_t)msg->data.addNeighbor.face);
+      break;
+
+    case REMOVE_NEIGHBOR:
+      // if(id==(db::node::node_id) reply[3])
+      handleRemoveNeighbor((deterministic_timestamp)msg->timestamp,
+                           (db::node::node_id)msg->node,
+                           (face_t)msg->data.delNeighbor.face);
+      break;
+
+    case TAP:
+      handleTap((deterministic_timestamp)msg->timestamp, (db::node::node_id)msg->node);
+      break;
+
+    case ACCEL:
+      handleAccel((deterministic_timestamp)msg->timestamp,
+                  (db::node::node_id)msg->node,
                   (int)reply[4]);
-            	break;
-         	case SHAKE:
-            	handle_shake((deterministic_timestamp)reply[2], (db::node::node_id)reply[3],
+      break;
+
+    case SHAKE:
+      handleShake((deterministic_timestamp)msg->timestamp, (db::node::node_id)msg->node,
                   (int)reply[4], (int)reply[5], (int)reply[6]);
-            	break;
-			case STOP:
-				stop_all = true;
-		        sleep(1);
-		        //send_pending_messages();
-		        usleep(200);
-				
-         	default: cerr << "Unrecognized message " << reply[1] << endl;
-			}
-}
+      break;
 
+    case DEBUG:
+      handleDebugMessage((utils::byte*)reply, (size_t)reply[0]);
+      break;
 
+    case STOP:
+      stop_all = true;
+      sleep(1);
+      usleep(200);
+      break;
+    
+    case SET_DETERMINISTIC_MODE:
+      handleSetDeterministicMode((deterministic_timestamp)reply[2],
+                                 (db::node::node_id)reply[3]);
+      break;
+            
+    case END_POLL:
+      polling = false;
+	  break;
 
+    default: cerr << "Unrecognized message " << reply[1] << endl;
+    }
+  }
 
+  bool
+  ensembleFinished(sched::base *sched)
+  {
+    return stop_all;
+  }
 
-static void add_received_tuple(sim_node *no, size_t ts, db::simple_tuple *stpl)
-{
-	heap_priority pr;
-	pr.int_priority = ts;
-	if(stpl->get_count() > 0)
-		no->tuple_pqueue.insert(stpl, pr);
-	else
-		no->rtuple_pqueue.insert(stpl, pr);
-}
+  /*Adds the tuple to the node's work queue*/
+  static void 
+  addReceivedTuple(serial_node *no, size_t ts, db::simple_tuple *stpl)
+  {
+    if(ts>0){}
 
-/* ? to be kept in the api or the sim_sched*/
-static void add_neighbor(const size_t ts, sim_node *no, const node_val out, const face_t face, const int count)
-{
-   if(!neighbor_pred)
+    work new_work(no, stpl);
+    sched_state->new_work(no, new_work);
+
+  }
+
+  /*Add the neighbor to the block*/
+  static void 
+  addNeighbor(const size_t ts, serial_node *no, const node_val out, const face_t face, const int count)
+  {
+    if(!neighbor_pred)
       return;
 
-   vm::tuple *tpl(new vm::tuple(neighbor_pred));
-   tpl->set_node(0, out);
-   tpl->set_int(1, static_cast<int_val>(face));
-				
-   db::simple_tuple *stpl(new db::simple_tuple(tpl, count));
-				
-   add_received_tuple(no, ts, stpl);
-}
+    vm::tuple *tpl(new vm::tuple(neighbor_pred));
+    tpl->set_node(0, out);
+    tpl->set_int(1, static_cast<int_val>(face));
 
-static void add_neighbor_count(const size_t ts, sim_node *no, const size_t total, const int count)
-{
-   if(!neighbor_count_pred)
+    db::simple_tuple *stpl(new db::simple_tuple(tpl, count));
+
+    addReceivedTuple(no, ts, stpl);
+  }
+
+
+  static void 
+  addNeighborCount(const size_t ts, serial_node *no, const size_t total, const int count)
+  {
+    if(!neighbor_count_pred)
       return;
 
-   vm::tuple *tpl(new vm::tuple(neighbor_count_pred));
-   tpl->set_int(0, (int_val)total);
+    vm::tuple *tpl(new vm::tuple(neighbor_count_pred));
+    tpl->set_int(0, (int_val)total);
+    cout <<id<< ":Adding tuple:" << tpl << endl;
 
-   db::simple_tuple *stpl(new db::simple_tuple(tpl, count));
+    db::simple_tuple *stpl(new db::simple_tuple(tpl, count));
+    cout <<id<< ":Adding simple tuple:" << stpl << endl;
 
-   add_received_tuple(no, ts, stpl);
-}
+    addReceivedTuple(no, ts, stpl);
+  }
 
-static void add_vacant(const size_t ts,  sim_node *no, const face_t face, const int count)
-{
-   if(!vacant_pred)
+  static void 
+  remove_neighbor_count(const size_t ts, serial_node *no, const size_t total, const int count)
+  {
+    vm::tuple *tpl(new vm::tuple(neighbor_count_pred));
+    tpl->set_int(0, (int_val)total);
+    cout <<id<< ":Adding tuple:" << tpl << endl;
+
+    db::simple_tuple *stpl(new db::simple_tuple(tpl, count));
+    cout <<id<< ":Adding simple tuple:" << stpl << endl;
+
+    addReceivedTuple(no, ts, stpl);
+  }
+
+  static void 
+  addVacant(const size_t ts,  serial_node *no, const face_t face, const int count)
+  {
+    if(!vacant_pred)
       return;
 
-   vm::tuple *tpl(new vm::tuple(vacant_pred));
-   tpl->set_int(0, static_cast<int_val>(face));
+    vm::tuple *tpl(new vm::tuple(vacant_pred));
+    tpl->set_int(0, static_cast<int_val>(face));
 
-   db::simple_tuple *stpl(new db::simple_tuple(tpl, count));
+    db::simple_tuple *stpl(new db::simple_tuple(tpl, count));
 
-   add_received_tuple(no, ts, stpl);
-}
-
-
-/*Sends the "SEND_MESSAGE" command*/
-static void send_send_message(const sim_sched::work_info& info, const deterministic_timestamp ts)
-{
-	message_type reply[MAXLENGTH];
-
-	db::simple_tuple *stpl(info.work.get_tuple());
-	const size_t stpl_size(stpl->storage_size());
-	const size_t msg_size = 4 * sizeof(message_type) + stpl_size;
-	sim_node *no(dynamic_cast<sim_node*>(info.work.get_node()));
-	size_t i = 0;
-	reply[i++] = (message_type)msg_size;
-	reply[i++] = SEND_MESSAGE;
-	reply[i++] = (message_type)ts;
-	reply[i++] = (message_type)info.src->get_id();
-	reply[i++] = (message_type)info.src->get_face(no->get_id());
-
-	cout << info.src->get_id() << " Send " << *stpl << endl;
-
-	int pos = i * sizeof(message_type);
-	stpl->pack((utils::byte*)reply, msg_size + sizeof(message_type), &pos);
-
-	assert((size_t)pos == msg_size + sizeof(message_type));
-
-	simple_tuple::wipeout(stpl);
-
-	send_message(reply);
-}
+    addReceivedTuple(no, ts, stpl);
+  }
 
 
-/*function to set the id of the block _ankit*/
-static void handle_setid(deterministic_timestamp ts, node::node_id node_id){
-	#ifdef DEBUG
-   cout << "Create node with " << start_id << endl;
+  /*function to set the id of the block */
+  static void 
+  handleSetID(deterministic_timestamp ts, db::node::node_id node_id)
+  {
+#ifdef DEBUG
+    // cout << "Create node with " << node_id << endl;
 #endif
-	/*similar to create_n_nodes but without the loop _ankit*/
-      db::node *no((sched_state)->state.all->DATABASE->create_node_id(node_id));
-      sched_state->init_node(no);
-      
-         sim_node *no_in((sim_node *)no);
-         no_in->set_instantiated(true);
-         for(face_t face = sim_node::INITIAL_FACE; face <= sim_node::FINAL_FACE; ++face) {
-            add_vacant(ts, no_in, face, 1);
-         }
-         add_neighbor_count(ts, no_in, 0, 1);
-      
-   	
-}
+    /*similar to create_n_nodes*/
+    db::node *no((sched_state)->state.all->DATABASE->create_node_id(node_id));
+    sched_state->init_node(no);
 
-static void handle_receive_message(const deterministic_timestamp ts, db::node::node_id node,
-      const face_t face, utils::byte *data, int offset, const int limit)
-{
-   sim_node *origin(dynamic_cast<sim_node*>((sched_state->state).all->DATABASE->find_node(node)));
-   sim_node *target(NULL);
+    serial_node *no_in((serial_node *)no);
+    top=NO_NEIGHBOR;
+    bottom=NO_NEIGHBOR;
+    east=NO_NEIGHBOR;
+    west=NO_NEIGHBOR;
+    north=NO_NEIGHBOR;
+    south=NO_NEIGHBOR;
+    neighbor_count=0;
 
-   if(face == INVALID_FACE)
+    instantiated_flag=true;
+    for(face_t face = INITIAL_FACE; face <= FINAL_FACE; ++face) {
+      addVacant(ts, no_in, face, 1);
+    }
+
+    addNeighborCount(ts, no_in, 0, 1);
+  }
+
+  static void handleReceiveMessage(const deterministic_timestamp ts,
+                                   db::node::node_id dest_id,
+                                   const face_t face, db::node::node_id node, utils::byte *data, int offset, const int limit)
+  {
+
+    if(ts>0&&face==0&&node==0){}
+    //  serial_node *origin(dynamic_cast<serial_node*>((sched_state->state).all->DATABASE->find_node(node)));
+    serial_node *target(NULL);
+    target=dynamic_cast<serial_node*>((sched_state->state).all->DATABASE->find_node(dest_id));
+
+    /*
+      if(face == INVALID_FACE)
       target = origin;
-   else
-      target = dynamic_cast<sim_node*>((sched_state->state).all->DATABASE->find_node((db::node::node_id)*(origin->get_node_at_face(face))));
+      else
+      target = dynamic_cast<serial_node*>((sched_state->state).all->DATABASE->find_node((db::node::node_id)*(origin->get_node_at_face(face))));
+    */
 
-   simple_tuple *stpl(simple_tuple::unpack(data, limit,
-            &offset, (sched_state->state).all->PROGRAM));
+    simple_tuple *stpl(simple_tuple::unpack(data, limit,
+                                            &offset, (sched_state->state).all->PROGRAM));
 
 #ifdef DEBUG
-   cout << "Receive message " << origin->get_id() << " to " << target->get_id() << " " << *stpl << " with priority " << ts << endl;
+    //  cout << id<<":Received message from" << node << " to " << target->get_id() << " with Tuple" << *stpl << " with priority " << ts << endl;
 #endif
 
-   heap_priority pr;
-   pr.int_priority = ts;
-   if(stpl->get_count() > 0)
-      target->tuple_pqueue.insert(stpl, pr);
-   else
-      target->rtuple_pqueue.insert(stpl, pr);
-}
+    work new_work(target, stpl);
+    sched_state->new_work(target, new_work);
+  }
 
-static void handle_add_neighbor(const deterministic_timestamp ts, const db::node::node_id in,
-      const db::node::node_id out, const face_t face)
-{
+  static void
+  handleDebugMessage(utils::byte* reply, size_t totalSize)
+  {
+	message_type *m = new message_type[api::MAXLENGTH];
+	message_type *msg = (message_type*) reply;
+	memcpy(m, msg, msg[0]+sizeof(message_type));
+	while (!ready) { 
+      waitAndProcess(NULL, NULL);
+	}
+	debugger::messageQueue->push((message_type*)m);
+  }
+
+  static void 
+  handleAddNeighbor(const deterministic_timestamp ts, const db::node::node_id in,
+                    const db::node::node_id out, const face_t face)
+  {
 #ifdef DEBUG
-   cout << ts << " neighbor(" << in << ", " << out << ", " << face << ")" << endl;
+    // cout << id << ":Added neighbor("<<out << " on face " << face << ")" << endl;
 #endif
    
-   sim_node *no_in(dynamic_cast<sim_node*>((sched_state->state).all->DATABASE->find_node(in)));
-   node_val *neighbor(no_in->get_node_at_face(face));
+    serial_node *no_in(dynamic_cast<serial_node*>((sched_state->state).all->DATABASE->find_node(in)));
+    node_val *neighbor(get_node_at_face(face));
 
-   if(*neighbor == sim_node::NO_NEIGHBOR) {
+    if(*neighbor == NO_NEIGHBOR) {
       // remove vacant first, add 1 to neighbor count
-      if(no_in->has_been_instantiated()) {
-         add_vacant(ts, no_in, face, -1);
-         add_neighbor_count(ts, no_in, no_in->get_neighbor_count(), -1);
+      if(has_been_instantiated()) {
+        addVacant(ts, no_in, face, -1);
+        addNeighborCount(ts, no_in, get_neighbor_count(), -1);
       }
-      no_in->inc_neighbor_count();
+      inc_neighbor_count();
 #ifdef DEBUG
-      cout << in << " neighbor count went up to " << no_in->get_neighbor_count() << endl;
+      //cout << id << ":neighbor count=" << get_neighbor_count() << endl;
 #endif
-      if(no_in->has_been_instantiated())
-         add_neighbor_count(ts, no_in, no_in->get_neighbor_count(), 1);
+      if(has_been_instantiated())
+        addNeighborCount(ts, no_in, get_neighbor_count(), 1);
       *neighbor = out;
-      if(no_in->has_been_instantiated())
-         add_neighbor(ts, no_in, out, face, 1);
-   } else {
+      if(has_been_instantiated())
+        addNeighbor(ts, no_in, out, face, 1);
+    } else {
       if(*neighbor != out) {
-         // remove old node
-         if(no_in->has_been_instantiated())
-            add_neighbor(ts, no_in, *neighbor, face, -1);
-         *neighbor = out;
-         if(no_in->has_been_instantiated())
-            add_neighbor(ts, no_in, out, face, 1);
+        // remove old node
+        if(has_been_instantiated())
+          addNeighbor(ts, no_in, *neighbor, face, -1);
+        *neighbor = out;
+        if(has_been_instantiated())
+          addNeighbor(ts, no_in, out, face, 1);
       }
-   }
-}
+    }
+  }
 
-static void handle_remove_neighbor(const deterministic_timestamp ts,
-      const db::node::node_id in, const face_t face)
-{
+  static void
+  handleRemoveNeighbor(const deterministic_timestamp ts,
+                       const db::node::node_id in, const face_t face)
+  {
+  
+
+
+    serial_node *no_in(dynamic_cast<serial_node*>((sched_state->state).all->DATABASE->find_node(in)));
+    node_val *neighbor(get_node_at_face(face));
+
 #ifdef DEBUG
-   cout << ts << " remove neighbor(" << in << ", " << face << ")" << endl;
+    //  cout << id << ":Remove neighbor(" << *neighbor << ", " << face << ")" << endl;
 #endif
-   
-   sim_node *no_in(dynamic_cast<sim_node*>((sched_state->state).all->DATABASE->find_node(in)));
-   node_val *neighbor(no_in->get_node_at_face(face));
-
-   if(*neighbor == sim_node::NO_NEIGHBOR) {
+    if(*neighbor == NO_NEIGHBOR) {
       // remove vacant first, add 1 to neighbor count
       cerr << "Current face is vacant, cannot remove node!" << endl;
       assert(false);
-   } else {
+    } else {
       // remove old node
-      if(no_in->has_been_instantiated())
-         add_neighbor_count(ts, no_in, no_in->get_neighbor_count(), -1);
-      no_in->dec_neighbor_count();
-      if(no_in->has_been_instantiated())
-         add_neighbor_count(ts, no_in, no_in->get_neighbor_count(), 1);
-   }
+      if(has_been_instantiated())
+        addNeighborCount(ts, no_in, get_neighbor_count(), -1);
+      dec_neighbor_count();
+      addVacant(ts, no_in, face, 1);
+      if(has_been_instantiated())
+        addNeighborCount(ts, no_in, get_neighbor_count(), 1);
+    }
 
-   add_neighbor(ts, no_in, *neighbor, face, -1);
+    addNeighbor(ts, no_in, *neighbor, face, -1);
 
-   *neighbor = sim_node::NO_NEIGHBOR;
-}
+    *neighbor = NO_NEIGHBOR;
+  }
 
-static void handle_tap(const deterministic_timestamp ts, const db::node::node_id node)
-{
-   cout << ts << " tap(" << node << ")" << endl;
-   
-   sim_node *no(dynamic_cast<sim_node*>((sched_state->state).all->DATABASE->find_node(node)));
+  static void 
+  handleTap(const deterministic_timestamp ts, const db::node::node_id node)
+  {
+    //cout << id << ":tap(" << node << ")" << endl;
 
-   if(tap_pred) {
+    serial_node *no(dynamic_cast<serial_node*>((sched_state->state).all->DATABASE->find_node(node)));
+
+    if(tap_pred) {
       vm::tuple *tpl(new vm::tuple(tap_pred));
       db::simple_tuple *stpl(new db::simple_tuple(tpl, 1));
-      
-      add_received_tuple(no, ts, stpl);
-   }
-}
 
-static void handle_accel(const deterministic_timestamp ts, const db::node::node_id node,
-      const int_val f)
-{
-   cout << ts << " accel(" << node << ", " << f << ")" << endl;
+      addReceivedTuple(no, ts, stpl);
+    }
+  }
 
-   sim_node *no(dynamic_cast<sim_node*>((sched_state->state).all->DATABASE->find_node(node)));
+  static void 
+  handleAccel(const deterministic_timestamp ts, const db::node::node_id node,
+              const int_val f)
+  {
+    //cout << id << ":accel(" << node << ", " << f << ")" << endl;
 
-   if(accel_pred) {
+    serial_node *no(dynamic_cast<serial_node*>((sched_state->state).all->DATABASE->find_node(node)));
+
+    if(accel_pred) {
       vm::tuple *tpl(new vm::tuple(accel_pred));
       tpl->set_int(0, f);
 
       db::simple_tuple *stpl(new db::simple_tuple(tpl, 1));
 
-      add_received_tuple(no, ts, stpl);
-   }
-}
+      addReceivedTuple(no, ts, stpl);
+    }
+  }
 
 
-static void handle_shake(const deterministic_timestamp ts, const db::node::node_id node,
-      const int_val x, const int_val y, const int_val z)
-{
-   cout << ts << " shake(" << node << ", " << x << ", " << y << ", " << z << ")" << endl;
+  static void 
+  handleShake(const deterministic_timestamp ts, const db::node::node_id node,
+              const int_val x, const int_val y, const int_val z)
+  {
+    // cout << id << ":shake(" << node << ", " << x << ", " << y << ", " << z << ")" << endl;
 
-   sim_node *no(dynamic_cast<sim_node*>((sched_state->state).all->DATABASE->find_node(node)));
+    serial_node *no(dynamic_cast<serial_node*>((sched_state->state).all->DATABASE->find_node(node)));
 
-   if(shake_pred) {
+    if(shake_pred) {
       vm::tuple *tpl(new vm::tuple(shake_pred));
       tpl->set_int(0, x);
       tpl->set_int(1, y);
@@ -511,10 +913,135 @@ static void handle_shake(const deterministic_timestamp ts, const db::node::node_
 
       db::simple_tuple *stpl(new db::simple_tuple(tpl, 1));
 
-      add_received_tuple(no, ts, stpl);
-   }
-}
-/*Helper functions end*/
+      addReceivedTuple(no, ts, stpl);
+    }
+  }
 
+  /*Helper functions end*/
+
+  /*Debugger Messages*/
+  void 
+  debugGetMsgs(void)
+  {
+	static message_type msg[api::MAXLENGTH];
+	message_type *m;
+	if (stop_all) {
+      exit(0);
+	}
+	switch (vm::determinism::getSimulationMode()) {
+    case REALTIME :
+      if (!pollAndProcess(NULL, NULL)) {
+        exit(0);
+      }
+      break;
+    case DETERMINISTIC :
+      while (my_tcp_socket->available()) {
+        if (readAMessage(msg)) {
+          message* c =(message*)msg;
+          if (c->command == DEBUG) {
+            processMessage(msg);
+          } else {
+            m = new message_type[api::MAXLENGTH];
+            memcpy(m, msg, msg[0]+sizeof(message_type));
+            messageQ.push(m);
+          }
+        } else {
+          exit(0);
+        }
+      }
+      break;
+    default:
+      break;
+	}
+  }
+
+  void 
+  debugBroadcastMsg(message_type *msg, size_t messageSize)
+  {}
+
+  void 
+  debugWaitMsg(void)
+  {
+	static message_type msg[api::MAXLENGTH];
+	message_type *m;
+	bool debugMsgReceived = false;
+	switch (vm::determinism::getSimulationMode()) {
+    case REALTIME :
+      if (!waitAndProcess(NULL, NULL)) {
+        exit(0);
+      }
+      break;
+    case DETERMINISTIC :
+      while (!debugMsgReceived) {
+        if (readAMessage(msg)) {
+          message* c =(message*)msg;
+          if (c->command == DEBUG) {
+            processMessage(msg);
+            debugMsgReceived = true;
+          } else {
+            m = new message_type[api::MAXLENGTH];
+            memcpy(m, msg, msg[0]+sizeof(message_type));
+            messageQ.push(m);
+          }
+        } else {
+          exit(0);
+        }
+      }
+      break;
+    default:
+      break;
+	}
+  }
+
+  /* Output the database in a synchronized manner */
+  void 
+  dumpDB(std::ostream &out, const db::database::map_nodes &nodes)
+  {
+
+  }
+ 
+  /*Print the database*/  
+  void 
+  printDB(std::ostream &out, const db::database::map_nodes &nodes)
+  {
+
+  }
+
+  void 
+  debugSendMsg(int destination,message_type* msg, size_t messageSize)
+  {
+    msg[2] = (message_type) getCurrentLocalTime();
+    sendMessageTCP((message*)msg);
+    delete[] msg;
+  }
+
+  void regularPollAndProcess(sched::base *sched, vm::all *all) {
+	static uint i = 0;
+	
+	if ( (i%5) == 0) {
+      pollAndProcess(sched, all);
+	}
+	i++;
+	/*
+      switch (vm::determinism::getSimulationMode()) {
+      case REALTIME:
+      if ( (i%5) == 0) {
+      pollAndProcess(sched, all);
+      }
+      i++;
+      break;
+      case DETERMINISTIC :
+      pollAndProcess(sched, all);
+      break;
+      }*/
+  }
+
+  bool isInBBSimMode() {return true;}
 
 }
+
+// Local Variables:
+// tab-width: 4
+// indent-tabs-mode: nil
+// End:
+

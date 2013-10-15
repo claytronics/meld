@@ -11,7 +11,7 @@
 #include <boost/asio.hpp>
 #include <string>
 #include <list>
-#include <queue>
+ #include <queue>
 
 #include "sched/common.hpp"
 #include "sched/base.hpp"
@@ -19,6 +19,7 @@
 #include "db/database.hpp"
 #include "utils/utils.hpp"
 #include "process/machine.hpp"
+
 
 namespace sched
 {
@@ -56,7 +57,7 @@ protected:
    // for initial node instantiation
    static utils::unix_timestamp start_time;
    static bool all_instantiated;
-	static queue::push_safe_linear_queue<message_type*> socket_messages;
+	static queue::push_safe_linear_queue<message_type*> *socket_messages;
 	bool slave;
 	
 private:
@@ -109,7 +110,6 @@ public:
    }
 #endif
    
-	virtual db::simple_tuple_vector gather_active_tuples(db::node *, const vm::predicate_id);
    virtual void gather_next_tuples(db::node *, db::simple_tuple_list&);
    
    virtual db::node* get_work(void);

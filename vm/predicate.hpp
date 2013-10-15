@@ -9,6 +9,7 @@
 #include "vm/types.hpp"
 #include "vm/defs.hpp"
 #include "utils/types.hpp"
+#include "vm/reader.hpp"
 
 namespace vm {
 
@@ -18,12 +19,6 @@ const size_t PRED_NAME_SIZE_MAX = 32;
 const size_t PRED_AGG_INFO_MAX = 32;
 
 class program;
-
-typedef enum {
-   NO_GLOBAL_PRIORITY,
-   PRIORITY_ASC,
-   PRIORITY_DESC
-} priority_type;
 
 class predicate {
 private:
@@ -35,7 +30,7 @@ private:
    std::string name;
    strat_level level;
    
-   std::vector<field_type> types;
+   std::vector<type*> types;
    std::vector<size_t> fields_size;
    std::vector<size_t> fields_offset;
    
@@ -57,8 +52,7 @@ private:
    bool is_reverse_route;
    bool is_action;
    bool is_reused;
-   priority_type global_prio;
-   field_num priority_argument;
+   bool is_cycle;
 
    std::vector<rule_id> affected_rules;
    
@@ -101,6 +95,8 @@ public:
    inline bool is_action_pred(void) const { return is_action; }
 
    inline bool is_reused_pred(void) const { return is_reused; }
+
+   inline bool is_cycle_pred(void) const { return is_cycle; }
    
    inline field_num get_aggregate_field(void) const { return agg_info->field; }
    inline aggregate_type get_aggregate_type(void) const { return agg_info->type; }
@@ -109,7 +105,7 @@ public:
    
    inline size_t num_fields(void) const { return types.size(); }
    
-   inline field_type get_field_type(const field_num field) const { return types[field]; }
+   inline type* get_field_type(const field_num field) const { return types[field]; }
    inline size_t get_field_size(const field_num field) const { return fields_size[field]; }
    
    inline std::string get_name(void) const { return name; }
@@ -121,15 +117,17 @@ public:
    void print_simple(std::ostream&) const;
    void print(std::ostream&) const;
 
-	void set_global_priority(priority_type _type, const field_num field) { global_prio = _type; priority_argument = field;}
-	bool is_global_priority(void) const { return global_prio != NO_GLOBAL_PRIORITY; }
-   field_num get_priority_argument(void) const { return priority_argument; }
-	inline bool is_global_priority_asc(void) const { return global_prio == PRIORITY_ASC; }
-	inline bool is_global_priority_desc(void) const { return global_prio == PRIORITY_DESC; }
+   bool operator==(const predicate&) const;
+   bool operator!=(const predicate& other) const {
+      return !operator==(other);
+   }
    
-   static predicate* make_predicate_from_buf(utils::byte *buf, code_size_t *code_size, const predicate_id);
+   static predicate* make_predicate_from_reader(code_reader&, code_size_t *,
+         const predicate_id, const uint32_t, const uint32_t, const std::vector<type*>&);
 };
 
+type* read_type_from_reader(code_reader&);
+type* read_type_id_from_reader(code_reader&, const std::vector<type*>&);
 std::ostream& operator<<(std::ostream&, const predicate&);
 
 }

@@ -29,7 +29,7 @@ public:
 private:
 	
 	const std::string content;
-	utils::atomic<size_t> refs;
+	utils::atomic<vm::ref_count> refs;
 	
 	explicit rstring(const std::string& _content, const size_t _refs):
 		content(_content), refs(_refs)
@@ -61,11 +61,21 @@ public:
 	{
 		return refs == 0;
 	}
+
+   inline bool has_refs(void) const
+   {
+      return refs > 0;
+   }
 	
 	inline std::string get_content(void) const
 	{
 		return content;
 	}
+
+   inline rstring_ptr copy(void) const
+   {
+      return make_string(content);
+   }
 	
 	// XXX implement MPI stuff
 

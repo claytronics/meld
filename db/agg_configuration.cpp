@@ -9,7 +9,7 @@ namespace db
 {
 
 void
-agg_configuration::add_to_set(vm::tuple *tpl, const ref_count many)
+agg_configuration::add_to_set(vm::tuple *tpl, const derivation_count many, const depth_t depth)
 {
    assert(many != 0);
    //assert(many > 0 || (many < 0 && !vals.empty()));
@@ -20,7 +20,7 @@ agg_configuration::add_to_set(vm::tuple *tpl, const ref_count many)
    
    if(many > 0) {
       
-      if(!vals.insert_tuple(tpl, many)) {
+      if(!vals.insert_tuple(tpl, many, depth)) {
          // repeated tuple
          delete tpl;
       }
@@ -28,9 +28,23 @@ agg_configuration::add_to_set(vm::tuple *tpl, const ref_count many)
       assert(vals.size() == start_size + many);
    } else {
       // to delete
-      trie::delete_info deleter(vals.delete_tuple(tpl, -many)); // note the minus sign
-      if(deleter.to_delete()) {
+      trie::delete_info deleter(vals.delete_tuple(tpl, -many, depth)); // note the minus sign
+      if(!deleter.is_valid()) {
+         changed = false;
+      } else if(deleter.to_delete()) {
          deleter();
+      } else if(tpl->is_cycle()) {
+         depth_counter *dc(deleter.get_depth_counter());
+         assert(dc != NULL);
+
+         if(dc->get_count(depth) == 0) {
+            size_t old_size(vals.size());
+            vm::ref_count deleted(deleter.delete_depths_above(depth));
+            if(deleter.to_delete()) {
+               deleter();
+            }
+            assert(vals.size() == old_size-deleted);
+         }
       }
       
       delete tpl;
@@ -47,8 +61,8 @@ agg_configuration::test(vm::tuple *tpl, const field_num agg_field) const
    
    assert(it != vals.end());
    
-   simple_tuple *sother(*it);
-   vm::tuple *other(sother->get_tuple());
+   tuple_trie_leaf *sother(*it);
+   vm::tuple *other(sother->get_underlying_tuple());
 
    for(field_num i(0); i < agg_field; ++i)
       if(!tpl->field_equal(*other, i))
@@ -69,28 +83,32 @@ agg_configuration::matches_first_int_arg(const int_val val) const
    
    assert(it != vals.end());
    
-   simple_tuple *sother(*it);
-   vm::tuple *other(sother->get_tuple());
+   tuple_trie_leaf *sother(*it);
+   vm::tuple *other(sother->get_underlying_tuple());
    
    return other->get_int(0) == val;
 }
 
 vm::tuple*
-agg_configuration::generate_max_int(const field_num field) const
+agg_configuration::generate_max_int(const field_num field, vm::depth_t& depth) const
 {
    assert(!vals.empty());
 
    const_iterator end(vals.end());
    const_iterator it(vals.begin());
-   vm::tuple *max_tpl((*it)->get_tuple());
+   tuple_trie_leaf *leaf(*it);
+   vm::tuple *max_tpl(leaf->get_underlying_tuple());
    int_val max_val(max_tpl->get_int(field));
+
+   depth = max(depth, leaf->get_max_depth());
 
    ++it;
    for(; it != end; ++it)
    {
-      simple_tuple *sother(*it);
-      vm::tuple *other(sother->get_tuple());
+      tuple_trie_leaf *sother(*it);
+      vm::tuple *other(sother->get_underlying_tuple());
 
+      depth = max(depth, sother->get_max_depth());
       if(max_val < other->get_int(field)) {
          max_val = other->get_int(field);
          max_tpl = other;
@@ -101,20 +119,24 @@ agg_configuration::generate_max_int(const field_num field) const
 }
 
 vm::tuple*
-agg_configuration::generate_min_int(const field_num field) const
+agg_configuration::generate_min_int(const field_num field, vm::depth_t& depth) const
 {
    assert(!vals.empty());
    
    const_iterator end(vals.end());
    const_iterator it(vals.begin());
-   vm::tuple *min_tpl((*it)->get_tuple());
+   tuple_trie_leaf *leaf(*it);
+   vm::tuple *min_tpl(leaf->get_underlying_tuple());
    int_val min_val(min_tpl->get_int(field));
+
+   depth = max(depth, leaf->get_max_depth());
 
    ++it;
    for(; it != end; ++it) {
-      simple_tuple *sother(*it);
-      vm::tuple *other(sother->get_tuple());
+      tuple_trie_leaf *sother(*it);
+      vm::tuple *other(sother->get_underlying_tuple());
 
+      depth = max(depth, sother->get_max_depth());
       if(min_val > other->get_int(field)) {
          min_val = other->get_int(field);
          min_tpl = other;
@@ -125,20 +147,21 @@ agg_configuration::generate_min_int(const field_num field) const
 }
 
 vm::tuple*
-agg_configuration::generate_sum_int(const field_num field) const
+agg_configuration::generate_sum_int(const field_num field, vm::depth_t& depth) const
 {
    assert(!vals.empty());
    
    const_iterator end(vals.end());
    const_iterator it(vals.begin());
    int_val sum_val = 0;
-   vm::tuple *ret((*it)->get_tuple()->copy());
+   vm::tuple *ret((*it)->get_underlying_tuple()->copy());
 
    for(; it != end; ++it) {
-      simple_tuple *s(*it);
+      tuple_trie_leaf *s(*it);
 
+      depth = max(depth, s->get_max_depth());
       for(ref_count i(0); i < s->get_count(); ++i)
-         sum_val += s->get_tuple()->get_int(field);
+         sum_val += s->get_underlying_tuple()->get_int(field);
    }
 
    ret->set_int(field, sum_val);
@@ -146,20 +169,21 @@ agg_configuration::generate_sum_int(const field_num field) const
 }
 
 vm::tuple*
-agg_configuration::generate_sum_float(const field_num field) const
+agg_configuration::generate_sum_float(const field_num field, vm::depth_t& depth) const
 {
    assert(!vals.empty());
    
    const_iterator end(vals.end());
    const_iterator it(vals.begin());
    float_val sum_val = 0;
-   vm::tuple *ret((*it)->get_tuple()->copy());
+   vm::tuple *ret((*it)->get_underlying_tuple()->copy());
 
    for(; it != vals.end(); ++it) {
-      simple_tuple *s(*it);
+      tuple_trie_leaf *s(*it);
 
+      depth = max(depth, s->get_max_depth());
       for(ref_count i(0); i < s->get_count(); ++i)
-         sum_val += (*it)->get_tuple()->get_float(field);
+         sum_val += (*it)->get_underlying_tuple()->get_float(field);
    }
 
    ret->set_float(field, sum_val);
@@ -168,34 +192,44 @@ agg_configuration::generate_sum_float(const field_num field) const
 }
 
 vm::tuple*
-agg_configuration::generate_first(void) const
+agg_configuration::generate_first(vm::depth_t& depth) const
 {
    assert(!vals.empty());
    
    const_iterator fst(vals.begin());
+   const_iterator end(vals.end());
    
    assert(fst != vals.end());
    
-   simple_tuple *s(*fst);
+   tuple_trie_leaf *s(*fst);
 
-   return s->get_tuple()->copy();
+   for(; fst != end; ++fst) {
+      tuple_trie_leaf *sother(*fst);
+      depth = max(depth, sother->get_max_depth());
+   }
+
+   return s->get_underlying_tuple()->copy();
 }
 
 vm::tuple*
-agg_configuration::generate_max_float(const field_num field) const
+agg_configuration::generate_max_float(const field_num field, vm::depth_t& depth) const
 {
    assert(!vals.empty());
    
    const_iterator end(vals.end());
    const_iterator it(vals.begin());
-   vm::tuple *max_tpl((*it)->get_tuple());
+   tuple_trie_leaf *leaf(*it);
+   vm::tuple *max_tpl(leaf->get_underlying_tuple());
    float_val max_val(max_tpl->get_float(field));
+
+   depth = max(depth, leaf->get_max_depth());
 
    ++it;
    for(; it != end; ++it) {
-      simple_tuple *sother(*it);
-      vm::tuple *other(sother->get_tuple());
+      tuple_trie_leaf *sother(*it);
+      vm::tuple *other(sother->get_underlying_tuple());
 
+      depth = max(sother->get_max_depth(), depth);
       if(max_val < other->get_float(field)) {
          max_val = other->get_float(field);
          max_tpl = other;
@@ -206,20 +240,24 @@ agg_configuration::generate_max_float(const field_num field) const
 }
 
 vm::tuple*
-agg_configuration::generate_min_float(const field_num field) const
+agg_configuration::generate_min_float(const field_num field, vm::depth_t& depth) const
 {
    assert(!vals.empty());
    
    const_iterator end(vals.end());
    const_iterator it(vals.begin());
-   vm::tuple *min_tpl((*it)->get_tuple());
+   tuple_trie_leaf *leaf(*it);
+   vm::tuple *min_tpl(leaf->get_underlying_tuple());
    float_val min_val(min_tpl->get_float(field));
+
+   depth = max(depth, leaf->get_max_depth());
 
    ++it;
    for(; it != end; ++it) {
-      simple_tuple *sother(*it);
-      vm::tuple *other(sother->get_tuple());
+      tuple_trie_leaf *sother(*it);
+      vm::tuple *other(sother->get_underlying_tuple());
 
+      depth = max(sother->get_max_depth(), depth);
       if(min_val > other->get_float(field)) {
          min_val = other->get_float(field);
          min_tpl = other;
@@ -230,25 +268,26 @@ agg_configuration::generate_min_float(const field_num field) const
 }
 
 vm::tuple*
-agg_configuration::generate_sum_list_float(const field_num field) const
+agg_configuration::generate_sum_list_float(const field_num field, vm::depth_t& depth) const
 {
    assert(!vals.empty());
    
    const_iterator end(vals.end());
    const_iterator it(vals.begin());
-   vm::tuple *first_tpl((*it)->get_tuple());
-   float_list *first(first_tpl->get_float_list(field));
-   const size_t len(float_list::length(first));
+   vm::tuple *first_tpl((*it)->get_underlying_tuple());
+   cons *first(first_tpl->get_cons(field));
+   const size_t len(cons::length(first));
    const size_t num_lists(vals.size());
-   float_list *lists[num_lists];
+   cons *lists[num_lists];
    vm::tuple *ret(first_tpl->copy_except(field));
    
    for(size_t i(0); it != end; ++it) {
-      simple_tuple *stpl(*it);
+      tuple_trie_leaf *stpl(*it);
       size_t count(size_t (stpl->get_count()));
+      depth = max(stpl->get_max_depth(), depth);
       for(size_t j(0); j < count; ++j) {
-         lists[i++] = stpl->get_tuple()->get_float_list(field);
-         assert(float_list::length(lists[i-1]) == len);
+         lists[i++] = stpl->get_underlying_tuple()->get_cons(field);
+         assert(cons::length(lists[i-1]) == len);
       }
       assert(i <= num_lists);
    }
@@ -259,9 +298,9 @@ agg_configuration::generate_sum_list_float(const field_num field) const
       float_val sum(0.0);
       
       for(size_t j(0); j < num_lists; ++j) {
-         float_list *ls(lists[j]);
+         cons *ls(lists[j]);
          assert(ls != NULL);
-         sum += ls->get_head();
+         sum += FIELD_FLOAT(ls->get_head());
          lists[j] = ls->get_tail();
       }
       
@@ -269,38 +308,38 @@ agg_configuration::generate_sum_list_float(const field_num field) const
    }
    
    for(size_t j(0); j < num_lists; ++j)
-      assert(float_list::is_null(lists[j]));
+      assert(cons::is_null(lists[j]));
    
-   float_list *ptr(from_stack_to_list<stack_float_list, float_list>(vals));
+   cons *ptr(from_float_stack_to_list(vals));
    
-   ret->set_float_list(field, ptr);
+   ret->set_cons(field, ptr);
    
    return ret;
 }
 
 vm::tuple*
-agg_configuration::do_generate(const aggregate_type typ, const field_num field)
+agg_configuration::do_generate(const aggregate_type typ, const field_num field, vm::depth_t& depth)
 {
    if(vals.empty())
       return NULL;
 
    switch(typ) {
       case AGG_FIRST:
-         return generate_first();
+         return generate_first(depth);
       case AGG_MAX_INT:
-         return generate_max_int(field);
+         return generate_max_int(field, depth);
       case AGG_MIN_INT:
-         return generate_min_int(field);
+         return generate_min_int(field, depth);
       case AGG_SUM_INT:
-         return generate_sum_int(field);
+         return generate_sum_int(field, depth);
       case AGG_SUM_FLOAT:
-         return generate_sum_float(field);
+         return generate_sum_float(field, depth);
       case AGG_MAX_FLOAT:
-         return generate_max_float(field);
+         return generate_max_float(field, depth);
       case AGG_MIN_FLOAT:
-         return generate_min_float(field);
+         return generate_min_float(field, depth);
       case AGG_SUM_LIST_FLOAT:
-         return generate_sum_list_float(field);
+         return generate_sum_list_float(field, depth);
    }
    
    assert(false);
@@ -311,30 +350,37 @@ void
 agg_configuration::generate(const aggregate_type typ, const field_num field,
    simple_tuple_list& cont)
 {
-   vm::tuple* generated(do_generate(typ, field));
+   vm::depth_t depth(0);
+   vm::tuple* generated(do_generate(typ, field, depth));
    
-   /*
-   cout << "Generated from ";
-   if(generated)
-      cout << *generated;
-   cout << endl;
-   vals.dump(cout);
-   cout << endl;
-   */
+#if 0
+   if(generated) {
+      cout << "Generated from ";
+         cout << *generated << " " << depth;
+      cout << endl;
+      vals.dump(cout);
+      cout << endl;
+   }
+#endif
 
    changed = false;
 
    if(corresponds == NULL) {
       // new
-      if(generated != NULL)
-         cont.push_back(simple_tuple::create_new(generated));
+      if(generated != NULL) {
+         cont.push_back(simple_tuple::create_new(generated, depth));
+         last_depth = depth;
+      }
    } else if (generated == NULL) {
-      if(corresponds != NULL)
-         cont.push_back(simple_tuple::remove_new(corresponds));
+      if(corresponds != NULL) {
+         cont.push_back(simple_tuple::remove_new(corresponds, last_depth));
+         last_depth = 0;
+      }
    } else {
       if(!(*corresponds == *generated)) {
-         cont.push_back(simple_tuple::remove_new(corresponds));
-         cont.push_back(simple_tuple::create_new(generated));
+         cont.push_back(simple_tuple::remove_new(corresponds, last_depth));
+         cont.push_back(simple_tuple::create_new(generated, depth));
+         last_depth = depth;
       }
    }
 
@@ -352,7 +398,20 @@ agg_configuration::print(ostream& cout) const
       it != vals.end();
       ++it)
    {
-      cout << "\t\t" << **it << endl;
+      tuple_trie_leaf *leaf(*it);
+      cout << "\t\t";
+      cout << *(leaf->get_underlying_tuple()) << "@";
+      cout << leaf->get_count();
+      if(leaf->has_depth_counter()) {
+         cout << " - ";
+         for(depth_counter::const_iterator it(leaf->get_depth_begin()), end(leaf->get_depth_end());
+               it != end;
+               ++it)
+         {
+            cout << "(" << it->first << "x" << it->second << ")";
+         }
+      }
+      cout << endl;
    }
 }
 

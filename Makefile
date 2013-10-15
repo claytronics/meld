@@ -1,47 +1,44 @@
-
 OS = $(shell uname -s)
 
 INCLUDE_DIRS = -I.
 LIBRARY_DIRS =
 
-ifeq (exists, $(shell test -d /usr/lib/openmpi/include && echo exists))
-	INCLUDE_DIRS += -I/usr/lib/openmpi/include
-endif
 ifeq (exists, $(shell test -d /opt/local/include && echo exists))
 	INCLUDE_DIRS += -I/opt/local/include
 endif
 ifeq (exists, $(shell test -d /opt/local/lib  && echo exists))
 	LIBRARY_DIRS += -L/opt/local/lib
 endif
-ifeq (exists, $(shell test -d /usr/include/openmpi-x86_64 && echo exists))
-	INCLUDE_DIRS += -I/usr/include/openmpi-x86_64/
-endif
-ifeq (exists, $(shell test -d /opt/local/include/openmpi && echo exists))
-	INCLUDE_DIRS += -I/opt/local/include/openmpi/
-endif
-ifeq (exists, $(shell test -d /usr/lib64/openmpi/lib && echo exists))
-	LIBRARY_DIRS += -L/usr/lib64/openmpi/lib
-endif
 
 PROFILING = #-pg
 OPTIMIZATIONS = -O0
-ARCH = -march=x86-64
-DEBUG = -g
+#ARCH = -march=armv6
+#DEBUG = -g -DDEBUG_RULES
+DETERMINISM = -DSIMD
 WARNINGS = -Wall -Wextra #-Werror
 C0X = -std=c++0x
+
+#to remove depricated char* warnings
+NOSTRINGWARN = -Wno-write-strings
+
 UILIBRARIES = #-lwebsocketpp -ljson_spirit
 
-CFLAGS = $(ARCH) $(PROFILING) $(OPTIMIZATIONS) $(WARNINGS) $(DEBUG) $(INCLUDE_DIRS) $(COX)
-LIBRARIES = -pthread -lm -lreadline -lboost_thread-mt -lboost_system-mt \
-				-lboost_date_time-mt -lboost_regex-mt $(UILIBRARIES)
+CFLAGS = $(ARCH) $(PROFILING) $(OPTIMIZATIONS) $(WARNINGS) $(DEBUG) $(INCLUDE_DIRS) $(COX) $(NOSTRINGWARN) $(DETERMINISM)
 
-LIBRARIES += -lmpi -lmpi_cxx -lboost_serialization-mt -lboost_mpi-mt
-CFLAGS += -DCOMPILE_MPI=1
+LIBRARIES = -pthread -lpthread -lm  -lboost_thread-mt -lboost_system-mt \
+			-lboost_date_time-mt -lboost_regex-mt -ldl $(UILIBRARIES)
 
-CXX = g++
+LIBRARIES +=  -lboost_serialization-mt -lboost_mpi-mt
 
-GCC_MINOR    := $(shell $(CXX) -v 2>&1 | \
-													grep " version " | cut -d' ' -f3  | cut -d'.' -f2)
+MPICPP = $(shell mpic++ --version > /dev/null && echo exists)
+
+ifeq (exists, $(MPICPP))
+	CXX = mpic++
+else
+	CXX = g++
+endif
+
+GCC_MINOR    := $(shell $(CXX) -v 2>&1 | grep " version " | cut -d' ' -f3  | cut -d'.' -f2)
 
 ifeq ($(GCC_MINOR),2)
 	CFLAGS += -DTEMPLATE_OPTIMIZERS=1
@@ -52,7 +49,7 @@ endif
 
 CXXFLAGS = $(CFLAGS)
 LDFLAGS = $(PROFILING) $(LIBRARY_DIRS) $(LIBRARIES)
-COMPILE = $(CXX) $(CXXFLAGS) $(OBJS)
+COMPILE = $(CXX) $(CXXFLAGS) 
 
 SRCS = utils/utils.cpp \
 		 	utils/types.cpp \
@@ -71,10 +68,8 @@ SRCS = utils/utils.cpp \
 			 db/tuple.cpp \
 			 db/agg_configuration.cpp \
 			 db/tuple_aggregate.cpp \
-			 db/neighbor_tuple_aggregate.cpp \
 			 db/database.cpp \
 			 db/trie.cpp \
-			 db/neighbor_agg_configuration.cpp \
 			 process/machine.cpp \
 			 mem/thread.cpp \
 			 mem/center.cpp \
@@ -82,8 +77,6 @@ SRCS = utils/utils.cpp \
 			 sched/base.cpp \
 			 sched/common.cpp \
 			 sched/serial.cpp \
-			 sched/thread/threaded.cpp \
-			 sched/thread/assert.cpp \
 			 external/math.cpp \
 			 external/lists.cpp \
 			 external/utils.cpp \
@@ -94,37 +87,42 @@ SRCS = utils/utils.cpp \
 			 stat/slice.cpp \
 			 stat/slice_set.cpp \
 			 interface.cpp \
-			 api/mpi.cpp
-#			 api/bbsimapi.cpp \
+			 runtime/common.cpp \
+			 debug/debug_prompt.cpp \
+			 debug/debug_handler.cpp \
+			 debug/debug_list.cpp \
+			 #sched/thread/threaded.cpp \
+			 #sched/thread/assert.cpp \
+
+ifeq (-DSIMD, $(DETERMINISM))
+	SRCS += vm/determinism.cpp
+endif
 
 OBJS = $(patsubst %.cpp,%.o,$(SRCS))
 
-all: meld print predicates server
+all: meld-mpi meld-bbsim print
 	echo $(OBJS)
 
 -include Makefile.externs
 Makefile.externs:	Makefile
 	@echo "Remaking Makefile.externs"
 	@/bin/rm -f Makefile.externs
-	@for i in $(SRCS); do $(CXX) $(CXXFLAGS) -MM -MT $${i/%.cpp/.o} $$i >> Makefile.externs; done
+	@for i in $(SRCS); do $(CXX) -g $(CXXFLAGS) -MM -MT $${i/%.cpp/.o} $$i >> Makefile.externs; done
 	@echo "Makefile.externs ready"
 
-meld: $(OBJS) meld.o
-	$(COMPILE) meld.o -o meld $(LDFLAGS)
+meld-mpi: $(OBJS) api/mpi.o meld.o
+	$(COMPILE) $^ -o $@ $(LDFLAGS)
 
-print: $(OBJS) print.o
-	$(COMPILE) print.o -o print $(LDFLAGS)
+meld-bbsim: $(OBJS) meld.o api/bbsimapi.o
+	$(COMPILE) $^ -o $@ $(LDFLAGS)
 
-predicates: $(OBJS) predicates.o
-	$(COMPILE) predicates.o -o predicates $(LDFLAGS)
-
-server: $(OBJS) server.o
-	$(COMPILE) server.o -o server $(LDFLAGS)
+print: $(OBJS) print.o api/mpi.o
+	$(COMPILE) $^ -o $@ $(LDFLAGS)
 
 depend:
 	makedepend -- $(CXXFLAGS) -- $(shell find . -name '*.cpp')
 
 clean:
 	find . -name '*.o' | xargs rm -f
-	rm -f meld predicates print server Makefile.externs
+	rm -f meld print Makefile.externs
 # DO NOT DELETE

@@ -14,6 +14,13 @@ Dependencies
       - G++ 4.4/4.2, maybe 4.6
       - LLVM/Clang also works
 
+Execution:
+	meld-bbsim: for running under visibleSim
+	meld-mpi: for running under mpi
+	meld -a bbsim or meld -a mpi will invoke the correct executable
+
+	Use -D to enter debugging mode
+	Use ./meld -h for help
 
 Installation/Instructions
 -------------------------

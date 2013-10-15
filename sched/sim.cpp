@@ -13,13 +13,19 @@ using namespace db;
 using namespace vm;
 using namespace process;
 using boost::asio::ip::tcp;
+using std::cout;
+using std::endl;
+using std::max;
+using std::cerr;
+using std::list;
+using std::set;
 
 #ifdef USE_SIM
 
 // when running in thread mode, the VM waits this milliseconds to instantiate all neighbor facts
 static const int TIME_TO_INSTANTIATE = 500;
 
-#define SETID 1
+#define CREATE_N_NODES 1
 #define RUN_NODE 2
 #define NODE_RUN 3
 #define STOP 4
@@ -32,7 +38,6 @@ static const int TIME_TO_INSTANTIATE = 500;
 #define RECEIVE_MESSAGE 13
 #define ACCEL 14
 #define SHAKE 15
-#define CREATE_N_NODES 18
 
 // debug messages for simulation
 // #define DEBUG
@@ -51,13 +56,13 @@ bool sim_sched::thread_mode(false);
 bool sim_sched::stop_all(false);
 bool sim_sched::all_instantiated(false);
 utils::unix_timestamp sim_sched::start_time(0);
-queue::push_safe_linear_queue<sim_sched::message_type*> sim_sched::socket_messages;
+queue::push_safe_linear_queue<sim_sched::message_type*> *sim_sched::socket_messages(NULL);
 
-using namespace std;
-	
 sim_sched::~sim_sched(void)
 {
-	if(socket != NULL) {
+	if(socket != NULL && !slave) {
+      delete socket_messages;
+      socket_messages = NULL;
 		//socket->close();
 		//delete socket;
 	}
@@ -78,6 +83,7 @@ sim_sched::init(const size_t num_threads)
 	assert(it == end);
 	
 	state::SIM = true;
+   sim_sched::socket_messages = new queue::push_safe_linear_queue<sim_sched::message_type*>();
 	
 	try {
    	// add socket
@@ -185,8 +191,8 @@ sim_sched::new_work(const node *_src, work& new_work)
 void
 sim_sched::send_pending_messages(void)
 {
-   while(!socket_messages.empty()) {
-      message_type *data(socket_messages.pop());
+   while(!socket_messages->empty()) {
+      message_type *data(socket_messages->pop());
       boost::asio::write(*socket, boost::asio::buffer(data, data[0] + sizeof(message_type)));
       delete []data;
    }
@@ -572,23 +578,23 @@ sim_sched::master_get_work(void)
 	
 	while(true) {
 		if(!socket->available()) {
-      		send_pending_messages();
+         send_pending_messages();
 			usleep(100);
-         	if(thread_mode && !all_instantiated) {
-            	utils::unix_timestamp now(utils::get_timestamp());
+         if(thread_mode && !all_instantiated) {
+            utils::unix_timestamp now(utils::get_timestamp());
 
-            	if(now > start_time + TIME_TO_INSTANTIATE) {
-            	    instantiate_all_nodes();
-               		all_instantiated = true;
-            	}
-         	}
-         	if(!thread_mode) {
-         	   check_delayed_queue();
-         	}
+            if(now > start_time + TIME_TO_INSTANTIATE) {
+               instantiate_all_nodes();
+               all_instantiated = true;
+            }
+         }
+         if(!thread_mode) {
+            check_delayed_queue();
+         }
 			continue;
 		} else {
 //         cout << "Not available" << endl;
-      	}
+      }
 		
 		size_t length =
 			socket->read_some(boost::asio::buffer(reply, sizeof(message_type)));
@@ -691,7 +697,7 @@ void
 sim_sched::schedule_new_message(message_type *data)
 {
 	if(thread_mode) {
-		socket_messages.push(data);
+		socket_messages->push(data);
 	} else {
 		boost::asio::write(*socket, boost::asio::buffer(data, data[0] + sizeof(message_type)));
 		delete []data;
@@ -728,12 +734,6 @@ void
 sim_sched::assert_end_iteration(void) const
 {
 	assert_static_nodes_end_iteration(id, state.all);
-}
-
-simple_tuple_vector
-sim_sched::gather_active_tuples(db::node *node, const vm::predicate_id pred)
-{
-	return simple_tuple_vector();
 }
 
 void

@@ -20,7 +20,6 @@
 #include "vm/defs.hpp"
 #include "vm/match.hpp"
 #include "utils/atomic.hpp"
-#include "db/edge_set.hpp"
 #include "vm/rule_matcher.hpp"
 #include "vm/all.hpp"
 
@@ -30,103 +29,92 @@ namespace process { class process; class machine; }
 
 namespace db {
 
-class node: public mem::base
-{
-public:
-   
-   typedef vm::node_val node_id;
-   
-   typedef trie::delete_info delete_info;
-   
-protected:
+  class node: public mem::base
+  {
+  public:
 
-   vm::all *all;
+    typedef vm::node_val node_id;
 
-private:
-   
-	node_id id;
-   node_id translation;
-	
-   typedef std::map<vm::predicate_id, tuple_trie*,
-               std::less<vm::predicate_id>,
-               mem::allocator<std::pair<const vm::predicate_id,
-                                 tuple_trie*> > > simple_tuple_map;
-                                 
-   typedef std::map<vm::predicate_id, tuple_aggregate*,
-               std::less<vm::predicate_id>,
-               mem::allocator<std::pair<const vm::predicate_id,
-                                 tuple_aggregate*> > > aggregate_map;
-	
-	// tuple database
-   simple_tuple_map tuples;
-   
-   // sets of tuple aggregates
-   aggregate_map aggs;
-   
-   typedef std::tr1::unordered_map<vm::predicate_id,
-                           edge_set,
-                           std::tr1::hash<vm::predicate_id>,
-                           std::equal_to<vm::predicate_id>,
-                           mem::allocator<std::pair<const vm::predicate_id, edge_set> > >
-                  edge_map; 
-   
-   edge_map edge_info;
-   
-   tuple_trie* get_storage(const vm::predicate*);
-   
-   // code to handle local stratification
-   friend class sched::base;
-   friend class process::process;
-   friend class process::machine;
-   
-   sched::base *owner;
-   
-public:
-   
-   inline node_id get_id(void) const { return id; }
-   inline node_id get_translated_id(void) const { return translation; }
+    typedef trie::delete_info delete_info;
 
-   inline void set_owner(sched::base *_owner) { owner = _owner; }
-   inline sched::base *get_owner(void) const { return owner; }
-   
-   bool add_tuple(vm::tuple*, vm::ref_count);
-   delete_info delete_tuple(vm::tuple *, vm::ref_count);
-   
-   db::agg_configuration* add_agg_tuple(vm::tuple*, const vm::ref_count);
-   db::agg_configuration* remove_agg_tuple(vm::tuple*, const vm::ref_count);
-   simple_tuple_list end_iteration(void);
-   
-   const edge_set& get_edge_set(const vm::predicate_id id) const {
-      assert(edge_info.find(id) != edge_info.end());
-      return edge_info.find(id)->second;
-   }
+  private:
 
-   void delete_by_index(const vm::predicate*, const vm::match&);
-   void delete_by_leaf(const vm::predicate*, tuple_trie_leaf*);
-   void delete_all(const vm::predicate*);
-   
-   virtual void assert_end(void) const;
-   virtual void assert_end_iteration(void) const {}
-   void init(void);
-   
-   void match_predicate(const vm::predicate_id, tuple_vector&) const;
-   void match_predicate(const vm::predicate_id, const vm::match&, tuple_vector&) const;
-   
-   size_t count_total(const vm::predicate_id) const;
-   
-   void print(std::ostream&) const;
-   void dump(std::ostream&) const;
+    node_id id;
+    node_id translation;
 
-	vm::rule_matcher matcher;
-   
-   explicit node(const node_id, const node_id, vm::all *);
-   
-   virtual ~node(void);
-};
+    typedef std::map<vm::predicate_id, tuple_trie*,
+		     std::less<vm::predicate_id>,
+		     mem::allocator<std::pair<const vm::predicate_id,
+					      tuple_trie*> > > simple_tuple_map;
 
-std::ostream& operator<<(std::ostream&, const node&);
+    typedef std::map<vm::predicate_id, tuple_aggregate*,
+		     std::less<vm::predicate_id>,
+		     mem::allocator<std::pair<const vm::predicate_id,
+					      tuple_aggregate*> > > aggregate_map;
+
+    // tuple database
+    simple_tuple_map tuples;
+
+    // sets of tuple aggregates
+    aggregate_map aggs;
+
+    tuple_trie* get_storage(const vm::predicate*);
+
+    // code to handle local stratification
+    friend class sched::base;
+    friend class process::process;
+    friend class process::machine;
+
+    sched::base *owner;
+
+  public:
+
+    inline node_id get_id(void) const { return id; }
+    inline node_id get_translated_id(void) const { return translation; }
+
+    inline void set_owner(sched::base *_owner) { owner = _owner; }
+    inline sched::base *get_owner(void) const { return owner; }
+   
+    bool add_tuple(vm::tuple*, const vm::derivation_count, const vm::depth_t);
+    delete_info delete_tuple(vm::tuple *, const vm::derivation_count, const vm::depth_t);
+   
+    db::agg_configuration* add_agg_tuple(vm::tuple*, const vm::derivation_count, const vm::depth_t);
+    db::agg_configuration* remove_agg_tuple(vm::tuple*, const vm::derivation_count, const vm::depth_t);
+
+    simple_tuple_list end_iteration(void);
+
+    void delete_by_index(const vm::predicate*, const vm::match&);
+    void delete_by_leaf(const vm::predicate*, tuple_trie_leaf*, const vm::depth_t);
+    void delete_all(const vm::predicate*);
+
+    virtual void assert_end(void) const;
+    virtual void assert_end_iteration(void) const {}
+    void init(void);
+
+    void match_predicate(const vm::predicate_id, tuple_vector&) const;
+    void match_predicate(const vm::predicate_id, const vm::match&, tuple_vector&) const;
+
+    size_t count_total(const vm::predicate_id) const;
+
+    void print(std::ostream&) const;
+    void dump(std::ostream&) const;
+
+    vm::rule_matcher matcher;	// used to take the program as an argument, but they all use the same program so we don't need to do that anymore
+
+    explicit node(const node_id, const node_id);
+
+    bool empty(void) const;
+
+    virtual ~node(void);
+  };
+
+  std::ostream& operator<<(std::ostream&, const node&);
 
 }
 
 #endif
 
+// Local Variables:
+// mode: C++
+// indent-tabs-mode: nil
+// End:

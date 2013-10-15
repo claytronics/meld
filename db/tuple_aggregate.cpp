@@ -1,12 +1,13 @@
 
 #include "db/tuple_aggregate.hpp"
-#include "db/neighbor_agg_configuration.hpp"
 
 using namespace vm;
 using namespace std;
 
 namespace db
 {
+
+//#define DEBUG_AGGS
    
 agg_configuration*
 tuple_aggregate::create_configuration(void) const
@@ -15,7 +16,7 @@ tuple_aggregate::create_configuration(void) const
 }
    
 agg_configuration*
-tuple_aggregate::add_to_set(vm::tuple *tpl, const ref_count many)
+tuple_aggregate::add_to_set(vm::tuple *tpl, const derivation_count many, const depth_t depth)
 {
    agg_trie_leaf *leaf(vals.find_configuration(tpl));
    agg_configuration *conf;
@@ -27,7 +28,15 @@ tuple_aggregate::add_to_set(vm::tuple *tpl, const ref_count many)
       conf = leaf->get_conf();
    }
    
-   conf->add_to_set(tpl, many);
+#ifdef DEBUG_AGGS
+   cout << "----> Before:" << endl;
+   conf->print(cout);
+#endif
+   conf->add_to_set(tpl, many, depth);
+#ifdef DEBUG_AGGS
+   cout << "Add " << *tpl << " " << many << " with depth " << depth << endl;
+   conf->print(cout);
+#endif
    
    return conf;
 }

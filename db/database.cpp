@@ -8,51 +8,56 @@ using namespace std;
 using namespace vm;
 using namespace process;
 using namespace utils;
+using namespace api;
 namespace mpi = boost::mpi;
 
 namespace db
 {
 
-database::database(const string& filename, create_node_fn _create_fn, vm::all *_all):
-   all(_all), create_fn(_create_fn), nodes_total(0)
-{
-   int_val num_nodes;
-   node::node_id fake_id;
-   node::node_id real_id;
+  database::database(const string& filename, create_node_fn _create_fn):
+    create_fn(_create_fn), nodes_total(0)
+  {
+    int_val num_nodes;
+    node::node_id fake_id;
+    node::node_id real_id;
 
-   ifstream fp(filename.c_str(), ios::in | ios::binary);
+    ifstream fp(filename.c_str(), ios::in | ios::binary);
 
-   fp.seekg(vm::MAGIC_SIZE, ios_base::cur); // skip magic
-   fp.seekg(2*sizeof(uint32_t), ios_base::cur); // skip version
+    fp.seekg(vm::MAGIC_SIZE, ios_base::cur); // skip magic
+    fp.seekg(2*sizeof(uint32_t), ios_base::cur); // skip version
 
-   fp.seekg(sizeof(byte), ios_base::cur); // skip number of definitions
+    fp.seekg(sizeof(byte), ios_base::cur); // skip number of definitions
 
-   fp.read((char*)&num_nodes, sizeof(int_val));
+    fp.read((char*)&num_nodes, sizeof(int_val));
 
-   nodes_total = num_nodes;
+    nodes_total = num_nodes;
 
-   max_node_id = 0;
-   max_translated_id = 0;
+    max_node_id = 0;
+    max_translated_id = 0;
 
-   // Create all of the nodes
-   for(size_t i(0); i < nodes_total; ++i) {
+    // Create all of the nodes
+    for(size_t i(0); i < nodes_total; ++i) {
       fp.read((char*)&fake_id, sizeof(node::node_id));
       fp.read((char*)&real_id, sizeof(node::node_id));
 
       // Implementation specific, create node
-      node *node(create_fn(fake_id, real_id, all));
+      node *node(create_fn(fake_id, real_id));
 
+#ifdef USERFRIENDLY
       translation[fake_id] = real_id;
+      reverse_translation[real_id] = fake_id;
+#endif
+
       nodes[fake_id] = node;
 
       if(fake_id > max_node_id)
-         max_node_id = fake_id;
+	max_node_id = fake_id;
       if(real_id > max_translated_id)
-         max_translated_id = real_id;
-   }
+	max_translated_id = real_id;
+    }
 
-   original_max_node_id = max_node_id;
-}
+    original_max_node_id = max_node_id;
+  }
 }
 
 database::~database(void)
@@ -85,18 +90,16 @@ database::find_node(const node::node_id id) const
 node*
 database::create_node_id(const db::node::node_id id)
 {
-   utils::spinlock::scoped_lock l(mtx);
-   if(max_node_id > 0) {
-      assert(max_node_id < id);
-      assert(max_translated_id < id);
-   }
+  SCOPED_LOCK_ON_MTX(l);
 
    max_node_id = id;
    max_translated_id = id;
 
-   node *ret(create_fn(max_node_id, max_translated_id, all));
-
+   node *ret(create_fn(max_node_id, max_translated_id));
+#ifdef USERFRIENDLY
    translation[max_node_id] = max_translated_id;
+   reverse_translation[max_translated_id] = max_node_id;
+#endif
    nodes[max_node_id] = ret;
 
    return ret;
@@ -105,74 +108,69 @@ database::create_node_id(const db::node::node_id id)
 node*
 database::create_node(void)
 {
-   utils::spinlock::scoped_lock l(mtx);
+  SCOPED_LOCK_ON_MTX(l);
 
-	if(nodes.empty()) {
-		max_node_id = 0;
-		max_translated_id = 0;
-	} else {
-   	++max_node_id;
-   	++max_translated_id;
-	}
+  if(nodes.empty()) {
+    max_node_id = 0;
+    max_translated_id = 0;
+  } else {
+    ++max_node_id;
+    ++max_translated_id;
+  }
 
-   node *ret(create_fn(max_node_id, max_translated_id, all));
+  node *ret(create_fn(max_node_id, max_translated_id));
 
-   translation[max_node_id] = max_translated_id;
-   nodes[max_node_id] = ret;
+#ifdef USERFRIENDLY
+  translation[max_node_id] = max_translated_id;
+  reverse_translation[max_translated_id] = max_node_id;
+#endif
+  nodes[max_node_id] = ret;
 
-   return ret;
+  return ret;
+}
+
+#ifdef USERFRIENDLY
+node::node_id
+database::translate_real_to_fake_id(const node::node_id real_id) {
+    return reverse_translation[real_id];
+}
+
+node::node_id
+database::translate_fake_to_real_id(const node::node_id fake_id) {
+    return translation[fake_id];
 }
 
 void
 database::print_db(ostream& cout) const
 {
-#define SYNC_MPI
-#ifdef SYNC_MPI
-    api::world->barrier();
+    api::printDB(cout, nodes);
+}
 
-    int dest = (api::world->rank() + 1) % api::world->size();
-    int source = (api::world->rank() - 1) % api::world->size();
+/*not done in serialzed form as specified above*/
 
-    if (api::world->rank() == 0) {
-        for(map_nodes::const_iterator it(nodes.begin());
-            it != nodes.end();
-            ++it)
-        {
-            cout << "[" << api::world->rank() << "] " << *(it->second) << endl;
-        }
+void
+database::print_entire_db_debug(ostream&cout){
 
-        api::world->send(dest, 0);
-    } else {
-        api::world->recv(source, 0);
-        for(map_nodes::const_iterator it(nodes.begin());
-            it != nodes.end();
-            ++it)
-        {
-            cout << "[" << api::world->rank() << "] " << *(it->second) << endl;
-        }
-        if (dest != 0)
-            api::world->send(dest, 0);
+    for(map_nodes::const_iterator it(nodes.begin());
+        it != nodes.end();
+        ++it)
+    {
+        if (api::onLocalVM(it->second->get_id()))
+           cout << *(it->second) << endl;
     }
 
-#endif
-    // for(map_nodes::const_iterator it(nodes.begin());
-    //    it != nodes.end();
-    //    ++it)
-    // {
-    //    cout << *(it->second) << endl;
-    // }
+}
+
+void
+database::print_db_debug(ostream& cout, const node::node_id real_id)
+{
+    cout << *(nodes.at(translate_real_to_fake_id(real_id))) << endl;
 }
 
 void
 database::dump_db(ostream& cout) const
 {
-    api::world->barrier();
-   for(map_nodes::const_iterator it(nodes.begin());
-      it != nodes.end();
-      ++it)
-   {
-      it->second->dump(cout);
-   }
+    api::dumpDB(cout, nodes);
 }
 
 
@@ -196,3 +194,9 @@ ostream& operator<<(ostream& cout, const database& db)
    db.print(cout);
    return cout;
 }
+#endif
+
+// Local Variables:
+// mode: C++
+// indent-tabs-mode: nil
+// End:

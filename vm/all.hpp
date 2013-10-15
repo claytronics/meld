@@ -24,62 +24,71 @@ namespace sched {
 namespace vm
 {
 
-typedef std::vector<std::string> machine_arguments;
+  typedef std::vector<std::string> machine_arguments;
 
-/* state of the virtual machine */
-class all
-{
-   private:
+  /* state of the virtual machine */
+  class all
+  {
+  private:
 
-	tuple_field consts[MAX_CONSTS];
+    tuple_field consts[MAX_CONSTS];
 	
-   public:
+  public:
 
-   vm::program *PROGRAM;
+    vm::program *PROGRAM;
    
-   db::database *DATABASE;
-   process::machine *MACHINE;
-   size_t NUM_THREADS;
-   size_t NUM_NODES_PER_PROCESS;
-	machine_arguments ARGUMENTS;
-   static const double TASK_STEALING_FACTOR = 0.2;
-   std::vector<sched::base*> ALL_THREADS; /* schedulers */
+    db::database *DATABASE;
+    process::machine *MACHINE;
+    size_t NUM_THREADS;
+    size_t NUM_NODES_PER_PROCESS;
+    machine_arguments ARGUMENTS;
+    static const double TASK_STEALING_FACTOR = 0.2;
+    std::vector<sched::base*> ALL_THREADS; /* schedulers */
 
-   inline void set_const(const const_id& id, const tuple_field d) { consts[id] = d; }
+    inline void set_const(const const_id& id, const tuple_field d) { consts[id] = d; }
 
 #define define_get_const(WHAT, TYPE, CODE) TYPE get_const_ ## WHAT (const const_id& id) { return CODE; }
 	
-	define_get_const(int, int_val, *(int_val*)(consts + id))
-	define_get_const(float, float_val, *(float_val*)(consts + id))
-	define_get_const(ptr, ptr_val, *(ptr_val*)(consts + id));
-	define_get_const(int_list, runtime::int_list*, (runtime::int_list*)get_const_ptr(id))
-	define_get_const(float_list, runtime::float_list*, (runtime::float_list*)get_const_ptr(id))
-	define_get_const(node_list, runtime::node_list*, (runtime::node_list*)get_const_ptr(id))
-	define_get_const(string, runtime::rstring::ptr, (runtime::rstring::ptr)get_const_ptr(id))
-	define_get_const(node, node_val, *(node_val*)(consts + id))
+    define_get_const(int, int_val, FIELD_INT(consts[id]))
+    define_get_const(float, float_val, FIELD_FLOAT(consts[id]))
+    define_get_const(ptr, ptr_val, FIELD_PTR(consts[id]));
+    define_get_const(cons, runtime::cons*, FIELD_CONS(consts[id]))
+    define_get_const(string, runtime::rstring*, FIELD_STRING(consts[id]))
+    define_get_const(node, node_val, FIELD_NODE(consts[id]))
+    define_get_const(struct, runtime::struct1*, FIELD_STRUCT(consts[id]))
 	
 #undef define_get_const
+
+    inline tuple_field get_const(const const_id& id) { return consts[id]; }
 	
 #define define_set_const(WHAT, TYPE, CODE) void set_const_ ## WHAT (const const_id& id, const TYPE val) { CODE;}
 	
-	define_set_const(int, int_val&, *(int_val*)(consts + id) = val)
-	define_set_const(float, float_val&, *(float_val*)(consts + id) = val)
-	define_set_const(node, node_val&, *(node_val*)(consts +id) = val)
-	define_set_const(ptr, ptr_val&, *(ptr_val*)(consts + id) = val);
-	define_set_const(string, runtime::rstring::ptr, set_const_ptr(id, (ptr_val)val));
+    define_set_const(int, int_val&, SET_FIELD_INT(consts[id], val))
+    define_set_const(float, float_val&, SET_FIELD_FLOAT(consts[id], val))
+    define_set_const(node, node_val&, SET_FIELD_NODE(consts[id], val))
+    define_set_const(ptr, ptr_val&, SET_FIELD_PTR(consts[id], val))
+    define_set_const(string, runtime::rstring*, SET_FIELD_STRING(consts[id], val))
 	
 #undef define_set_const
 
-	inline runtime::rstring::ptr get_argument(const argument_id id)
-	{
-		assert(id <= ARGUMENTS.size());
-		return runtime::rstring::make_string(ARGUMENTS[id-1]);
-	}
+    inline runtime::rstring::ptr get_argument(const argument_id id)
+    {
+      assert(id <= ARGUMENTS.size());
+      return runtime::rstring::make_string(ARGUMENTS[id-1]);
+    }
 	
-   explicit all(void) {}
-};
+    explicit all(void) {}
+  };
+
+  extern all* All;
 
 }
 
 #endif
+
+
+// Local Variables:
+// mode: C++
+// indent-tabs-mode: nil
+// End:
 

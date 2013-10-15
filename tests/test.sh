@@ -22,6 +22,9 @@ do_exit ()
 run_diff ()
 {
 	TO_RUN="${1}"
+	echo "================="
+	echo $1
+	echo "================="
 	${TO_RUN} > test.out
 	RET=$?
 	if [ $RET -eq 1 ]; then
@@ -30,9 +33,8 @@ run_diff ()
 	fi
 	DIFF=`diff -u ${FILE} test.out`
 	if [ ! -z "${DIFF}" ]; then
-		echo "DIFFERENCES!!!"
 		diff -u ${FILE} test.out
-		exit 1
+		echo "!!!!!! DIFFERENCES IN FILE ${TEST} ($TO_RUN)"
 	fi
 	rm test.out
 }
@@ -60,10 +62,25 @@ run_serial_n ()
 	SCHED=${1}
 	TIMES=${2}
 
-	echo "Running ${TEST} ${TIMES} times (SCHED: ${SCHED})..."
+	echo -n "Running ${TEST} ${TIMES} times (SCHED: ${SCHED})..."
 	for((I=1; I <= ${TIMES}; I++)); do
 		do_serial ${SCHED}
 	done
+   echo " OK!"
+}
+
+run_mpi () {
+    ITER=1
+    while [ $ITER -lt 6 ]; do
+        SCHED="sl"
+        TO_RUN="mpiexec -n ${ITER} ${EXEC} -f ${TEST} -c ${SCHED}"
+
+        echo -n "Running ${TEST} with MPI on [${ITER}] processes ..."
+        run_diff "${TO_RUN}"
+        echo "DONE!"
+
+        let ITER=$ITER+1
+    done
 }
 
 run_test_n ()
@@ -124,4 +141,9 @@ fi
 if [ "${TYPE}" = "tl" ]; then
 	loop_sched tl
 	exit 0
+fi
+
+if [ "${TYPE}" = "mpi" ]; then
+    run_mpi
+    exit 0
 fi

@@ -72,11 +72,11 @@ val_string(const instr_val v, pcounter *pm, const program *prog)
    } else if(val_is_int(v)) {
       const string ret(to_string(pcounter_int(*pm)));
       pcounter_move_int(pm);
-      return ret;
+      return string("INT ") + ret;
    } else if(val_is_float(v)) {
       const string ret(to_string(pcounter_float(*pm)));
       pcounter_move_float(pm);
-      return ret;
+      return string("FLOAT ") + ret;
    } else if(val_is_node(v)) {
       const string ret(string("@") + to_string(pcounter_node(*pm)));
       pcounter_move_node(pm);
@@ -95,12 +95,26 @@ val_string(const instr_val v, pcounter *pm, const program *prog)
 		pcounter_move_argument_id(pm);
 
 		return ret;
+   } else if(val_is_stack(v)) {
+      const offset_num offset(pcounter_offset_num(*pm));
+
+      pcounter_move_offset_num(pm);
+
+      return string("STACK ") + to_string((int)offset);
+   } else if(val_is_pcounter(v)) {
+      return string("PCOUNTER");
 	} else if(val_is_const(v)) {
 		const string ret(string("CONST ") + to_string(pcounter_const_id(*pm)));
 		
 		pcounter_move_const_id(pm);
 		
 		return ret;
+   } else if(val_is_ptr(v)) {
+      const string ret(string("PTR ") + to_string(pcounter_ptr(*pm)));
+
+      pcounter_move_ptr(pm);
+
+      return ret;
    } else
 		throw type_error("Unrecognized val type " + to_string(v) + " (val_string)");
    
@@ -156,6 +170,41 @@ print_tab(const int tabcount)
 {
    for(int i = 0; i < tabcount; ++i)
       cout << "  ";
+}
+
+static inline void
+print_axiom_data(pcounter& p, type *t, bool in_list = false)
+{
+   switch(t->get_type()) {
+      case FIELD_INT:
+         cout << pcounter_int(p);
+         pcounter_move_int(&p);
+         break;
+      case FIELD_FLOAT:
+         cout << pcounter_float(p);
+         pcounter_move_float(&p);
+         break;
+      case FIELD_NODE:
+         cout << "@" << pcounter_node(p);
+         pcounter_move_node(&p);
+         break;
+      case FIELD_LIST: {
+         if(!in_list) {
+            cout << "[";
+         }
+         if(*p++ == 0) {
+            cout << "]";
+            break;
+         }
+         list_type *lt((list_type*)t);
+         print_axiom_data(p, lt->get_subtype());
+         if(*p == 1)
+            cout << ", ";
+         print_axiom_data(p, lt, true);
+        }
+         break;
+      default: assert(false);
+   }
 }
 
 pcounter
@@ -305,6 +354,25 @@ instr_print(pcounter pc, const bool recurse, const int tabcount, const program *
             cout << ")" << endl;
    		}
    		break;
+   	case CALLE_INSTR: {
+            pcounter m = pc + CALL_BASE;
+            const external_function_id id(calle_extern_id(pc));
+
+   	      cout << "CALLE func(" << id << "):"
+   	           << calle_num_args(pc) << " TO "
+                 << reg_string(calle_dest(pc)) << " = (";
+            
+            for(size_t i = 0; i < calle_num_args(pc); ++i) {
+               if(i != 0)
+                  cout << ", ";
+               
+               pcounter val_ptr(m);
+               m += val_size;
+               cout << val_string(calle_val(val_ptr), &m, prog);
+            }
+            cout << ")" << endl;
+   		}
+   		break;
       case DELETE_INSTR: {
             pcounter m = pc + DELETE_BASE;
             const predicate_id pred_id(delete_predicate(pc));
@@ -334,11 +402,13 @@ instr_print(pcounter pc, const bool recurse, const int tabcount, const program *
          break;
    	case CONS_INSTR: {
    			pcounter m = pc + CONS_BASE;
+            const size_t type_id(cons_type(pc));
+            list_type *lt((list_type*)prog->get_type(type_id));
             const string head(val_string(cons_head(pc), &m, prog));
             const string tail(val_string(cons_tail(pc), &m, prog));
             const string dest(val_string(cons_dest(pc), &m, prog));
    			
-            cout << "CONS (" << head << "::" << tail << ") TO " << dest << endl;
+            cout << "CONS (" << head << "::" << tail << ") " << lt->string() << " TO " << dest << endl;
    		}
    		break;
    	case HEAD_INSTR: {
@@ -411,8 +481,34 @@ instr_print(pcounter pc, const bool recurse, const int tabcount, const program *
          cout << "NEW NODE TO " << reg_string(new_node_reg(pc)) << endl;
          break;
 
-      case NEW_AXIOMS_INSTR:
-         cout << "NEW AXIOMS ..." << endl;
+      case NEW_AXIOMS_INSTR: {
+         cout << "NEW AXIOMS" << endl;
+         const pcounter end(pc + new_axioms_jump(pc));
+         pcounter p(pc);
+         p += NEW_AXIOMS_BASE;
+
+         while(p < end) {
+            // read axions until the end!
+            predicate_id pid(predicate_get(p, 0));
+            predicate *pred(prog->get_predicate(pid));
+            print_tab(tabcount+1);
+            cout << pred->get_name() << "(";
+
+            p++;
+
+            for(size_t i(0), num_fields(pred->num_fields());
+                  i != num_fields;
+                  ++i)
+            {
+               type *t(pred->get_field_type(i));
+               print_axiom_data(p, t);
+
+               if(i != num_fields-1)
+                  cout << ", ";
+            }
+            cout << ")" << endl;
+         }
+                             }
          break;
 
       case SEND_DELAY_INSTR:
@@ -422,6 +518,50 @@ instr_print(pcounter pc, const bool recurse, const int tabcount, const program *
               << endl;
 
          break;
+
+      case PUSH_INSTR:
+         cout << "PUSH" << endl;
+         break;
+
+      case POP_INSTR:
+         cout << "POP" << endl;
+         break;
+
+      case PUSH_REGS_INSTR:
+         cout << "PUSH REGS" << endl;
+         break;
+
+      case POP_REGS_INSTR:
+         cout << "POP REGS" << endl;
+         break;
+
+      case CALLF_INSTR: {
+         const callf_id id(callf_get_id(pc));
+
+         cout << "CALLF " << to_string((int)id) << endl;
+         break;
+      }
+
+      case MAKE_STRUCT_INSTR: {
+         const size_t type_id(make_struct_type(pc));
+         struct_type *st((struct_type*)prog->get_type(type_id));
+         const instr_val to(make_struct_to(pc));
+         pcounter m = pc + MAKE_STRUCT_BASE;
+
+         cout << "MAKE STRUCT " << st->string() << " TO " << val_string(to, &m, prog) << endl;
+      }
+      break;
+
+      case STRUCT_VAL_INSTR: {
+         const size_t idx(struct_val_idx(pc));
+         const instr_val from(struct_val_from(pc));
+         const instr_val to(struct_val_to(pc));
+         pcounter m = pc + STRUCT_VAL_BASE;
+
+         cout << "STRUCT VAL " << idx << " FROM " << val_string(from, &m, prog)
+            << " TO " << val_string(to, &m, prog) << endl;
+      }
+      break;
 
     	case ELSE_INSTR:
 		default:
