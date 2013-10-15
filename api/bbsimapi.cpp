@@ -48,7 +48,7 @@ using namespace msg;
 // debug messages for simulation
 // #define DEBUG
 
-declareCompileInfo(_target, "bbsim");
+declareCompileInfo(targetArchitecture, "bbsim");
 
 namespace api
 {
@@ -111,6 +111,9 @@ namespace api
     }
   }
 
+#if 0
+  // THIS IS NOT USED?  SHOULD IT BE?
+
   /*Get the block at a particular face*/
   static face_t 
   get_face(const vm::node_val node) 
@@ -123,6 +126,7 @@ namespace api
     if(node == top) return TOP;
     return INVALID_FACE;
   }
+#endif
 
   static inline bool 
   has_been_instantiated(void)
@@ -172,7 +176,7 @@ namespace api
                           const int_val x, const int_val y, const int_val z);
   static void   check_pre(sched::base *schedular);
   static bool isReady();
-  static message_type *tcpPool();
+  //static message_type *tcpPool();
   static void initTCP();
   static void handleDebugMessage(utils::byte* reply, size_t totalSize);
   static void sendMessageTCP(message *m);
@@ -210,6 +214,8 @@ namespace api
   init(int argc, char **argv, sched::base* schedular)
   { 
     if (schedular == NULL) return;
+    ignoreUnusedParamWarning(argc);
+    ignoreUnusedParamWarning(argv);
 
     for (int i=0; i<25; i++) 
       msgcmd2str[i] = NULL;
@@ -236,10 +242,10 @@ namespace api
       throw machine_error("can't connect to simulator");
     }
     check_pre(schedular);
-    while(!isReady() && waitAndProcess(NULL,NULL));
+    while(!isReady() && waitAndProcess(NULL));
   }
 
-  void debugInit(vm::all *all)
+  void debugInit(void)
   {
     /*Initilize the debugger*/
     return;
@@ -253,42 +259,42 @@ namespace api
     sched_state=schedular;
 
     // cout<<"Setting the predicates"<<endl;  
-    neighbor_pred = (schedular->state).all->PROGRAM->get_predicate_by_name("neighbor");
+    neighbor_pred = vm::All->PROGRAM->get_predicate_by_name("neighbor");
     if(neighbor_pred) {
       assert(neighbor_pred->num_fields() == 2);
     } else {
       //   cerr << "No neighbor predicate found" << endl;
     }
 
-    tap_pred = (schedular->state).all->PROGRAM->get_predicate_by_name("tap");
+    tap_pred = vm::All->PROGRAM->get_predicate_by_name("tap");
     if(tap_pred) {
       assert(tap_pred->num_fields() == 0);
     } else {
       //   cerr << "No tap predicate found" << endl;
     }
 
-    neighbor_count_pred = (schedular->state).all->PROGRAM->get_predicate_by_name("neighborCount");
+    neighbor_count_pred = vm::All->PROGRAM->get_predicate_by_name("neighborCount");
     if(neighbor_count_pred) {
       assert(neighbor_count_pred->num_fields() == 1);
     } else {
       //   cerr << "No neighbor_count predicate found" << endl;
     }
 
-    accel_pred = (schedular->state).all->PROGRAM->get_predicate_by_name("accel");
+    accel_pred = vm::All->PROGRAM->get_predicate_by_name("accel");
     if(accel_pred) {
       assert(accel_pred->num_fields() == 1);
     } else {
       //   cerr << "No accel predicate found" << endl;
     }
 
-    shake_pred = (schedular->state).all->PROGRAM->get_predicate_by_name("shake");
+    shake_pred = vm::All->PROGRAM->get_predicate_by_name("shake");
     if(shake_pred) {
       assert(shake_pred->num_fields() == 3);
     } else {
       //   cerr << "No shake predicate found" << endl;
     }
 
-    vacant_pred = (schedular->state).all->PROGRAM->get_predicate_by_name("vacant");
+    vacant_pred = vm::All->PROGRAM->get_predicate_by_name("vacant");
     if(vacant_pred) {
       assert(vacant_pred->num_fields() == 1);
     } else {
@@ -299,6 +305,7 @@ namespace api
   /*Used in MPI, For BBSIM, used in the machine::route method*/
   bool 
   onLocalVM(const db::node::node_id id){
+    ignoreUnusedParamWarning(id);
     return false;
   }
 
@@ -346,6 +353,7 @@ namespace api
   }
   
   void timeInfo(db::node *n) {
+    ignoreUnusedParamWarning(n);
     message* timeInfoMessage=(message*)calloc(4, sizeof(message_type));
     timeInfoMessage->size=3 * sizeof(message_type);
     timeInfoMessage->command = TIME_INFO;
@@ -357,6 +365,8 @@ namespace api
   
   void handleSetDeterministicMode(const deterministic_timestamp ts,
                                   const db::node::node_id node) {
+    ignoreUnusedParamWarning(node);
+    ignoreUnusedParamWarning(ts);
     setSimulationDeterministicMode();
   }
 
@@ -383,8 +393,9 @@ namespace api
   /* Wait for at least one incoming message. // Read and process all
    * the received messages.
    */
-  bool waitAndProcess(sched::base *sched, vm::all *all) {
-	static message_type msg[api::MAXLENGTH];
+  bool waitAndProcess(sched::base *sched) {
+	ignoreUnusedParamWarning(sched);
+    static message_type msg[api::MAXLENGTH];
 	if (debugger::isInSimDebuggingMode() && !messageQ.empty()) {
       processNextQueuedMessage();
 	} else {
@@ -401,7 +412,8 @@ namespace api
 	}
   }
 
-  bool pollAndProcess(sched::base *sched, vm::all *all) {
+  bool pollAndProcess(sched::base *sched) {
+    ignoreUnusedParamWarning(sched);
 	static message_type msg[api::MAXLENGTH];
 	switch (vm::determinism::getSimulationMode()) {
     case REALTIME :
@@ -533,6 +545,9 @@ namespace api
     }
   }
 
+#if 0
+  // THIS IS NOT USED ANYWHERE?????
+
   static message_type *
   tcpPool()
   {
@@ -540,6 +555,7 @@ namespace api
     try {
       if(my_tcp_socket->available())
         {
+          // shouldn't there be some checking here?
           size_t length = my_tcp_socket->read_some(boost::asio::buffer(msg, sizeof(message_type)));
           length = my_tcp_socket->read_some(boost::asio::buffer(msg + 1,  msg[0]));
           return msg;   
@@ -550,6 +566,7 @@ namespace api
     }
     return NULL;
   }
+#endif
 
   /*Sends the message over the socket*/
   static void 
@@ -652,6 +669,7 @@ namespace api
   bool
   ensembleFinished(sched::base *sched)
   {
+    ignoreUnusedParamWarning(sched);
     return stop_all;
   }
 
@@ -699,6 +717,8 @@ namespace api
     addReceivedTuple(no, ts, stpl);
   }
 
+#if 0
+  // THIS IS NOT USED ANYWHERE???????
   static void 
   remove_neighbor_count(const size_t ts, serial_node *no, const size_t total, const int count)
   {
@@ -711,6 +731,7 @@ namespace api
 
     addReceivedTuple(no, ts, stpl);
   }
+#endif
 
   static void 
   addVacant(const size_t ts,  serial_node *no, const face_t face, const int count)
@@ -735,7 +756,7 @@ namespace api
     // cout << "Create node with " << node_id << endl;
 #endif
     /*similar to create_n_nodes*/
-    db::node *no((sched_state)->state.all->DATABASE->create_node_id(node_id));
+    db::node *no(vm::All->DATABASE->create_node_id(node_id));
     sched_state->init_node(no);
 
     serial_node *no_in((serial_node *)no);
@@ -763,7 +784,7 @@ namespace api
     if(ts>0&&face==0&&node==0){}
     //  serial_node *origin(dynamic_cast<serial_node*>((sched_state->state).all->DATABASE->find_node(node)));
     serial_node *target(NULL);
-    target=dynamic_cast<serial_node*>((sched_state->state).all->DATABASE->find_node(dest_id));
+    target=dynamic_cast<serial_node*>(vm::All->DATABASE->find_node(dest_id));
 
     /*
       if(face == INVALID_FACE)
@@ -773,7 +794,7 @@ namespace api
     */
 
     simple_tuple *stpl(simple_tuple::unpack(data, limit,
-                                            &offset, (sched_state->state).all->PROGRAM));
+                                            &offset, vm::All->PROGRAM));
 
 #ifdef DEBUG
     //  cout << id<<":Received message from" << node << " to " << target->get_id() << " with Tuple" << *stpl << " with priority " << ts << endl;
@@ -786,11 +807,12 @@ namespace api
   static void
   handleDebugMessage(utils::byte* reply, size_t totalSize)
   {
+    ignoreUnusedParamWarning(totalSize);
 	message_type *m = new message_type[api::MAXLENGTH];
 	message_type *msg = (message_type*) reply;
 	memcpy(m, msg, msg[0]+sizeof(message_type));
 	while (!ready) { 
-      waitAndProcess(NULL, NULL);
+      waitAndProcess(NULL);
 	}
 	debugger::messageQueue->push((message_type*)m);
   }
@@ -803,7 +825,7 @@ namespace api
     // cout << id << ":Added neighbor("<<out << " on face " << face << ")" << endl;
 #endif
    
-    serial_node *no_in(dynamic_cast<serial_node*>((sched_state->state).all->DATABASE->find_node(in)));
+    serial_node *no_in(dynamic_cast<serial_node*>(vm::All->DATABASE->find_node(in)));
     node_val *neighbor(get_node_at_face(face));
 
     if(*neighbor == NO_NEIGHBOR) {
@@ -840,7 +862,7 @@ namespace api
   
 
 
-    serial_node *no_in(dynamic_cast<serial_node*>((sched_state->state).all->DATABASE->find_node(in)));
+    serial_node *no_in(dynamic_cast<serial_node*>(vm::All->DATABASE->find_node(in)));
     node_val *neighbor(get_node_at_face(face));
 
 #ifdef DEBUG
@@ -870,7 +892,7 @@ namespace api
   {
     //cout << id << ":tap(" << node << ")" << endl;
 
-    serial_node *no(dynamic_cast<serial_node*>((sched_state->state).all->DATABASE->find_node(node)));
+    serial_node *no(dynamic_cast<serial_node*>(vm::All->DATABASE->find_node(node)));
 
     if(tap_pred) {
       vm::tuple *tpl(new vm::tuple(tap_pred));
@@ -886,7 +908,7 @@ namespace api
   {
     //cout << id << ":accel(" << node << ", " << f << ")" << endl;
 
-    serial_node *no(dynamic_cast<serial_node*>((sched_state->state).all->DATABASE->find_node(node)));
+    serial_node *no(dynamic_cast<serial_node*>(vm::All->DATABASE->find_node(node)));
 
     if(accel_pred) {
       vm::tuple *tpl(new vm::tuple(accel_pred));
@@ -905,7 +927,7 @@ namespace api
   {
     // cout << id << ":shake(" << node << ", " << x << ", " << y << ", " << z << ")" << endl;
 
-    serial_node *no(dynamic_cast<serial_node*>((sched_state->state).all->DATABASE->find_node(node)));
+    serial_node *no(dynamic_cast<serial_node*>(vm::All->DATABASE->find_node(node)));
 
     if(shake_pred) {
       vm::tuple *tpl(new vm::tuple(shake_pred));
@@ -932,7 +954,7 @@ namespace api
 	}
 	switch (vm::determinism::getSimulationMode()) {
     case REALTIME :
-      if (!pollAndProcess(NULL, NULL)) {
+      if (!pollAndProcess(NULL)) {
         exit(0);
       }
       break;
@@ -959,7 +981,10 @@ namespace api
 
   void 
   debugBroadcastMsg(message_type *msg, size_t messageSize)
-  {}
+  {
+    ignoreUnusedParamWarning(msg);
+    ignoreUnusedParamWarning(messageSize);
+  }
 
   void 
   debugWaitMsg(void)
@@ -969,7 +994,7 @@ namespace api
 	bool debugMsgReceived = false;
 	switch (vm::determinism::getSimulationMode()) {
     case REALTIME :
-      if (!waitAndProcess(NULL, NULL)) {
+      if (!waitAndProcess(NULL)) {
         exit(0);
       }
       break;
@@ -999,6 +1024,8 @@ namespace api
   void 
   dumpDB(std::ostream &out, const db::database::map_nodes &nodes)
   {
+    ignoreUnusedParamWarning(out);
+    ignoreUnusedParamWarning(nodes);
 
   }
  
@@ -1006,22 +1033,27 @@ namespace api
   void 
   printDB(std::ostream &out, const db::database::map_nodes &nodes)
   {
+    ignoreUnusedParamWarning(out);
+    ignoreUnusedParamWarning(nodes);
 
   }
 
   void 
   debugSendMsg(int destination,message_type* msg, size_t messageSize)
   {
+    ignoreUnusedParamWarning(destination);
+    ignoreUnusedParamWarning(messageSize);
+
     msg[2] = (message_type) getCurrentLocalTime();
     sendMessageTCP((message*)msg);
     delete[] msg;
   }
 
-  void regularPollAndProcess(sched::base *sched, vm::all *all) {
+  void regularPollAndProcess(sched::base *sched) {
 	static uint i = 0;
 	
 	if ( (i%5) == 0) {
-      pollAndProcess(sched, all);
+      pollAndProcess(sched);
 	}
 	i++;
 	/*
