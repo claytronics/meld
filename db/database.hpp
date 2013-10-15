@@ -2,6 +2,7 @@
 #define DATABASE_HPP
 
 #define USERFRIENDLY 1
+#define MULTI_NODE_PER_PROC 1
 
 #include <map>
 #include <fstream>
@@ -14,7 +15,9 @@
 
 #include "conf.hpp"
 #include "db/node.hpp"
+#ifdef MULTI_NODE_PER_PROC
 #include "utils/spinlock.hpp"
+#endif
 #include "vm/program.hpp"
 
 // Store all nodes in VM
