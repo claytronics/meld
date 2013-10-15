@@ -26,9 +26,12 @@
 #include "utils/serialization.hpp"
 #include "api/api.hpp"
 #include "debug/debug_handler.hpp"
+#include "compileInfo.hpp"
 
 using namespace std;
 namespace mpi = boost::mpi;
+
+declareCompileInfo(targetArchitecture, "mpi");
 
 namespace api {
 
@@ -36,7 +39,7 @@ const char* apiTarget = "mpi";
 
     // Function Prototypes
     static void freeSendMsgs(void);
-    static void processRecvMsgs(sched::base *sched, vm::all *all);
+    static void processRecvMsgs(sched::base *sched);
     static string _printNode(const db::node::node_id, const db::database::map_nodes&);
     static string _dumpNode(const db::node::node_id, const db::database::map_nodes&);
     static void serialDBOutput(std::ostream &out, const db::database::map_nodes &nodes,
@@ -169,7 +172,7 @@ const char* apiTarget = "mpi";
         }
     }
 
-    bool pollAndProcess(sched::base *sched, vm::all *all) {
+    bool pollAndProcess(sched::base *sched) {
         /* Call the mpi asking for messages in the receive queue.  The messages
            are handled appropriately.
            ====================================================================
@@ -197,11 +200,11 @@ const char* apiTarget = "mpi";
             newMessage = true;
         }
 
-        processRecvMsgs(sched, all);
+        processRecvMsgs(sched);
         return newMessage;
     }
 
-    void processRecvMsgs(sched::base *sched, vm::all *all) {
+    void processRecvMsgs(sched::base *sched) {
         /*
           Process the receive message queue and free the messages appropriatedly
         */
@@ -221,9 +224,9 @@ const char* apiTarget = "mpi";
 
                 db::simple_tuple *stpl = db::simple_tuple::unpack(
                     (utils::byte *) msg, msg_length - sizeof(message_type),
-                    &pos, all->PROGRAM);
+                    &pos, vm::All->PROGRAM);
 
-                all->MACHINE->route(NULL, sched, id, stpl, 0);
+                vm::All->MACHINE->route(NULL, sched, id, stpl, 0);
 
                 // Safra's Algorithm for RECEIVE MESSAGE
                 counter--;
@@ -412,7 +415,7 @@ const char* apiTarget = "mpi";
 
     /* === Debugger Functions === */
 
-    void debugInit(vm::all *all) {
+    void debugInit() {
         /* Use MPI gather to make sure that all VMs are initiated before the
          * debugger is run. Debugger MASTER is the debugger process, while MPI
          * RING_ORIGIN is the initial process in a ring structure.
@@ -420,12 +423,12 @@ const char* apiTarget = "mpi";
         if (world->size() == 1) {
             throw "Debug must be run with at least 2 MPI processes.";
         }
-        debugger::initMpiDebug(all);
+        debugger::initMpiDebug();
         if (world->rank() == debugger::MASTER) {
             cout << "MPI DEBUGGING MODE -- type 'help' for options" << endl;
             std::vector<tokens> allVMs;
             mpi::gather(*world, INIT, allVMs, debugger::MASTER);
-            debugger::run(all);
+            debugger::run(NULL);
         } else {
             mpi::gather(*world, INIT, debugger::MASTER);
             debugger::pauseIt();
@@ -470,8 +473,7 @@ const char* apiTarget = "mpi";
         if (destination == debugger::MASTER){
             dest = debugger::MASTER;
         } else {
-            dest = getVMId(debugger::all->
-                                     DATABASE->translate_real_to_fake_id(
+	  dest = getVMId(vm::All->DATABASE->translate_real_to_fake_id(
                                          (db::node::node_id) destination));
         }
 
@@ -522,12 +524,12 @@ const char* apiTarget = "mpi";
     
     /* Thanks to isInBBSimMode, waitAndProcess is not called */
     bool isInBBSimMode() { return false; }
-    bool waitAndProcess(sched::base *sched, vm::all *all) { return false; }
+    bool waitAndProcess(sched::base *sched) { return false; }
 	
-    void regularPollAndProcess(sched::base *sched, vm::all *all) {
+    void regularPollAndProcess(sched::base *sched) {
 		static uint i = 1;
 		if ( (i%10) == 0) {
-			pollAndProcess(sched, all); 
+			pollAndProcess(sched); 
 		}
 		i++;
 	}
