@@ -1,0 +1,24 @@
+DETERMINISM = -DSIMD
+
+#to remove depricated char* warnings
+NOSTRINGWARN = -Wno-write-strings
+
+CFLAGS += $(DETERMINISM)
+
+MPICPP = $(shell mpic++ --version > /dev/null && echo exists)
+
+ifeq (exists, $(MPICPP))
+	CXX = mpic++
+else
+	CXX = g++
+endif
+
+ifeq (-DSIMD, $(DETERMINISM))
+	SRCS += vm/determinism.cpp
+endif
+
+LIBRARIES +=  -lboost_serialization-mt -lboost_mpi-mt
+
+-include Makefile.common
+
+# DO NOT DELETE

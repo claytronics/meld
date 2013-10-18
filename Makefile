@@ -14,29 +14,16 @@ PROFILING = #-pg
 OPTIMIZATIONS = -O0
 #ARCH = -march=armv6
 #DEBUG = -g -DDEBUG_RULES
-DETERMINISM = -DSIMD
 WARNINGS = -Wall -Wextra #-Werror
 C0X = -std=c++0x
 
 #to remove depricated char* warnings
 NOSTRINGWARN = -Wno-write-strings
 
-UILIBRARIES = #-lwebsocketpp -ljson_spirit
-
-CFLAGS = $(ARCH) $(PROFILING) $(OPTIMIZATIONS) $(WARNINGS) $(DEBUG) $(INCLUDE_DIRS) $(COX) $(NOSTRINGWARN) $(DETERMINISM) -DUSERFRIENDLY=1
+CFLAGS = $(ARCH) $(PROFILING) $(OPTIMIZATIONS) $(WARNINGS) $(DEBUG) $(INCLUDE_DIRS) $(COX) $(NOSTRINGWARN) -DUSERFRIENDLY=1
 
 LIBRARIES = -pthread -lpthread -lm  -lboost_thread-mt -lboost_system-mt \
 			-lboost_date_time-mt -lboost_regex-mt -ldl $(UILIBRARIES)
-
-LIBRARIES +=  -lboost_serialization-mt -lboost_mpi-mt
-
-MPICPP = $(shell mpic++ --version > /dev/null && echo exists)
-
-ifeq (exists, $(MPICPP))
-	CXX = mpic++
-else
-	CXX = g++
-endif
 
 GCC_MINOR    := $(shell $(CXX) -v 2>&1 | grep " version " | cut -d' ' -f3  | cut -d'.' -f2)
 
@@ -51,19 +38,19 @@ CXXFLAGS = $(CFLAGS)
 LDFLAGS = $(PROFILING) $(LIBRARY_DIRS) $(LIBRARIES)
 COMPILE = $(CXX) $(CXXFLAGS) 
 
-SRCS = utils/utils.cpp \
-		 	utils/types.cpp \
-			utils/fs.cpp \
-			 vm/program.cpp \
-			 vm/predicate.cpp \
-			 vm/types.cpp \
-			 vm/instr.cpp \
-			 vm/state.cpp \
-			 vm/tuple.cpp \
-			 vm/exec.cpp \
-			 vm/external.cpp \
-			 vm/rule.cpp \
-			 vm/rule_matcher.cpp \
+SRCS = 	utils/utils.cpp \
+	utils/types.cpp \
+	utils/fs.cpp \
+	vm/program.cpp \
+	vm/predicate.cpp \
+	vm/types.cpp \
+	vm/instr.cpp \
+	vm/state.cpp \
+	vm/tuple.cpp \
+	vm/exec.cpp \
+	vm/external.cpp \
+	 vm/rule.cpp \
+	 vm/rule_matcher.cpp \
 			 db/node.cpp \
 			 db/tuple.cpp \
 			 db/agg_configuration.cpp \
@@ -89,40 +76,26 @@ SRCS = utils/utils.cpp \
 			 interface.cpp \
 			 runtime/common.cpp \
 			 debug/debug_prompt.cpp \
+			./meld.cpp \
 			 debug/debug_handler.cpp \
 			 debug/debug_list.cpp \
 			 #sched/thread/threaded.cpp \
 			 #sched/thread/assert.cpp \
 
-ifeq (-DSIMD, $(DETERMINISM))
-	SRCS += vm/determinism.cpp
-endif
+export
 
-OBJS = $(patsubst %.cpp,%.o,$(SRCS))
+all:	meld-bbsim meld-mpi
 
-all: meld-mpi meld-bbsim print
-	echo $(OBJS)
+meld-%:	FORCE
+	@echo "Making meld-$* with Makefile.$*"
+	@mkdir -p target/$*
+	@$(MAKE) --no-print-directory -f Makefile.$* TARGET=$*
 
--include Makefile.externs
-Makefile.externs:	Makefile
-	@echo "Remaking Makefile.externs"
-	@/bin/rm -f Makefile.externs
-	@for i in $(SRCS); do $(CXX) -g $(CXXFLAGS) -MM -MT $${i/%.cpp/.o} $$i >> Makefile.externs; done
-	@echo "Makefile.externs ready"
-
-meld-mpi: $(OBJS) api/mpi.o meld.o
-	$(COMPILE) $^ -o $@ $(LDFLAGS)
-
-meld-bbsim: $(OBJS) meld.o api/bbsimapi.o
-	$(COMPILE) $^ -o $@ $(LDFLAGS)
-
-print: $(OBJS) print.o api/mpi.o
-	$(COMPILE) $^ -o $@ $(LDFLAGS)
-
-depend:
-	makedepend -- $(CXXFLAGS) -- $(shell find . -name '*.cpp')
+print:
 
 clean:
-	find . -name '*.o' | xargs rm -f
-	rm -f meld-bbsim meld-mpi print Makefile.externs
-# DO NOT DELETE
+	/bin/rm -rf target
+
+FORCE:
+
+

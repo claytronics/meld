@@ -14,3 +14,4 @@ simulator
 *.out
 *.swo
 *.swp
+target
