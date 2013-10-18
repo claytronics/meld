@@ -1,4 +1,4 @@
-CXXFLAGS = $(CFLAGS)
+CXXFLAGS = $(CFLAGS) -DTARGET=$(TARGET)
 LDFLAGS = $(PROFILING) $(LIBRARY_DIRS) $(LIBRARIES)
 COMPILE = $(CXX) $(CXXFLAGS) 
 
@@ -19,7 +19,7 @@ $(addprefix target/$(TARGET)/,$(sort $(SRCDIRS))):
 	@mkdir -p $@
 
 -include target/$(TARGET)/Makefile.externs
-target/bbsim/Makefile.externs:	Makefile Makefile.bbsim
+target/bbsim/Makefile.externs:	Makefile Makefile.$(TARGET)
 	@echo "Remaking $@"
 	@/bin/rm -f $@
 	@for i in $(SRCS); do $(CXX) -g $(CXXFLAGS) -MM -MT target/$(TARGET)/$${i/%.cpp/.o} $$i >> $@; done
