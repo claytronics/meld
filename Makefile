@@ -23,7 +23,7 @@ NOSTRINGWARN = -Wno-write-strings
 CFLAGS = $(ARCH) $(PROFILING) $(OPTIMIZATIONS) $(WARNINGS) $(DEBUG) $(INCLUDE_DIRS) $(COX) $(NOSTRINGWARN) -DUSERFRIENDLY=1
 
 LIBRARIES = -pthread -lpthread -lm  -lboost_thread-mt -lboost_system-mt \
-			-lboost_date_time-mt -lboost_regex-mt -ldl $(UILIBRARIES)
+			-ldl $(UILIBRARIES)
 
 GCC_MINOR    := $(shell $(CXX) -v 2>&1 | grep " version " | cut -d' ' -f3  | cut -d'.' -f2)
 
