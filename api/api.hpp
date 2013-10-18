@@ -4,7 +4,9 @@
 /*
  * Header file for API
  */
-#include <boost/mpi.hpp>
+#if defined(TARGET_mpi)
+# include <boost/mpi.hpp>
+#endif
 #include <boost/serialization/binary_object.hpp>
 #include <boost/asio.hpp>
 #include <iostream>
@@ -24,7 +26,9 @@ namespace api {
     typedef uint64_t message_type;
     static const size_t MAXLENGTH = 512 / sizeof(message_type);
 
+#if defined(TARGET_mpi)
     extern boost::mpi::communicator *world;
+#endif
     extern boost::asio::ip::tcp::socket *tcp_socket;
 
     /* Given a node destination, compute the process id that the node
@@ -70,6 +74,11 @@ namespace api {
 
     /* initialize the debugger through the api */
     extern void debugInit(void);
+
+#ifdef INCLUDE_DEBUGGER
+  // used by debugger to get the next process id (only mpi?)
+  extern int nextProcessForDebugger(void);
+#endif
 
     /*
      * send a massage to a specified node, if broadcast specified, send to all

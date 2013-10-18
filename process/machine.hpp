@@ -9,7 +9,9 @@
 #include <vector>
 #include <boost/thread/mutex.hpp>
 #include <boost/thread/barrier.hpp>
-#include <boost/mpi.hpp>
+#if defined(TARGET_mpi)
+# include <boost/mpi.hpp>
+#endif
 #include "db/database.hpp"
 #include "db/tuple.hpp"
 #include "db/node.hpp"

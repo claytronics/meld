@@ -2,7 +2,9 @@
 #ifndef VM_ALL_HPP
 #define VM_ALL_HPP
 
-#include <boost/mpi.hpp>
+#if defined(TARGET_mpi)
+# include <boost/mpi.hpp>
+#endif
 #include "vm/program.hpp"
 
 #define MAX_CONSTS 32

@@ -10,7 +10,9 @@ using namespace vm;
 using namespace process;
 using namespace utils;
 using namespace api;
+#if defined(TARGET_mpi)
 namespace mpi = boost::mpi;
+#endif
 
 #ifdef MULTI_NODE_PER_PROC
 declareCompileInfo(spinlock, "on");

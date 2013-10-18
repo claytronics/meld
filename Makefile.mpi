@@ -9,6 +9,7 @@ else
 	CXX = g++
 endif
 
+CXXFLAGS += -DMULTI_NODE_PER_PROC=1
 LIBRARIES +=  -lboost_serialization-mt -lboost_mpi-mt
 
 -include Makefile.common

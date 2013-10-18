@@ -516,6 +516,21 @@ const char* apiTarget = "mpi";
         }
     }
 
+
+#if defined(INCLUDE_DEBUGGER)
+  /*NEXT PROCESS --when in Mpi debugging mode, find the next process*/
+  int nextProcessForDebugger(void) {
+    /*note- skips over master debugging process in
+      debugging mode*/
+
+    if (world->rank() == world->size()-1)
+      return 1;
+    else
+      return world->rank() + 1;
+  }
+#endif
+
+
 /*
  * Unimplemented functions in MPI
  */

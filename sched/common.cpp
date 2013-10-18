@@ -14,6 +14,7 @@ namespace sched
 void
 assert_static_nodes_end_iteration(const process_id id, vm::all *all)
 {
+  ignoreUnusedParamWarning(id);
    database::map_nodes::const_iterator it(all->DATABASE->nodes_begin());
    database::map_nodes::const_iterator end(all->DATABASE->nodes_end());
 
@@ -24,6 +25,7 @@ assert_static_nodes_end_iteration(const process_id id, vm::all *all)
 void
 assert_static_nodes_end(const process_id id, vm::all *all)
 {
+  ignoreUnusedParamWarning(id);
    database::map_nodes::const_iterator it(all->DATABASE->nodes_begin());
    database::map_nodes::const_iterator end(all->DATABASE->nodes_end());
 

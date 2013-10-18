@@ -132,7 +132,9 @@ namespace debugger {
 
     /*for serializationMode*/
     static bool hasTheConche = false;
+#if defined(TARGET_mpi)
     static bool okayToSetConche = true;
+#endif
 
     /*different mode settings for debugger*/
     bool verboseMode = false;
@@ -422,10 +424,12 @@ namespace debugger {
         if (nodeID!="")
             msg <<  "\tNode: " << nodeID << endl;
 
+#if defined(TARGET_mpi)
         if (isInMpiDebuggingMode()&&api::world->rank() != 1){
             display(msg.str(),PAUSE);
             return;
         }
+#endif
 
         display(msg.str(),PRINTCONTENT);
 
@@ -455,13 +459,18 @@ namespace debugger {
 
         /*if is in MPI debugging mode, send to master to display/handle
          *the message*/
-        } else if (isInMpiDebuggingMode()){
+        } 
+#if defined(TARGET_mpi)
+	else {
+	  if (isInMpiDebuggingMode()){
             MSG << "<=======VM#" <<
-                api::world->rank()
+	      api::world->rank()
                 << "===================================================>"
                 << endl << msg;
             sendMsg(MASTER,type,MSG.str());
-        }
+	  }
+	}
+#endif
     }
 
 
@@ -518,26 +527,13 @@ namespace debugger {
         }
     }
 
-
-    /*NEXT PROCESS --when in Mpi debugging mode, find the next process*/
-    inline int nextProcess(void) {
-        /*note- skips over master debugging process in
-          debugging mode*/
-
-        if (api::world->rank() == api::world->size()-1){
-            return 1;
-        } else
-            return api::world->rank() + 1;
-    }
-
-
     /*SERIALIZED PAUSE -- to be impemented in sched/base.cpp
      * allows only one process to execute at a time, else
      * it will wait for the previous process to let it know
      * continue */
     void serializedPause(void){
         ostringstream spec;
-        spec << nextProcess();
+        spec << api::nextProcessForDebugger();
 
         if (hasTheConche){
 
@@ -609,22 +605,25 @@ namespace debugger {
                     /*no serialization in simulation debugging*/
                     msg << "-cannot go into serialization mode" << endl;
                 }
-                if (isInMpiDebuggingMode()&&api::world->rank() == 1)
-                    //let begining process execute in serialization
-                    if (okayToSetConche){
-                        /*only able to set conche once*/
-                        hasTheConche = true;
-                        okayToSetConche = false;
-                    }
-
+#if defined(TARGET_mpi)
+                if (isInMpiDebuggingMode()&&api::world->rank() == 1) {
+		  //let begining process execute in serialization
+		  if (okayToSetConche){
+		    /*only able to set conche once*/
+		    hasTheConche = true;
+		    okayToSetConche = false;
+		  }
+		}
+#endif
             }
         }
 
+#if defined(TARGET_mpi)
         if ((isInMpiDebuggingMode()&&api::world->rank()!=MASTER)
-            ||isInSimDebuggingMode())
+	    ||isInSimDebuggingMode())
             display(msg.str(),PRINTCONTENT);
+#endif
     }
-
 
     /*DEBUGCONTROLLER -- main controller of pausing/unpausing/dumping VMs*/
     /* execute instruction based on encoding and specification
@@ -644,6 +643,7 @@ namespace debugger {
 
         /*for use of numberExpected see debug_prompt.cpp, run()*/
 
+#if defined(TARGET_mpi)
         /*if MPI debugging and the master process (process zero):
          *send a  message instead of changing the system state
          *as normally done in normal debugging*/
@@ -720,7 +720,10 @@ namespace debugger {
          *master debugging process-- also run in normal execution of
          *a single VM (no MPI debugging mode, but normal debugging mode)
          * also run by VMs if in Sim debugging mode*/
-        } else {
+        } 
+	else 
+#endif
+	  {
 
             switch(instruction){
 
@@ -827,6 +830,7 @@ namespace debugger {
                     setFlags(specification);
                     break;
 
+#if defined(TARGET_mpi)
                 case CONCHE:
 
                     /*if match for next conche, retrieve it*/
@@ -834,6 +838,7 @@ namespace debugger {
                         hasTheConche = true;
                     }
                     break;
+#endif
 
                 case ENDSER:
                     serializationMode = false;
@@ -1115,6 +1120,7 @@ namespace debugger {
                 continue;
             }
 
+#ifdef TARGET_mpi
             /*if the controlling process is recieving a message*/
             if (isInMpiDebuggingMode()&&api::world->rank()==MASTER){
 
@@ -1130,7 +1136,9 @@ namespace debugger {
                 }
 
             /*if a slave process (any vm) is receiving the message*/
-            } else {
+            } else 
+#endif
+	      {
 
                 debugController(instruction,spec);
             }

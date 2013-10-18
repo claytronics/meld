@@ -152,8 +152,6 @@ namespace api
     return neighbor_count;
   }
 
-  boost::mpi::communicator *world = NULL;
-  
   /*Helper Functions*/
   static const char* msgcmd2str[27];
   static boost::asio::ip::tcp::socket *my_tcp_socket;
@@ -1021,6 +1019,14 @@ namespace api
       break;
 	}
   }
+
+#if defined(INCLUDE_DEBUGGER)
+  /*NEXT PROCESS --when in Mpi debugging mode, find the next process*/
+  int nextProcessForDebugger(void) {
+    assert(0);
+  }
+#endif
+
 
   /* Output the database in a synchronized manner */
   void 

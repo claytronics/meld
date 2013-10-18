@@ -94,7 +94,7 @@ namespace vm {
 		 */
 		static double currentLocalTime = 0; // in microseconds
 		static simulationMode mode = REALTIME;
-		static bool computing = false;	
+	  //NOTUSED??? static bool computing = false;	
 		static uint *opCycleTab = initOpCycleTab();
 		static uint *instrCycleTab = initInstrCycleTab();
 

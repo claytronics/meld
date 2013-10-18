@@ -2,7 +2,6 @@
 #define DATABASE_HPP
 
 #define USERFRIENDLY 1
-#define MULTI_NODE_PER_PROC 1
 
 #include <map>
 #include <fstream>
@@ -11,7 +10,9 @@
 #include <stdexcept>
 #include <boost/function.hpp>
 #include <boost/static_assert.hpp>
-#include <boost/mpi.hpp>
+#if defined(TARGET_mpi)
+# include <boost/mpi.hpp>
+#endif
 
 #include "conf.hpp"
 #include "db/node.hpp"
