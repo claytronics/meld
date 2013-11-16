@@ -1,4 +1,3 @@
-# 1 "/home/dcampbel/Research/build-romain/src-bobby/system/led.bb"
 #include "led.h"
 #include "../hw-api/hwLED.h"
 

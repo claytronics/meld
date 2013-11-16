@@ -1,4 +1,3 @@
-# 1 "/home/dcampbel/Research/build-romain/src-bobby/system/message.bbh"
 #ifndef __MESSAGE_H__
 #define __MESSAGE_H__
 

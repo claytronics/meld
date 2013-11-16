@@ -1,4 +1,3 @@
-# 1 "/home/dcampbel/Research/build-romain/src-bobby/system/hardwaretime.bbh"
 #ifndef __HARDWARETIME_H__
 #define __HARDWARETIME_H__
 

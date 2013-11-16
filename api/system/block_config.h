@@ -1,4 +1,3 @@
-# 1 "/home/dcampbel/Research/build-romain/src-bobby/system/block_config.bbh"
 // block_config.h
 //
 // Contains block configuration data

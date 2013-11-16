@@ -1,4 +1,3 @@
-# 1 "/home/dcampbel/Research/build-romain/src-bobby/system/memory.bb"
 // memory.c
 //
 // Implement Memory Management protocols

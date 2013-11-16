@@ -1,4 +1,3 @@
-# 1 "/home/dcampbel/Research/build-romain/src-bobby/system/ensemble.bb"
 #include "ensemble.h"
 #include "message.h"
 #include "data_link.h"

@@ -1,4 +1,3 @@
-# 1 "/home/dcampbel/Research/build-romain/src-bobby/system/debug.bbh"
 #ifndef __DEBUG_H__
 #define __DEBUG_H__
 

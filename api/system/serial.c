@@ -1,4 +1,3 @@
-# 1 "/home/dcampbel/Research/build-romain/src-bobby/system/serial.bb"
 #include "serial.h"
 #include "../hw-api/hwSerial.h"
 

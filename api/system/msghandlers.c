@@ -1,5 +1,4 @@
 #include "msghandlers.h"
-#include "../sim/block.h"
 
 MsgHandler msgHandlerTable[] = {
 	(MsgHandler)0

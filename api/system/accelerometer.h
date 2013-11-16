@@ -1,4 +1,3 @@
-# 1 "/home/dcampbel/Research/build-romain/src-bobby/system/accelerometer.bbh"
 #ifndef __ACCELEROMETER_H__
 #define __ACCELEROMETER_H__
 

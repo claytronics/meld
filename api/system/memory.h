@@ -1,4 +1,3 @@
-# 1 "/home/dcampbel/Research/build-romain/src-bobby/system/memory.bbh"
 // memory.h
 //
 // Define all Memory Management protocols

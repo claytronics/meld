@@ -1,4 +1,3 @@
-# 1 "/home/dcampbel/Research/build-romain/src-bobby/system/ensemble.bbh"
 #ifndef __ENSEMBLE_H__
 #define __ENSEMBLE_H__
 

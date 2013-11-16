@@ -1,4 +1,3 @@
-# 1 "/home/dcampbel/Research/build-romain/src-bobby/system/circ_buffer.bbh"
 #ifndef __CIRC_BUFFER_H__
 #define __CIRC_BUFFER_H__
 

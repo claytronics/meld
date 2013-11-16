@@ -1,15 +1,14 @@
-# 1 "/home/dcampbel/Research/build-romain/src-bobby/system/data_link.bb"
 // data_link.c
 //
 // Implement Data Link Layer protocols
 
-#ifndef _DATA_LINK_C_
-#define _DATA_LINK_C_
+//#ifndef _DATA_LINK_C_
+//#define _DATA_LINK_C_
 
-#include "../hw-api/hwDataLink.h"
+//#include "../hw-api/hwDataLink.h"
 #include "../hw-api/hwSerial.h"
 #include "data_link.h"
-#include "led.h"
+//#include "led.h"
 
 
 // global receive queue for packets
@@ -303,4 +302,4 @@ void initDataLink()
 }
 ////////////////// END PUBLIC FUNCTIONS ///////////////////
 
-#endif
+//#endif

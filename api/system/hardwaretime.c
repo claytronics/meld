@@ -1,4 +1,3 @@
-# 1 "/home/dcampbel/Research/build-romain/src-bobby/system/hardwaretime.bb"
 #include "hardwaretime.h"
 #include "../hw-api/hwTime.h"
 #include "assert.h"

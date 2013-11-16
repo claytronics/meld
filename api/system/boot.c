@@ -1,4 +1,3 @@
-# 1 "/home/dcampbel/Research/build-romain/src-bobby/system/boot.bb"
 #include "boot.h"
 
 // HARDWARE INCLUDES

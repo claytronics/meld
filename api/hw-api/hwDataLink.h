@@ -1,11 +1,9 @@
 #ifndef _HW_DATALINK_H_
 #define _HW_DATALINK_H_
 
-#ifndef IGNORE_IN_PASS1_OFF_COMPILE_BB
 #include "../system/defs.h"
 #include "../system/data_link.h"
 #include "../system/memory.h"
-#endif
 
 // use pthread mutex
 #ifdef BBSIM

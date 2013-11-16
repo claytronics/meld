@@ -1,4 +1,3 @@
-# 1 "/home/dcampbel/Research/build-romain/src-bobby/system/system.bbh"
 #ifndef __SYSTEM_H__
 #define __SYSTEM_H__
 

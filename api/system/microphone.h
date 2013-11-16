@@ -1,4 +1,3 @@
-# 1 "/home/dcampbel/Research/build-romain/src-bobby/system/microphone.bbh"
 #ifndef __MICROPHONE_BBH__
 #define __MICROPHONE_BBH__
 

@@ -1,4 +1,3 @@
-# 1 "/home/dcampbel/Research/build-romain/src-bobby/system/queues.bb"
 // queues.c
 //
 // implementation of the queues

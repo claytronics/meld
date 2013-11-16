@@ -1,4 +1,3 @@
-# 1 "/home/dcampbel/Research/build-romain/src-bobby/system/led.bbh"
 #ifndef __LED_H__
 #define __LED_H__
 

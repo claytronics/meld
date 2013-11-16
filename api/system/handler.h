@@ -1,4 +1,3 @@
-# 1 "/home/dcampbel/Research/build-romain/src-bobby/system/handler.bbh"
 #ifndef	__HANDLER_H__
 #define __HANDLER_H__
 
