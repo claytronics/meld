@@ -15,14 +15,11 @@ using namespace db;
 namespace vm
 {
 
-
-#ifdef USE_RULE_COUNTING
-
-  void
-  rule_matcher::register_predicate_availability(const predicate *pred)
-  {
-    for(predicate::rule_iterator it(pred->begin_rules()), end(pred->end_rules()); it != end; it++) {
-      vm::rule_id rule(*it);
+void
+rule_matcher::register_predicate_availability(const predicate *pred)
+{
+	for(predicate::rule_iterator it(pred->begin_rules()), end(pred->end_rules()); it != end; it++) {
+		vm::rule_id rule(*it);
 
       if(rules[rule].ignore)
 	continue;
@@ -99,33 +96,28 @@ namespace vm
       register_predicate_unavailability(tpl->get_predicate());
     }
 
-    predicate_count[id] -= count;
-    return ret;
-  }
-#endif
+   predicate_count[id] -= count;
+	return ret;
+}
 
+rule_matcher::rule_matcher(void)
+{
+   predicate_count.resize(theProgram->num_predicates());
+   rules.resize(theProgram->num_rules());
 
-  // this used to take the program as an argument.  Now the program is a global variable
-  rule_matcher::rule_matcher(void)
-  {
-#ifdef USE_RULE_COUNTING
-    predicate_count.resize(theProgram->num_predicates());
-    rules.resize(theProgram->num_rules());
+   fill(predicate_count.begin(), predicate_count.end(), 0);
 
-    fill(predicate_count.begin(), predicate_count.end(), 0);
-	
-    rule_id rid(0);
-    for(rule_vector::iterator it(rules.begin()), end(rules.end());
-	it != end;
-	it++, rid++)
-      {
-	rule_matcher_obj& obj(*it);
-		
-	obj.ignore = theProgram->get_rule(rid)->as_persistent();
-	obj.total_have = 0;
-	obj.total_needed = theProgram->get_rule(rid)->num_predicates();
-      }
-#endif
+   rule_id rid(0);
+   for(rule_vector::iterator it(rules.begin()), end(rules.end());
+         it != end;
+         it++, rid++)
+   {
+      rule_matcher_obj& obj(*it);
+
+      obj.ignore = theProgram->get_rule(rid)->as_persistent();
+      obj.total_have = 0;
+      obj.total_needed = theProgram->get_rule(rid)->num_predicates();
+   }
   }
 
 }
