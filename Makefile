@@ -58,38 +58,38 @@ SRCS = 	utils/utils.cpp \
 	vm/tuple.cpp \
 	vm/exec.cpp \
 	vm/external.cpp \
-	 vm/rule.cpp \
-	 vm/rule_matcher.cpp \
-			 db/node.cpp \
-			 db/tuple.cpp \
-			 db/agg_configuration.cpp \
-			 db/tuple_aggregate.cpp \
-			 db/database.cpp \
-			 db/trie.cpp \
-			 process/machine.cpp \
-			 mem/thread.cpp \
-			 mem/center.cpp \
-			 mem/stat.cpp \
-			 sched/base.cpp \
-			 sched/common.cpp \
-			 sched/serial.cpp \
-			 external/math.cpp \
-			 external/lists.cpp \
-			 external/utils.cpp \
-			 external/strings.cpp \
-			 external/others.cpp \
-			 external/core.cpp \
-			 stat/stat.cpp \
-			 stat/slice.cpp \
-			 stat/slice_set.cpp \
-			 interface.cpp \
-			 runtime/common.cpp \
-			 debug/debug_prompt.cpp \
-			./meld.cpp \
-			 debug/debug_handler.cpp \
-			 debug/debug_list.cpp \
-			 #sched/thread/threaded.cpp \
-			 #sched/thread/assert.cpp \
+	vm/rule.cpp \
+	vm/rule_matcher.cpp \
+	db/node.cpp \
+	db/tuple.cpp \
+	db/agg_configuration.cpp \
+	db/tuple_aggregate.cpp \
+	db/database.cpp \
+	db/trie.cpp \
+	process/machine.cpp \
+	mem/thread.cpp \
+	mem/center.cpp \
+	mem/stat.cpp \
+	sched/base.cpp \
+	sched/common.cpp \
+	sched/serial.cpp \
+	external/math.cpp \
+	external/lists.cpp \
+	external/utils.cpp \
+	external/strings.cpp \
+	external/others.cpp \
+	external/core.cpp \
+	stat/stat.cpp \
+	stat/slice.cpp \
+	stat/slice_set.cpp \
+	interface.cpp \
+	runtime/common.cpp \
+	debug/debug_prompt.cpp \
+	./meld.cpp \
+	debug/debug_handler.cpp \
+	debug/debug_list.cpp \
+	#sched/thread/threaded.cpp \
+	#sched/thread/assert.cpp \
 
 export
 
