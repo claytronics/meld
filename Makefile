@@ -1,3 +1,6 @@
+
+include conf.mk
+
 OS = $(shell uname -s)
 
 INCLUDE_DIRS = -I.
@@ -10,20 +13,37 @@ ifeq (exists, $(shell test -d /opt/local/lib  && echo exists))
 	LIBRARY_DIRS += -L/opt/local/lib
 endif
 
-PROFILING = #-pg
-OPTIMIZATIONS = -O0
-#ARCH = -march=armv6
-#DEBUG = -g -DDEBUG_RULES
-WARNINGS = -Wall -Wextra #-Werror
-C0X = -std=c++0x
-
 #to remove depricated char* warnings
 NOSTRINGWARN = -Wno-write-strings
 
-CFLAGS = $(ARCH) $(PROFILING) $(OPTIMIZATIONS) $(WARNINGS) $(DEBUG) $(INCLUDE_DIRS) $(COX) $(NOSTRINGWARN) -DUSERFRIENDLY=1
+ARCH = -march=x86-64
+#ARCH = -march=armv6
+ifeq ($(RELEASE), true)
+	DEBUG =
+	OPTIMIZATIONS = -O3 -DNDEBUG
+else
+	DEBUG = -g
+	PROFILING = -pg
+	OPTIMIZATIONS = -O0
+endif
 
+WARNINGS = -Wall -Wextra #-Werror
+C0X = -std=c++0x
+
+
+ifeq ($(COMPILE_MPI),true)
+	LIBRARIES += -lmpi -lmpi_cxx -lboost_serialization-mt -lboost_mpi-mt
+	CFLAGS += -DCOMPILE_MPI=1
+endif
+ifeq ($(INTERFACE),true)
+	LIBRARIES = -lwebsocketpp -ljson_spirit
+	CFLAGS += -DUSE_UI=1
+endif
+
+CFLAGS = $(ARCH) $(PROFILING) $(OPTIMIZATIONS) $(WARNINGS) $(DEBUG) $(INCLUDE_DIRS) $(C0X) $(NOSTRINGWARN) -DUSERFRIENDLY=1
 LIBRARIES = -pthread -lpthread -lm  -lboost_thread-mt -lboost_system-mt \
-			-ldl $(UILIBRARIES)
+				-lboost_date_time-mt -lboost_regex-mt	\
+				-ldl $(UILIBRARIES)
 
 GCC_MINOR    := $(shell $(CXX) -v 2>&1 | grep " version " | cut -d' ' -f3  | cut -d'.' -f2)
 

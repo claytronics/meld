@@ -16,31 +16,23 @@
 /* activate this to collect statistics on memory use */
 //#define MEMORY_STATISTICS 1
 
-/* activate debug mode */
-//#define DEBUG_MODE 1
-
 /* activate special code for testing trie matching */
 // #define TRIE_MATCHING_ASSERT 1
 
 /* gather statistics about the core VM execution */
 //#define CORE_STATISTICS 1
 
-/* use fact counting for rule engine */
+// use fact counting for rule engine XXX: to remove
 #define USE_RULE_COUNTING 1
 
 /* activate instrumentation code */
 // #define INSTRUMENTATION 1
 
+// XXX: to remove
 //#define DEBUG_SAFRAS 1
 //#define DEBUG_REMOTE 1
 //#define DEBUG_ACTIVE 1
 //#define DEBUG_SERIALIZATION_TIME 1
-
-/* build hash table of nodes for work stealing schedulers */
-#define MARK_OWNED_NODES
-
-/* use ui interface */
-// #define USE_UI
 
 /* use simulator */
 //#define USE_SIM
