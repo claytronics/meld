@@ -44,7 +44,6 @@ namespace vm
     size_t NUM_THREADS;
     size_t NUM_NODES_PER_PROCESS;
     machine_arguments ARGUMENTS;
-    static const double TASK_STEALING_FACTOR = 0.2;
     std::vector<sched::base*> ALL_THREADS; /* schedulers */
 
     inline void set_const(const const_id& id, const tuple_field d) { consts[id] = d; }
