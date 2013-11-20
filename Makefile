@@ -6,13 +6,6 @@ OS = $(shell uname -s)
 INCLUDE_DIRS = -I.
 LIBRARY_DIRS =
 
-ifeq (exists, $(shell test -d /opt/local/include && echo exists))
-	INCLUDE_DIRS += -I/opt/local/include
-endif
-ifeq (exists, $(shell test -d /opt/local/lib  && echo exists))
-	LIBRARY_DIRS += -L/opt/local/lib
-endif
-
 #to remove depricated char* warnings
 NOSTRINGWARN = -Wno-write-strings
 
@@ -31,10 +24,6 @@ WARNINGS = -Wall -Wextra #-Werror
 C0X = -std=c++0x
 
 
-ifeq ($(COMPILE_MPI),true)
-	LIBRARIES += -lmpi -lmpi_cxx -lboost_serialization-mt -lboost_mpi-mt
-	CFLAGS += -DCOMPILE_MPI=1
-endif
 ifeq ($(INTERFACE),true)
 	LIBRARIES = -lwebsocketpp -ljson_spirit
 	CFLAGS += -DUSE_UI=1
