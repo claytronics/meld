@@ -1200,7 +1200,7 @@ execute_iter(pcounter pc, const utils::byte options, const utils::byte options_a
 					}
 				}
 				break;
-				default: assert(false);
+				default: ret = RETURN_NO_RETURN; assert(false);
 			}
 
 			if(ret == RETURN_LINEAR)
@@ -2022,6 +2022,7 @@ eval_loop:
                return_type ret(execute(pc + RESET_LINEAR_BASE, state));
 
 					assert(ret == RETURN_END_LINEAR);
+               (void)ret;
 
                state.is_linear = old_is_linear;
 

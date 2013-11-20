@@ -198,9 +198,8 @@ namespace process
 
     while (true) {
       const int ret(sigwait(&set, &sig));
-
-      assert(ret == 0);
-
+      (void)ret;
+		assert(ret == 0);
       switch(sig) {
       case SIGALRM:
         if(tofinish)
