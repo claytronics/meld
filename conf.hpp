@@ -28,24 +28,10 @@
 /* activate instrumentation code */
 // #define INSTRUMENTATION 1
 
-// XXX: to remove
-//#define DEBUG_SAFRAS 1
-//#define DEBUG_REMOTE 1
-//#define DEBUG_ACTIVE 1
-//#define DEBUG_SERIALIZATION_TIME 1
-
 /* use simulator */
 //#define USE_SIM
 
 /* use memory pools for each thread or not */
 const bool USE_ALLOCATOR = true;
-
-/* rounds to delay after we fail to find an active worker */
-const size_t DELAY_STEAL_CYCLE(10);
-/* factor to compute the number of nodes to send to another worker when stealing */
-const size_t STEAL_NODES_FACTOR(1000);
-
-/* threshold to use in global/threads_static to flush work to other threads */
-const size_t THREADS_GLOBAL_WORK_FLUSH(20);
 
 #endif

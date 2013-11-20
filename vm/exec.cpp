@@ -383,7 +383,7 @@ execute_send_self(tuple *tuple, state& state)
     /*
      * execute_send_self sends a tuple to the current node
      */
-#if defined(DEBUG_MODE) || defined(DEBUG_SENDS)
+#ifdef DEBUG_SENDS
    print_mtx.lock();
    ostringstream ss;
    ss << "\t" << *tuple << " " << state.count << " -> self " << state.node->get_id() << " (" << state.depth << ")" << endl;
@@ -459,7 +459,7 @@ execute_send(const pcounter& pc, state& state)
 	      << state.node->get_translated_id() << endl;
      execute_send_self(tuple, state);
    } else {
-#if defined(DEBUG_MODE) || defined(DEBUG_SENDS)
+#ifdef DEBUG_SENDS
       print_mtx.lock();
       ostringstream ss;
       ss << "\t" << *tuple << " " << state.count << " -> " << dest_val << " (" << state.depth << ")" << endl;
@@ -494,12 +494,12 @@ execute_send_delay(const pcounter& pc, state& state)
    simple_tuple *stuple(new simple_tuple(tuple, state.count, state.depth));
 
    if(msg == dest) {
-#ifdef DEBUG_MODE
+#ifdef DEBUG_SENDS
       cout << "\t" << *tuple << " -> self " << state.node->get_id() << endl;
 #endif
       vm::All->MACHINE->route_self(state.sched, state.node, stuple, send_delay_time(pc));
    } else {
-#ifdef DEBUG_MODE
+#ifdef DEBUG_SENDS
       cout << "\t" << *tuple << " -> " << dest_val << endl;
 #endif
       vm::All->MACHINE->route(state.node, state.sched, (node::node_id)dest_val, stuple, send_delay_time(pc));
@@ -1614,7 +1614,7 @@ execute_remove(pcounter pc, state& state)
 
 #ifdef USE_RULE_COUNTING
 	if(state.use_local_tuples) {
-#if defined(DEBUG_MODE) or defined(DEBUG_REMOVE)
+#ifdef DEBUG_REMOVE
       cout << "\tdelete " << *tpl << endl;
 #endif
       debugMsg << "\t-delete " << *tpl << endl;
@@ -1976,12 +1976,9 @@ eval_loop:
 	vm::determinism::incrCurrentLocalTime(pc);
 #endif
 
-#ifdef DEBUG_MODE
+#ifdef DEBUG_INSTRS
 		if(state.print_instrs)
          instr_print_simple(pc, 0, vm::All->PROGRAM, cout);
-
-#elif defined(DEBUG_INSTRS)
-      instr_print_simple(pc, 0, vm::All->PROGRAM, cout);
 #endif
 
 #ifdef CORE_STATISTICS
@@ -2212,14 +2209,7 @@ do_execute(byte_code code, state& state)
 execution_return
 execute_bytecode(byte_code code, state& state)
 {
-#ifdef DEBUG_MODE
-   if(state.node && state.tuple && state.node->get_id() == 2) {
-      cout << "Processing " << *(state.tuple) << " " << state.count << endl;
-   }
-#endif
-
    const return_type ret(do_execute(code, state));
-
 
 	state.unmark_generated_tuples();
 
@@ -2236,13 +2226,13 @@ execute_bytecode(byte_code code, state& state)
 void
 execute_rule(const rule_id rule_id, state& state)
 {
-#if defined(DEBUG_MODE) || defined(DEBUG_RULES)
-	cout << "Running rule " << vm::All->PROGRAM->get_rule(rule_id)->get_string() << endl;
-#endif
-
    //vm::All->DATABASE->print_db(cout);
 
 	vm::rule *rule(vm::All->PROGRAM->get_rule(rule_id));
+
+#ifdef DEBUG_RULES
+	cout << "Running rule " << rule->get_string() << endl;
+#endif
 
    do_execute(rule->get_bytecode(), state);
 
@@ -2250,7 +2240,6 @@ execute_rule(const rule_id rule_id, state& state)
    if(state.stat_rules_activated == 0)
       state.stat_rules_failed++;
 #endif
-   //state.node->print(cout);
 }
 
 }
