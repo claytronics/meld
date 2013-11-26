@@ -13,8 +13,10 @@
 #include "db/trie.hpp"
 #include "vm/all.hpp"
 #include "utils/random.hpp"
+#include "utils/time.hpp"
 #include "queue/safe_simple_pqueue.hpp"
 #include "runtime/struct.hpp"
+#include "vm/stat.hpp"
 
 // forward declaration
 namespace sched {
@@ -77,6 +79,9 @@ namespace vm {
 #ifdef DEBUG_MODE
     bool print_instrs;
 #endif
+#ifdef CORE_STATISTICS
+   core_statistics stat;
+#endif
     bool use_local_tuples;
     db::simple_tuple_list local_tuples; // current available tuples not yet in the database
     db::simple_tuple_list generated_tuples; // tuples generated while running the rule
@@ -88,24 +93,6 @@ namespace vm {
     vm::strat_level current_level;
     bool persistent_only; // we are running one persistent tuple (not a rule)
 
-#ifdef CORE_STATISTICS
-    size_t stat_rules_ok;
-    size_t stat_rules_failed;
-    size_t stat_db_hits;
-    size_t stat_tuples_used;
-    size_t stat_if_tests;
-    size_t stat_if_failed;
-    size_t stat_instructions_executed;
-    size_t stat_moves_executed;
-    size_t stat_ops_executed;
-    size_t *stat_predicate_proven;
-    size_t *stat_predicate_applications;
-    size_t *stat_predicate_success;
-
-    bool stat_inside_rule;
-    size_t stat_rules_activated;
-#endif
-   
 #define define_get(WHAT, RET, BODY)                                     \
     inline RET get_ ## WHAT (const reg_num& num) const { BODY; }
    

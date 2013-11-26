@@ -29,6 +29,7 @@ using namespace vm::instr;
 using namespace std;
 using namespace db;
 using namespace runtime;
+using namespace utils;
 
 #include "compileInfo.hpp"
 
@@ -449,7 +450,7 @@ execute_send(const pcounter& pc, state& state)
    }
 
 #ifdef CORE_STATISTICS
-   state.stat_predicate_proven[tuple->get_predicate_id()]++;
+   state.stat.stat_predicate_proven[tuple->get_predicate_id()]++;
 #endif
 
    if(msg == dest) {
@@ -486,7 +487,7 @@ execute_send_delay(const pcounter& pc, state& state)
    tuple *tuple(state.get_tuple(msg));
 
 #ifdef CORE_STATISTICS
-   state.stat_predicate_proven[tuple->get_predicate_id()]++;
+   state.stat.stat_predicate_proven[tuple->get_predicate_id()]++;
 #endif
 
    simple_tuple *stuple(new simple_tuple(tuple, state.count, state.depth));
@@ -1120,8 +1121,11 @@ execute_iter(pcounter pc, const utils::byte options, const utils::byte options_a
 		const field_num field(iter_options_min_arg(options_arguments));
 		typedef vector<iter_object, mem::allocator<iter_object> > vector_of_everything;
       vector_of_everything everything;
-
 		if(state.use_local_tuples) {
+#ifdef CORE_STATISTICS
+         execution_time::scope s(state.stat.ts_search_time_predicate[pred->get_id()]);
+#endif
+
 			for(db::simple_tuple_list::iterator it(state.local_tuples.begin()), end(state.local_tuples.end());
 				it != end;
 				++it)
@@ -1332,11 +1336,15 @@ execute_iter(pcounter pc, const utils::byte options, const utils::byte options_a
 
 			if(match_tuple->get_predicate() != pred)
 				continue;
-
-      	if(!do_matches(pc, match_tuple, state))
-				continue;
-
-
+				
+         {
+#ifdef CORE_STATISTICS
+				execution_time::scope s2(state.stat.ts_search_time_predicate[pred->get_id()]);
+#endif
+            if(!do_matches(pc, match_tuple, state))
+               continue;
+         }
+		
 			PUSH_CURRENT_STATE(match_tuple, NULL, stpl, stpl->get_depth());
 
 			if(iter_options_to_delete(options) || pred->is_linear_pred()) {
@@ -1604,7 +1612,7 @@ execute_remove(pcounter pc, state& state)
   const reg_num reg(remove_source(pc));
 
 #ifdef CORE_STATISTICS
-   state.stat_predicate_success[state.get_tuple(reg)->get_predicate_id()]++;
+   state.stat.stat_predicate_success[state.get_tuple(reg)->get_predicate_id()]++;
 #endif
 
 	const bool is_a_leaf(state.is_it_a_leaf(reg));
@@ -1632,6 +1640,9 @@ execute_remove(pcounter pc, state& state)
 	} else {
 		if(is_a_leaf) { // tuple was fetched from database
 			//cout << "Remove " << *state.get_tuple(reg) << endl;
+#ifdef CORE_STATISTICS
+         execution_time::scope s(state.stat.db_deletion_time_predicate[tpl->get_predicate_id()]);
+#endif
    		state.node->delete_by_leaf(tpl->get_predicate(), state.get_leaf(reg), 0);
 		} else {
 			// tuple was marked before, it will be deleted after this round
@@ -1797,11 +1808,11 @@ execute_rule(const pcounter& pc, state& state)
 
 
 #ifdef CORE_STATISTICS
-	if(state.stat_rules_activated == 0 && state.stat_inside_rule) {
-		state.stat_rules_failed++;
+	if(state.stat.stat_rules_activated == 0 && state.stat.stat_inside_rule) {
+		state.stat.stat_rules_failed++;
 	}
-	state.stat_inside_rule = true;
-	state.stat_rules_activated = 0;
+	state.stat.stat_inside_rule = true;
+	state.stat.stat_rules_activated = 0;
 #endif
 }
 
@@ -1813,8 +1824,8 @@ execute_rule_done(const pcounter& pc, state& state)
 
 
 #ifdef CORE_STATISTICS
-	state.stat_rules_ok++;
-	state.stat_rules_activated++;
+	state.stat.stat_rules_ok++;
+	state.stat.stat_rules_activated++;
 #endif
 
 #if 0
@@ -1958,9 +1969,9 @@ execute(pcounter pc, state& state)
 {
 #ifdef CORE_STATISTICS
 	if(state.tuple != NULL) {
-		state.stat_tuples_used++;
+		state.stat.stat_tuples_used++;
       if(state.tuple->is_linear()) {
-         state.stat_predicate_applications[state.tuple->get_predicate_id()]++;
+         state.stat.stat_predicate_applications[state.tuple->get_predicate_id()]++;
       }
    }
 #endif
@@ -1978,7 +1989,7 @@ eval_loop:
 #endif
 
 #ifdef CORE_STATISTICS
-		state.stat_instructions_executed++;
+		state.stat.stat_instructions_executed++;
 #endif
 
       switch(fetch(pc)) {
@@ -1996,11 +2007,11 @@ eval_loop:
 
          case IF_INSTR:
 #ifdef CORE_STATISTICS
-				state.stat_if_tests++;
+				state.stat.stat_if_tests++;
 #endif
             if(!state.get_bool(if_reg(pc))) {
 #ifdef CORE_STATISTICS
-					state.stat_if_failed++;
+					state.stat.stat_if_failed++;
 #endif
                pc += if_jump(pc);
                goto eval_loop;
@@ -2039,10 +2050,15 @@ eval_loop:
                match mobj(pred);
 
 #ifdef CORE_STATISTICS
-					state.stat_db_hits++;
+					state.stat.stat_db_hits++;
 #endif
                build_match_object(mobj, pc + ITER_BASE, state, pred);
-               state.node->match_predicate(pred_id, mobj, matches);
+               {
+#ifdef CORE_STATISTICS
+                  execution_time::scope s(state.stat.db_search_time_predicate[pred_id]);
+#endif
+                  state.node->match_predicate(pred_id, mobj, matches);
+               }
 
                const return_type ret(execute_iter(pc + ITER_BASE,
 								iter_options(pc), iter_options_argument(pc),
@@ -2063,7 +2079,7 @@ eval_loop:
 
          case MOVE_INSTR:
 #ifdef CORE_STATISTICS
-				state.stat_moves_executed++;
+				state.stat.stat_moves_executed++;
 #endif
             execute_move(pc, state);
             break;
@@ -2082,7 +2098,7 @@ eval_loop:
 
          case OP_INSTR:
 #ifdef CORE_STATISTICS
-				state.stat_ops_executed++;
+				state.stat.stat_ops_executed++;
 #endif
             execute_op(pc, state);
             break;
@@ -2230,13 +2246,17 @@ execute_rule(const rule_id rule_id, state& state)
 #ifdef DEBUG_RULES
 	cout << "Running rule " << rule->get_string() << endl;
 #endif
-
+#ifdef CORE_STATISTICS
+   execution_time::scope s(state.stat.rule_times[rule_id]);
+#endif
+   
    do_execute(rule->get_bytecode(), state);
 
 #ifdef CORE_STATISTICS
-   if(state.stat_rules_activated == 0)
-      state.stat_rules_failed++;
+   if(state.stat.stat_rules_activated == 0)
+      state.stat.stat_rules_failed++;
 #endif
+
 }
 
 }

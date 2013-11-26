@@ -11,6 +11,7 @@ using namespace db;
 using namespace process;
 using namespace std;
 using namespace runtime;
+using namespace utils;
 
 //#define DEBUG_RULES
 
@@ -153,8 +154,7 @@ state::setup(vm::tuple *tpl, db::node *n, const derivation_count count, const de
 		this->saved_stuples[i] = NULL;
 	}
 #ifdef CORE_STATISTICS
-   this->stat_rules_activated = 0;
-	this->stat_inside_rule = false;
+   this->stat.start_matching();
 #endif
 }
 
@@ -219,6 +219,10 @@ state::mark_active_rules(void)
 bool
 state::add_fact_to_node(vm::tuple *tpl, const vm::derivation_count count, const vm::depth_t depth)
 {
+#ifdef CORE_STATISTICS
+   execution_time::scope s(stat.db_insertion_time_predicate[tpl->get_predicate_id()]);
+#endif
+
 	return node->add_tuple(tpl, count, depth);
 }
 
@@ -366,18 +370,21 @@ state::do_persistent_tuples(void)
          add_to_aggregate(stpl);
       }
    }
-
+   
    while(!leaves_for_deletion.empty()) {
       pair<vm::predicate*, db::tuple_trie_leaf*> p(leaves_for_deletion.front());
-		vm::predicate* pred(p.first);
-		db::tuple_trie_leaf *leaf(p.second);
+      vm::predicate* pred(p.first);
 
-		leaves_for_deletion.pop_front();
-
-		node->delete_by_leaf(pred, leaf, 0);
-
-	}
-
+#ifdef CORE_STATISTICS
+   	execution_time::scope s(stat.db_deletion_time_predicate[pred->get_id()]);
+#endif
+      db::tuple_trie_leaf *leaf(p.second);
+      
+      leaves_for_deletion.pop_front();
+      
+      node->delete_by_leaf(pred, leaf, 0);
+   }
+      
 	assert(leaves_for_deletion.empty());
 
    return true;
@@ -426,6 +433,10 @@ state::mark_rules_using_local_tuples(db::simple_tuple_list& ls)
 void
 state::process_consumed_local_tuples(void)
 {
+#ifdef CORE_STATISTICS
+	execution_time::scope s(stat.clean_temporary_store_time);
+#endif
+
 	// process current set of tuples
 	for(db::simple_tuple_list::iterator it(local_tuples.begin());
 		it != local_tuples.end();
@@ -622,16 +633,19 @@ state::run_node(db::node *no)
 
 
    assert(local_tuples.empty());
-   // Gather_next_tuples is implementation specific
-   sched->gather_next_tuples(node, local_tuples);
-   start_matching();
-	current_level = mark_rules_using_local_tuples(local_tuples);
-
-#ifdef DEBUG_RULES
-	cout<<node->get_id() << ":Strat level: " << current_level << " got " << local_tuples.size() << " tuples " << endl;
+	sched->gather_next_tuples(node, local_tuples);
+	{
+#ifdef CORE_STATISTICS
+		execution_time::scope s(stat.core_engine_time);
 #endif
-
+   	start_matching();
+		current_level = mark_rules_using_local_tuples(local_tuples);
+	}
+	
    if(do_persistent_tuples()) {
+#ifdef CORE_STATISTICS
+		execution_time::scope s(stat.core_engine_time);
+#endif
       mark_active_rules();
    } else
       // if using the simulator, we check if we exhausted the available time to run
@@ -649,9 +663,14 @@ state::run_node(db::node *no)
 
 
 		/* delete rule and every check */
-		rules[rule] = false;
-		node->matcher.clear_dropped_rules();
-      start_matching();
+		{
+#ifdef CORE_STATISTICS
+			execution_time::scope s(stat.core_engine_time);
+#endif
+			rules[rule] = false;
+			node->matcher.clear_dropped_rules();
+      	start_matching();
+		}
 		
 		setup(NULL, node, 1, 0);
 
@@ -667,8 +686,13 @@ state::run_node(db::node *no)
          aborted = true;
          break;
       }
-		mark_active_rules();
-		api::regularPollAndProcess(sched);
+		{
+#ifdef CORE_STATISTICS
+			execution_time::scope s(stat.core_engine_time);
+#endif
+			mark_active_rules();
+         api::regularPollAndProcess(sched);
+		}
 	}
 
 
@@ -701,41 +725,15 @@ state::run_node(db::node *no)
    generated_persistent_tuples.clear();
 }
 
-#ifdef CORE_STATISTICS
-void
-state::init_core_statistics(void)
-{
-   if(sched) {
-      stat_rules_ok = 0;
-      stat_rules_failed = 0;
-      stat_db_hits = 0;
-      stat_tuples_used = 0;
-      stat_if_tests = 0;
-      stat_if_failed = 0;
-      stat_instructions_executed = 0;
-      stat_moves_executed = 0;
-      stat_ops_executed = 0;
-      stat_predicate_proven = new size_t[vm::All->PROGRAM->num_predicates()];
-      stat_predicate_applications = new size_t[vm::All->PROGRAM->num_predicates()];
-      stat_predicate_success = new size_t[vm::All->PROGRAM->num_predicates()];
-      for(size_t i(0); i < vm::All->PROGRAM->num_predicates(); ++i) {
-         stat_predicate_proven[i] = 0;
-         stat_predicate_applications[i] = 0;
-         stat_predicate_success[i] = 0;
-      }
-   }
-}
-#endif
-
 state::state(sched::base *_sched):
    sched(_sched)
 #ifdef DEBUG_MODE
    , print_instrs(false)
 #endif
-{
 #ifdef CORE_STATISTICS
-   init_core_statistics();
+   , stat(vm::All)
 #endif
+{
    rules = new bool[vm::All->PROGRAM->num_rules()];
    fill_n(rules, vm::All->PROGRAM->num_rules(), false);
    predicates = new bool[vm::All->PROGRAM->num_predicates()];
@@ -750,9 +748,12 @@ state::state(void):
    , print_instrs(false)
 #endif
    , persistent_only(false)
-{
 #ifdef CORE_STATISTICS
-   init_core_statistics();
+   , stat(vm::All)
+#endif
+{
+#ifdef USE_SIM
+   sim_instr_use = false;
 #endif
 }
 
@@ -760,29 +761,7 @@ state::~state(void)
 {
 #ifdef CORE_STATISTICS
 	if(sched != NULL) {
-		cout << "Rules:" << endl;
-   	cout << "\tapplied: " << stat_rules_ok << endl;
-   	cout << "\tfailed: " << stat_rules_failed << endl;
-      cout << "\tfailure rate: " << setprecision (2) << 100 * (float)stat_rules_failed / ((float)(stat_rules_ok + stat_rules_failed)) << "%" << endl;
-		cout << "DB hits: " << stat_db_hits << endl;
-		cout << "Tuples used: " << stat_tuples_used << endl;
-		cout << "If tests: " << stat_if_tests << endl;
-		cout << "\tfailed: " << stat_if_failed << endl;
-		cout << "Instructions executed: " << stat_instructions_executed << endl;
-		cout << "\tmoves: " << stat_moves_executed << endl;
-		cout << "\tops: " << stat_ops_executed << endl;
-      cout << "Proven predicates:" << endl;
-      for(size_t i(0); i < vm::All->PROGRAM->num_predicates(); ++i)
-	cout << "\t" << vm::All->PROGRAM->get_predicate(i)->get_name() << " " << stat_predicate_proven[i] << endl;
-      cout << "Applications predicate:" << endl;
-      for(size_t i(0); i < vm::All->PROGRAM->num_predicates(); ++i)
-	cout << "\t" << vm::All->PROGRAM->get_predicate(i)->get_name() << " " << stat_predicate_applications[i] << endl;
-      cout << "Successes predicate:" << endl;
-      for(size_t i(0); i < vm::All->PROGRAM->num_predicates(); ++i)
-	cout << "\t" << vm::All->PROGRAM->get_predicate(i)->get_name() << " " << stat_predicate_success[i] << endl;
-      delete []stat_predicate_proven;
-      delete []stat_predicate_applications;
-      delete []stat_predicate_success;
+      stat.print(cout, all);
 	}
 #endif
 	delete []rules;
