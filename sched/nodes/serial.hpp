@@ -14,25 +14,26 @@
 namespace sched
 {
 
-  class serial_node: public in_queue_node
-  {
-    /*Making it compatible with simulator*/
-  public:
-    DECLARE_DOUBLE_QUEUE_NODE(serial_node);
-    typedef queue::unsafe_bounded_pqueue<db::simple_tuple*>::type queue_type;
-    queue_type queue;
+class serial_node: public in_queue_node
+{
+public:
+	
+	DECLARE_DOUBLE_QUEUE_NODE(serial_node);
+	
+   typedef db::simple_tuple_list queue_type;
+   queue_type queue;
+
+	typedef queue_type::const_iterator queue_iterator;
+	
+	inline queue_iterator begin(void) const { return queue.begin(); }
+	inline queue_iterator end(void) const { return queue.end(); }
    
-    typedef queue_type::const_iterator queue_iterator;
-
-    inline queue_iterator begin(void) const { return queue.begin(); }
-    inline queue_iterator end(void) const { return queue.end(); }
-
-    inline void add_work(db::simple_tuple *stpl)
-    {
-      queue.push(stpl, stpl->get_strat_level());
-    }
-
-    inline bool has_work(void) const { return !queue.empty(); }
+   inline void add_work(db::simple_tuple *stpl)
+   {
+      queue.push_back(stpl);
+   }
+   
+   inline bool has_work(void) const { return !queue.empty(); }
 
     virtual void assert_end(void) const
     {
@@ -46,17 +47,14 @@ namespace sched
       assert(!has_work());
     }
 
-
-
     /*Changed constructor to conform to new member variables*/
     explicit serial_node(const db::node::node_id _id, const db::node::node_id _trans):
-      in_queue_node(_id, _trans),
-      INIT_DOUBLE_QUEUE_NODE(),
-      queue(vm::All->PROGRAM->MAX_STRAT_LEVEL)
-    {}
+       in_queue_node(_id, _trans),
+       INIT_DOUBLE_QUEUE_NODE()
+   {}
 
     virtual ~serial_node(void) { }
-  };
+};
 
 }
 

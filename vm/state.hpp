@@ -20,6 +20,8 @@
 #include "runtime/struct.hpp"
 #include "vm/stat.hpp"
 
+#define USE_TEMPORARY_STORE
+
 // forward declaration
 namespace sched {
 	class base;
@@ -92,11 +94,9 @@ namespace vm {
     db::simple_tuple_list local_tuples; // current available tuples not yet in the database
     db::simple_tuple_list generated_tuples; // tuples generated while running the rule
     db::simple_tuple_list generated_persistent_tuples; // persistent tuples while running the rule
-    db::simple_tuple_vector generated_other_level; // tuples for later computation (another stratification level or time delay)
     // leaves scheduled for deletion (for use with reused linear tuples + retraction)
     // we cannot delete them immediately because then the tuple would be deleted
     std::list< std::pair<vm::predicate*, db::tuple_trie_leaf*> > leaves_for_deletion;
-    vm::strat_level current_level;
     bool persistent_only; // we are running one persistent tuple (not a rule)
 
 #define define_get(WHAT, RET, BODY)                                     \
@@ -148,44 +148,42 @@ namespace vm {
 
     void copy_reg2const(const reg_num&, const const_id&);
    
-    inline void add_cons(runtime::cons *ls) { ls->inc_refs();
-      free_cons.push_back(ls); }
-    inline void add_string(runtime::rstring::ptr str) { str->inc_refs();
-      free_rstring.push_back(str); }
-    inline void add_struct(runtime::struct1 *s) { s->inc_refs();
-      free_struct1.push_back(s); }
-    inline void add_generated_tuple(db::simple_tuple *tpl) { tpl->set_generated_run(true); generated_tuples.push_back(tpl); }
+   inline void add_cons(runtime::cons *ls) { ls->inc_refs();
+                                             free_cons.push_back(ls); }
+	inline void add_string(runtime::rstring::ptr str) { str->inc_refs();
+                                                       free_rstring.push_back(str); }
+   inline void add_struct(runtime::struct1 *s) { s->inc_refs();
+                                                 free_struct1.push_back(s); }
+   inline void add_generated_tuple(db::simple_tuple *tpl) { generated_tuples.push_back(tpl); }
    
     bool add_fact_to_node(vm::tuple *, const vm::derivation_count count = 1, const vm::depth_t depth = 0);
 	
 	bool check_if_rule_predicate_activated(vm::rule *);
 	
-    void mark_predicate_to_run(const vm::predicate *);
-    void mark_active_rules(void);
-    void add_to_aggregate(db::simple_tuple *);
-    bool do_persistent_tuples(void);
-    void process_persistent_tuple(db::simple_tuple *, vm::tuple *);
-    void process_consumed_local_tuples(void);
-    void print_local_tuples(std::ostream& cout);
-    void print_generated_tuples(std::ostream& cout);
+   void print_local_tuples(std::ostream& cout);
+   void print_generated_tuples(std::ostream& cout);
 
-    void process_others(void);
-    vm::strat_level mark_rules_using_local_tuples(db::simple_tuple_list&);
+	void mark_predicate_to_run(const vm::predicate *);
+	void mark_active_rules(void);
+   void add_to_aggregate(db::simple_tuple *);
+   bool do_persistent_tuples(void);
+   void process_persistent_tuple(db::simple_tuple *, vm::tuple *);
+	void process_consumed_local_tuples(void);
+#ifdef USE_SIM
+   bool check_instruction_limit(void) const;
+#endif
+   vm::strat_level process_local_tuples(db::simple_tuple_list&);
+	void run_node(db::node *);
+   void setup(vm::tuple*, db::node*, const vm::derivation_count, const vm::depth_t);
+   void cleanup(void);
+   size_t linear_tuple_can_be_used(db::tuple_trie_leaf *) const;
+   void using_new_linear_tuple(db::tuple_trie_leaf *);
+   void no_longer_using_linear_tuple(db::tuple_trie_leaf *);
 
-    void run_node(db::node *);
-
-    void setup(vm::tuple*, db::node*, const vm::derivation_count, const vm::depth_t);
-
-    void cleanup(void);
-    bool linear_tuple_can_be_used(db::tuple_trie_leaf *) const;
-    void using_new_linear_tuple(db::tuple_trie_leaf *);
-    void no_longer_using_linear_tuple(db::tuple_trie_leaf *);
-    void unmark_generated_tuples(void);
-
-    explicit state(sched::base *);
-    explicit state(void);
-    ~state(void);
-  };
+   explicit state(sched::base *);
+	explicit state(void);
+   ~state(void);
+};
 
 }
 
