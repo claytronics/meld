@@ -4,7 +4,6 @@
 #include "vm/program.hpp"
 #include "vm/state.hpp"
 #include "vm/exec.hpp"
-#include "runtime/list.hpp"
 #include "mem/thread.hpp"
 #include "mem/stat.hpp"
 #include "stat/stat.hpp"
@@ -16,6 +15,7 @@
 #include "debug/debug_handler.hpp"
 #include "debug/debug_prompt.hpp"
 
+#include "runtime/objs.hpp"
 
 using namespace process;
 using namespace db;

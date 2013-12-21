@@ -17,7 +17,7 @@
 #include "vm/tuple.hpp"
 #include "vm/rule.hpp"
 #include "vm/function.hpp"
-#include "runtime/string.hpp"
+#include "runtime/objs.hpp"
 #include "queue/heap_implementation.hpp"
 #include "vm/import.hpp"
 

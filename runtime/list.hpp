@@ -1,24 +1,9 @@
-#ifndef LIST_HPP
-#define LIST_HPP
 
-#include "conf.hpp"
+// do NOT include this file directly, please include runtime/objs.hpp
 
-#include <iostream>
-#include <string>
-#include <stack>
-#include <list>
-
-#include "utils/types.hpp"
-#include "utils/atomic.hpp"
-#include "utils/serialization.hpp"
-#include "mem/base.hpp"
-#include "vm/types.hpp"
-#include "runtime/common.hpp"
-
-#include "vm/defs.hpp"
-
-namespace runtime
-{
+#ifndef RUNTIME_OBJS_HPP
+#error "Please include runtime/objs.hpp instead"
+#endif
 
 class cons: public mem::base
 {
@@ -389,6 +374,3 @@ from_int_vector_to_reverse_list(vector_int_list& vec)
    return from_vector_to_reverse_list(vec, build_from_int, vm::TYPE_LIST_INT);
 }
 
-}
-
-#endif
