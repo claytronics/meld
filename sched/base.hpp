@@ -144,10 +144,6 @@ namespace sched
    
    inline size_t num_iterations(void) const { return iteration; }
 
-   inline vm::process_id get_id(void) const { return id; }
-
-   inline size_t num_iterations(void) const { return iteration; }
-
    inline void join(void) { thread->join(); }
 
    void start(void);
