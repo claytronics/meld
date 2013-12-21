@@ -20,6 +20,8 @@
 //#define DEBUG_RULES
 //#define DEBUG_REMOVE
 
+#define COMPUTED_GOTOS
+
 #if defined(DEBUG_SENDS)
 static boost::mutex print_mtx;
 #endif
@@ -1000,6 +1002,13 @@ set_call_return(const reg_num reg, const tuple_field ret, external_function* f, 
          state.set_cons(reg, l);
          if(!cons::is_null(l))
             state.add_cons(l);
+         break;
+      }
+      case FIELD_STRUCT: {
+         struct1 *s(FIELD_STRUCT(ret));
+
+         state.set_struct(reg, s);
+         state.add_struct(s);
          break;
       }
       default:
@@ -2066,8 +2075,6 @@ execute_consfff(pcounter& pc, state& state)
    cons *new_list(new cons(tail->get_cons(field_tail), head->get_field(field_head), (list_type*)tail->get_field_type(field_tail)));
    dest->set_cons(field_dest, new_list);
 }
-
-#define COMPUTED_GOTOS
 
 #ifdef COMPUTED_GOTOS
 #define CASE(X)
