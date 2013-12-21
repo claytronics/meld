@@ -96,7 +96,7 @@ class database
     node::node_id translate_real_to_fake_id(const node::node_id real_id);
     node::node_id translate_fake_to_real_id(const node::node_id fake_id);
 
-    void print_db_debug(std::ostream&, unsigned int nodeNumber);
+    void print_db_debug(std::ostream&, const node::node_id);
     void print_entire_db_debug(std::ostream&cout);
 #endif
 

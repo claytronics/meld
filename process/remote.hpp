@@ -77,7 +77,7 @@ public:
       assert(get_nodes_per_proc() != 0);
       
       const db::node::node_id remote_node_id(id - get_nodes_base());
-      return std::min(remote_node_id / get_nodes_per_proc(), get_num_threads()-1);
+      return std::min((vm::process_id)(remote_node_id / get_nodes_per_proc()), (vm::process_id)(get_num_threads()-1));
    }
    
    inline db::node::node_id find_first_node(const vm::process_id id) const

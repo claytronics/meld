@@ -18,7 +18,8 @@ namespace vm
 {
 
 tuple::tuple(const predicate* _pred):
-   pred((predicate*)_pred), fields(allocator<tuple_field>().allocate(pred->num_fields()))
+   pred((predicate*)_pred), fields(allocator<tuple_field>().allocate(pred->num_fields())),
+   to_delete(false)
 {
    assert(pred != NULL);
    memset(fields, 0, sizeof(tuple_field) * pred->num_fields());
@@ -161,7 +162,7 @@ print_node(ostream& out, const tuple_field& val)
 {
   if(debugger::isInMpiDebuggingMode()||debugger::isInDebuggingMode()){
     /*debugger used to correct dumping -- Dave*/
-    out << "@" << vm::All->DATABASE-> translate_fake_to_real_id(FIELD_NODE(val));
+    out << "@" << vm::All->DATABASE->translate_fake_to_real_id(FIELD_NODE(val));
   }
   else{
     out<<"@"<<FIELD_NODE(val);

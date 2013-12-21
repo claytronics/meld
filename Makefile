@@ -83,7 +83,6 @@ SRCS = 	utils/utils.cpp \
 	stat/slice.cpp \
 	stat/slice_set.cpp \
 	interface.cpp \
-	runtime/common.cpp \
 	debug/debug_prompt.cpp \
 	./meld.cpp \
 	debug/debug_handler.cpp \
