@@ -9,29 +9,26 @@
 
 namespace sched
 {
-
-  class serial_local: public sched::base  
-  {
-  protected:
-    serial_node *current_node;
-    queue::intrusive_unsafe_double_queue<serial_node> queue_nodes;
-
-  private:
-    bool has_work(void) const {return !queue_nodes.empty();}
-
-    virtual void assert_end(void) const;
-    virtual void assert_end_iteration(void) const;
-    virtual void generate_aggs(void);
-
-  public:
-
-    virtual void new_agg(process::work&);
-    virtual void new_work(const db::node *, process::work&);
-
-    virtual void new_work_other(sched::base *, process::work&)
-    {
-      assert(false);
-    }
+   
+class serial_local: public sched::base
+{
+protected:
+	
+	serial_node *current_node;
+	queue::intrusive_unsafe_double_queue<serial_node> queue_nodes;
+	
+private:
+   
+   inline bool has_work(void) const { return !queue_nodes.empty(); }
+   
+   virtual void assert_end(void) const;
+   virtual void assert_end_iteration(void) const;
+   virtual void generate_aggs(void);
+   
+public:
+   
+   virtual void new_agg(process::work&);
+   virtual void new_work(db::node *, db::node *, vm::tuple*, const vm::ref_count, const vm::depth_t);
    
 #ifdef COMPILE_MPI
     virtual void new_work_remote(process::remote *, const db::node::node_id, message *)

@@ -83,18 +83,10 @@ namespace sched
 
    virtual void init_node(db::node *node)
    {
-      node->set_owner(this);
       vm::tuple *init_tuple(vm::tuple::create(vm::All->PROGRAM->get_init_predicate()));
-      db::simple_tuple *stpl(db::simple_tuple::create_new(init_tuple, 0));
-      new_work_self(node, stpl);
-      node->init();
-   }
-   
-   // a new work was created for the current executing node
-   inline void new_work_self(db::node *node, db::simple_tuple *stpl, const process::work_modifier mod = process::mods::NOTHING)
-   {
-      process::work work(node, stpl, process::mods::LOCAL_TUPLE | mod);
-      new_work(node, work);
+      node->set_owner(this);
+      node->add_linear_fact(init_tuple);
+      node->unprocessed_facts = true;
    }
 
    // a new aggregate is to be inserted into the work queue
@@ -105,23 +97,23 @@ namespace sched
    }
 
    // work to be sent to the same thread
-   virtual void new_work(const db::node *from, process::work&) = 0;
+   virtual void new_work(db::node *, db::node *, vm::tuple*, const vm::ref_count, const vm::depth_t) = 0;
    // delayed work to be sent to the target thread
-   virtual void new_work_delay(sched::base *, const db::node *, vm::tuple*, const vm::ref_count, const vm::depth_t, const vm::uint_val)
+   virtual void new_work_delay(db::node *, db::node *, vm::tuple*, const vm::ref_count, const vm::depth_t, const vm::uint_val)
    {
       assert(false);
    }
 
    // new aggregate
    virtual void new_agg(process::work&) = 0;
-   // work to be sent to a different thread
-   virtual void new_work_other(sched::base *, process::work&) = 0;
-
+#ifdef COMPILE_MPI
+   // work to be sent to a MPI process
+   virtual void new_work_remote(process::remote *, const db::node::node_id, sched::message *) = 0;
+#endif
+   
    // ACTIONS
    virtual void set_node_priority(db::node *, const double) { }
-   virtual void add_node_priority(db::node *, const double) { }
-   virtual void add_node_priority_other(db::node *, const double) { }
-   virtual void set_node_priority_other(db::node *, const double) { }
+	virtual void add_node_priority(db::node *, const double) { }
    virtual void schedule_next(db::node *) { }
 
 	// GATHER QUEUE FACTS FROM NODE

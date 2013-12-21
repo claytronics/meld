@@ -294,11 +294,6 @@ node::empty(void) const {
     return true;
 }
 
-void
-node::init(void)
-{
-}
-
 ostream&
 operator<<(ostream& cout, const node& node)
 {

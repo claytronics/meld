@@ -679,9 +679,8 @@ namespace api
   {
     if(ts>0){}
 
-    work new_work(no, stpl);
-    sched_state->new_work(no, new_work);
-
+    sched_state->new_work(no, no, stpl->get_tuple(), stpl->get_count(), stpl->get_depth());
+    delete stpl;
   }
 
   /*Add the neighbor to the block*/
@@ -800,8 +799,8 @@ namespace api
     //  cout << id<<":Received message from" << node << " to " << target->get_id() << " with Tuple" << *stpl << " with priority " << ts << endl;
 #endif
 
-    work new_work(target, stpl);
-    sched_state->new_work(target, new_work);
+    sched_state->new_work(target, target, stpl->get_tuple(), stpl->get_count(), stpl->get_depth());
+    delete stpl;
   }
 
   static void
