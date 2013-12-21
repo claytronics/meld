@@ -83,11 +83,11 @@ namespace sched
 
    virtual void init_node(db::node *node)
    {
+      node->set_owner(this);
       vm::tuple *init_tuple(vm::tuple::create(vm::All->PROGRAM->get_init_predicate()));
       db::simple_tuple *stpl(db::simple_tuple::create_new(init_tuple, 0));
       new_work_self(node, stpl);
       node->init();
-      node->set_owner(this);
    }
    
    // a new work was created for the current executing node

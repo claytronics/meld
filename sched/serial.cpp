@@ -24,9 +24,9 @@ void
 serial_local::new_work(const node *, work& new_work)
 {
    serial_node *to(dynamic_cast<serial_node*>(new_work.get_node()));
-
-   to->add_work(new_work.get_tuple());
-
+   
+   to->add_work_myself(new_work.get_tuple());
+   
    if(!to->in_queue()) {
       to->set_in_queue(true);
       queue_nodes.push(to);
@@ -64,9 +64,9 @@ serial_local::get_work(void)
     } else {
       if(!has_work())
          return NULL;
-      if(!queue_nodes.pop(current_node))
-         return NULL;
-      assert(current_node->has_work());
+		if(!queue_nodes.pop(current_node))
+			return NULL;
+      assert(current_node->unprocessed_facts);
    }
    
    assert(current_node != NULL);
@@ -105,7 +105,7 @@ serial_local::init(const size_t)
          init_node(cur_node);
 
          assert(cur_node->in_queue());
-         assert(cur_node->has_work());
+         assert(cur_node->unprocessed_facts);
       }
    }
 }
