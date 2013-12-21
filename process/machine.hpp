@@ -19,6 +19,7 @@
 #include "stat/slice_set.hpp"
 #include "vm/state.hpp"
 #include "sched/base.hpp"
+#include "api/api.hpp"
 
 extern vm::all* vm::All;
 
@@ -53,8 +54,27 @@ public:
    
    void run_action(sched::base *, db::node *, vm::tuple *);
    
-   void route(db::node *, sched::base *, const db::node::node_id, vm::tuple*, const vm::ref_count,
-         const vm::depth_t, const vm::uint_val delay = 0);
+   inline void route(db::node *from, sched::base *sched_caller, const db::node::node_id id, vm::tuple* tpl,
+         const vm::ref_count count, const vm::depth_t depth, const vm::uint_val delay = 0)
+   {
+      assert(sched_caller != NULL);
+      if (api::onLocalVM(id)){
+         /* Belongs to the same process, does not require MPI */
+         db::node *node(vm::All->DATABASE->find_node(id));
+         const vm::predicate *pred(tpl->get_predicate());
+
+         if(delay > 0)
+            sched_caller->new_work_delay(from, node, tpl, count, depth, delay);
+         else if(pred->is_action_pred())
+            run_action(sched_caller, node, tpl);
+         else
+            sched_caller->new_work(from, node, tpl, count, depth);
+      } else {
+         /* Send to the correct process */
+         db::simple_tuple *stpl(new db::simple_tuple(tpl, count, depth));
+         api::sendMessage(from,id,stpl);
+      }
+   }
    
 	void init_thread(sched::base *);
    void start(void);

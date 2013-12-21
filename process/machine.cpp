@@ -11,7 +11,6 @@
 #include "interface.hpp"
 #include "sched/serial.hpp"
 
-#include "api/api.hpp"
 #include "debug/debug_handler.hpp"
 #include "debug/debug_prompt.hpp"
 
@@ -84,34 +83,11 @@ machine::run_action(sched::base *sched, node* node, vm::tuple *tpl)
          sched->schedule_next(node);
       break;
       default:
-                                      assert(false);
-                                      break;
+         assert(false);
+      break;
    }
 
    vm::tuple::destroy(tpl);
-}
-
-void
-machine::route(node* from, sched::base *sched_caller, const node::node_id id, vm::tuple* tpl,
-      const ref_count count, const depth_t depth, const uint_val delay)
-{  
-   assert(sched_caller != NULL);
-   if (api::onLocalVM(id)){
-      /* Belongs to the same process, does not require MPI */
-      node *node(vm::All->DATABASE->find_node(id));
-		const predicate *pred(tpl->get_predicate());
-
-      if(delay > 0)
-         sched_caller->new_work_delay(from, node, tpl, count, depth, delay);
-      else if(pred->is_action_pred())
-			run_action(sched_caller, node, tpl);
-      else
-         sched_caller->new_work(from, node, tpl, count, depth);
-   } else {
-      /* Send to the correct process */
-      simple_tuple *stpl(new simple_tuple(tpl, count, depth));
-      api::sendMessage(from,id,stpl);
-   }
 }
 
 void
