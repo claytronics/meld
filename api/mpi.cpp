@@ -228,7 +228,8 @@ const char* apiTarget = "mpi";
                     (utils::byte *) msg, msg_length - sizeof(message_type),
                     &pos, vm::All->PROGRAM);
 
-                vm::All->MACHINE->route(NULL, sched, id, stpl, 0);
+                vm::All->MACHINE->route(NULL, sched, id, stpl->get_tuple(), stpl->get_count(), stpl->get_depth(), 0);
+                delete stpl;
 
                 // Safra's Algorithm for RECEIVE MESSAGE
                 counter--;

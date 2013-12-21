@@ -167,11 +167,14 @@ execute_send(const pcounter& pc, state& state)
       cout << ss.str();
       print_mtx.unlock();
 #endif
-
       debugMsg << "\t-" << *tuple << " -> Node: "
 	       << state.get_node(dest) << endl;
-      simple_tuple *stuple(new simple_tuple(tuple, state.count, state.depth));
-      vm::All->MACHINE->route(state.node, state.sched, (node::node_id)dest_val, stuple);
+#ifdef USE_UI
+      if(state::UI) {
+         LOG_TUPLE_SEND(state.node, state.all->DATABASE->find_node((node::node_id)dest_val), tuple);
+      }
+#endif
+   vm::All->MACHINE->route(state.node, state.sched, (node::node_id)dest_val, tuple, state.count, state.depth);
    }
 
    debugMsg << "\t-Fact has been derived" << endl;
@@ -201,14 +204,12 @@ execute_send_delay(const pcounter& pc, state& state)
 #ifdef DEBUG_SENDS
       cout << "\t" << *tuple << " -> " << dest_val << endl;
 #endif
-      simple_tuple *stuple(new simple_tuple(tuple, state.count, state.depth));
-
 #ifdef USE_UI
       if(state::UI) {
          LOG_TUPLE_SEND(state.node, state.all->DATABASE->find_node((node::node_id)dest_val), tuple);
       }
 #endif
-      vm::All->MACHINE->route(state.node, state.sched, (node::node_id)dest_val, stuple, send_delay_time(pc));
+      vm::All->MACHINE->route(state.node, state.sched, (node::node_id)dest_val, tuple, state.count, state.depth, send_delay_time(pc));
    }
 }
 

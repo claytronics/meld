@@ -111,8 +111,9 @@ machine::route_delay(sched::base *sched, node *node, vm::tuple *tpl, const ref_c
 }
 
 void
-machine::route(const node* from, sched::base *sched_caller, const node::node_id id, simple_tuple* stpl, const uint_val delay)
-{
+machine::route(const node* from, sched::base *sched_caller, const node::node_id id, vm::tuple* tpl,
+      const ref_count count, const depth_t depth, const uint_val delay)
+{  
    assert(sched_caller != NULL);
 
    if (api::onLocalVM(id)){
@@ -120,25 +121,28 @@ machine::route(const node* from, sched::base *sched_caller, const node::node_id 
       node *node(vm::All->DATABASE->find_node(id));
 
       sched::base *sched_other(sched_caller->find_scheduler(node));
-      const predicate *pred(stpl->get_predicate());
+		const predicate *pred(tpl->get_predicate());
 
       if(delay > 0) {
+         simple_tuple *stpl(new simple_tuple(tpl, count, depth));
 			work new_work(node, stpl);
          sched_caller->new_work_delay(sched_caller, from, stpl->get_tuple(), stpl->get_count(), stpl->get_depth(), delay);
       } else if(pred->is_action_pred()) {
-         run_action(sched_other, node, stpl->get_tuple(), sched_caller != sched_other);
-         delete stpl;
-      } else if(sched_other == sched_caller) {
-         work new_work(node, stpl);
-
+			run_action(sched_other, node, tpl, sched_caller != sched_other);
+		} else if(sched_other == sched_caller) {
+         simple_tuple *stpl(new simple_tuple(tpl, count, depth));
+			work new_work(node, stpl);
+      
          sched_caller->new_work(from, new_work);
       } else {
+         simple_tuple *stpl(new simple_tuple(tpl, count, depth));
          work new_work(node, stpl);
 
          sched_caller->new_work_other(sched_other, new_work);
       }
    } else {
       /* Send to the correct process */
+      simple_tuple *stpl(new simple_tuple(tpl, count, depth));
       api::sendMessage(from,id,stpl);
    }
 }
