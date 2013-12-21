@@ -25,10 +25,10 @@
 namespace db
 {
 
-  class database
-  {
-  public:
-
+class database
+{
+   public:
+   
 #ifdef USERFRIENDLY
     // used to show ids in source code, not in VM
     typedef std::tr1::unordered_map<node::node_id, node::node_id,
@@ -38,14 +38,10 @@ namespace db
                                       std::pair<const node::node_id,
                                                 node::node_id> > > map_translate;
 #endif
-
-    // node id->node data structure
-    typedef std::map<node::node_id, node*,
-                     std::less<node::node_id>,
-                     mem::allocator< std::pair<const node::node_id,
-                                               node*> > > map_nodes;
-    // used to create a new node
-    typedef boost::function2<node*, node::node_id, node::node_id> create_node_fn;
+   typedef std::map<node::node_id, node*,
+           std::less<node::node_id>,
+           mem::allocator< std::pair<const node::node_id, node*> > > map_nodes;
+   typedef boost::function2<node*, node::node_id, node::node_id> create_node_fn;
 
   private:
     create_node_fn create_fn;	// used to create nodes.
@@ -69,9 +65,9 @@ namespace db
 #endif
 
   public:
-    // node id is 32 bits.  Should be a parameter in the byte code to
+    // node id is 64 bits.  Should be a parameter in the byte code to
     // determine what nodeid is for this program.
-    BOOST_STATIC_ASSERT(sizeof(node::node_id) == 4);
+    BOOST_STATIC_ASSERT(sizeof(node::node_id) == sizeof(vm::node_val));
 
     // node id in byte code is twice size of node_id since it includes translation of node id
     static const size_t node_size = sizeof(node::node_id) * 2;

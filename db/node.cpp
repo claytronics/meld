@@ -189,7 +189,8 @@ node::node(const node_id _id
 #ifdef USERFRIENDLY
   translation(_trans), 
 #endif
-owner(NULL)
+  owner(NULL),
+  db(vm::All->PROGRAM), store(vm::All->PROGRAM), unprocessed_facts(false)
 {
 }
 
@@ -205,43 +206,35 @@ void
 node::dump(ostream& cout) const
 {
    cout << get_id() << endl;
+   
+   for(size_t i(0); i < All->PROGRAM->num_predicates(); ++i) {
+      predicate *pred(All->PROGRAM->get_sorted_predicate(i));
+      const simple_tuple_list *ls(db.get_list(pred->get_id()));
+      simple_tuple_map::const_iterator it(tuples.find(pred->get_id()));
+      tuple_trie *tr = NULL;
+      if(it != tuples.end())
+         tr = it->second;
 
-   for(simple_tuple_map::const_iterator it(tuples.begin());
-      it != tuples.end();
-      ++it)
-   {
-      it->second->dump(cout);
+      vector<string> vec;
+      
+      if(tr && !tr->empty())
+         vec = tr->get_print_strings();
+
+      if(!ls->empty()) {
+         for(simple_tuple_list::const_iterator it(ls->begin()), end(ls->end()); it != end; ++it) {
+            vec.push_back(to_string(*(*it)));
+         }
+      }
+      sort(vec.begin(), vec.end());
+
+      for(size_t i(0); i < vec.size(); ++i)
+         cout << vec[i] << endl;
    }
-}
-
-typedef pair<string, tuple_trie*> str_trie;
-
-static inline bool
-trie_comparer(const str_trie& p1, const str_trie& p2)
-{
-	return p1.first < p2.first;
 }
 
 void
 node::print(ostream& cout) const
 {
-	typedef list<str_trie> list_str_trie;
-	list_str_trie ordered_tries;
-
-	// order tries by predicate name
-   for(simple_tuple_map::const_iterator it(tuples.begin());
-      it != tuples.end();
-      ++it)
-   {
-		tuple_trie *tr(it->second);
-		predicate_id id(it->first);
-      const predicate *pred(All->PROGRAM->get_predicate(id));
-
-		ordered_tries.push_back(str_trie(pred->get_name(), tr));
-	}
-
-	ordered_tries.sort(trie_comparer);
-
 	if( !debugger::isInDebuggingMode()&&!debugger::isInSimDebuggingMode()&&
         !debugger::isInMpiDebuggingMode()){
 	  cout << "--> node " << get_translated_id() << "/(id " << get_id()
@@ -249,16 +242,39 @@ node::print(ostream& cout) const
 	} else {
 	  cout << "CONTENTS AT NODE " << get_translated_id() << ":" << endl;
 	}
+   
+   for(size_t i(0); i < vm::All->PROGRAM->num_predicates(); ++i) {
+      predicate *pred(vm::All->PROGRAM->get_sorted_predicate(i));
+      const simple_tuple_list *ls(db.get_list(pred->get_id()));
+      simple_tuple_map::const_iterator it(tuples.find(pred->get_id()));
+      tuple_trie *tr = NULL;
+      bool empty = true;
+      if(it != tuples.end()) {
+         tr = it->second;
+         empty = tr->empty();
+      }
+      if(empty)
+         empty = ls->empty();
 
-	for(list_str_trie::const_iterator it(ordered_tries.begin());
-			it != ordered_tries.end();
-			++it)
-	{
-		tuple_trie *tr(it->second);
+      if(empty)
+         continue;
 
-		if(!tr->empty())
-			tr->print(cout);
-	}
+      cout << " ";
+      pred->print_simple(cout);
+      cout << endl;
+      vector<string> vec;
+      
+      if(tr && !tr->empty())
+         vec = tr->get_print_strings();
+
+      if(!ls->empty()) {
+         for(simple_tuple_list::const_iterator it(ls->begin()), end(ls->end()); it != end; ++it) {
+            vec.push_back(to_string(*(*it)));
+         }
+      }
+      sort(vec.begin(), vec.end());
+      write_strings(vec, cout, 1);
+   }
 }
 
 bool
@@ -268,6 +284,11 @@ node::empty(void) const {
         ++it) {
         if(!(it->second)->empty())
             return false;
+    }
+    for(size_t i(0); i < db.num_lists; ++i) {
+       const simple_tuple_list *l(db.get_list(i));
+       if(!l->empty())
+          return false;
     }
 
     return true;

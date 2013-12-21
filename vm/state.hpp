@@ -22,6 +22,7 @@
 #include "vm/stat.hpp"
 #include "vm/call_stack.hpp"
 #include "vm/temporary.hpp"
+#include "db/lists.hpp"
 
 #define USE_TEMPORARY_STORE
 
@@ -84,13 +85,11 @@ public:
    typedef std::tr1::unordered_set<db::simple_tuple*, std::tr1::hash<db::simple_tuple*>, std::equal_to<db::simple_tuple*>, mem::allocator<db::simple_tuple*> > removed_hash;
    removed_hash removed;
    bool use_local_tuples;
-   temporary_store store;
-   db::simple_tuple_list local_tuples; // current available tuples not yet in the database
-   db::simple_tuple_list generated_tuples; // tuples generated while running the rule
-   db::simple_tuple_list generated_persistent_tuples; // persistent tuples while running the rule
-   // leaves scheduled for deletion (for use with reused linear tuples + retraction)
-   // we cannot delete them immediately because then the tuple would be deleted
-   std::list< std::pair<vm::predicate*, db::tuple_trie_leaf*> > leaves_for_deletion;
+   temporary_store *store;
+   db::lists *lists;
+	// leaves scheduled for deletion (for use with reused linear tuples + retraction)
+	// we cannot delete them immediately because then the tuple would be deleted
+	std::list< std::pair<vm::predicate*, db::tuple_trie_leaf*> > leaves_for_deletion;
    bool persistent_only; // we are running one persistent tuple (not a rule)
 #ifdef CORE_STATISTICS
    core_statistics stat;

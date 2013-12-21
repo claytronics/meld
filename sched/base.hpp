@@ -125,7 +125,6 @@ namespace sched
 
 	// GATHER QUEUE FACTS FROM NODE
    virtual void gather_next_tuples(db::node *, db::simple_tuple_list&) { }
-   virtual void fill_temporary_store(db::node *, vm::temporary_store&) { }
 
       virtual void init(const size_t) = 0;
       virtual void end(void) = 0;

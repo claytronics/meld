@@ -13,17 +13,16 @@ using namespace api;
 namespace sched
 {
 
-  void
-  serial_local::new_agg(work& w)
-  {
-    new_work(w.get_node(), w);
-  }
+void
+serial_local::new_agg(work& w)
+{
+ new_work(w.get_node(), w);
+}
   
 /*sending work to another node "to"*/
 void
 serial_local::new_work(const node *, work& new_work)
 {
-
    serial_node *to(dynamic_cast<serial_node*>(new_work.get_node()));
 
    to->add_work(new_work.get_tuple());
@@ -34,101 +33,88 @@ serial_local::new_work(const node *, work& new_work)
    }
 }
 
-  void
-  serial_local::assert_end(void) const
-  {
-    assert(!has_work());
-    assert_static_nodes_end(id, vm::All);
-  }
+void
+serial_local::assert_end(void) const
+{
+   assert(!has_work());
+   assert_static_nodes_end(id, vm::All);
+}
 
-  void
-  serial_local::assert_end_iteration(void) const
-  {
-    assert(!has_work());
-    assert_static_nodes_end_iteration(id, vm::All);
-  }
-
+void
+serial_local::assert_end_iteration(void) const
+{
+   assert(!has_work());
+   assert_static_nodes_end_iteration(id, vm::All);
+}
 
 // Look through the scheduler's queue finding any node that has new facts to
 // process
 node*
-  serial_local::get_work(void)
-  {
-    if(current_node != NULL) {
-      if(!current_node->has_work()) {
-current_node->set_in_queue(false);
-current_node = NULL;
-if(!has_work())
-return NULL;
-if(!queue_nodes.pop(current_node))
-return NULL;
+serial_local::get_work(void)
+{
+   if(current_node != NULL) {
+      if(!current_node->unprocessed_facts) {
+         current_node->set_in_queue(false);
+         current_node = NULL;
+         if(!has_work())
+            return NULL;
+			if(!queue_nodes.pop(current_node))
+				return NULL;
       }
     } else {
       if(!has_work())
-return NULL;
+         return NULL;
       if(!queue_nodes.pop(current_node))
-return NULL;
+         return NULL;
       assert(current_node->has_work());
-    }
+   }
+   
+   assert(current_node != NULL);
+   assert(current_node->unprocessed_facts);
+   assert(current_node->in_queue());
+   
+   return current_node;
+}
 
-    assert(current_node != NULL);
-    assert(current_node->has_work());
-    assert(current_node->in_queue());
+bool
+serial_local::terminate_iteration(void)
+{
+ generate_aggs();
 
-    return current_node;
-  }
+ return has_work();
+}
 
-  bool
-  serial_local::terminate_iteration(void)
-  {
-    generate_aggs();
+void
+serial_local::generate_aggs(void)
+{
+ iterate_static_nodes();
+}
 
-    return has_work();
-  }
+void
+serial_local::init(const size_t)
+{
+   database::map_nodes::const_iterator it(vm::All->DATABASE->nodes_begin());
+   database::map_nodes::const_iterator end(vm::All->DATABASE->nodes_end());
 
-  void
-  serial_local::generate_aggs(void)
-  {
-    iterate_static_nodes();
-  }
+   for(; it != end; ++it)
+   {
+      serial_node *cur_node(dynamic_cast<serial_node*>(it->second));
+      /* MPI init_node only if the node belongs to the current process
+       * */
+      if (api::onLocalVM(cur_node->get_id())) {
+         init_node(cur_node);
 
-  void
-  serial_local::init(const size_t)
-  {
-    database::map_nodes::const_iterator it(vm::All->DATABASE->nodes_begin());
-    database::map_nodes::const_iterator end(vm::All->DATABASE->nodes_end());
-
-    for(; it != end; ++it)
-      {
-	serial_node *cur_node(dynamic_cast<serial_node*>(it->second));
-	/* MPI init_node only if the node belongs to the current process
-	 * */
-	if (api::onLocalVM(cur_node->get_id())) {
-          init_node(cur_node);
-
-          assert(cur_node->in_queue());
-          assert(cur_node->has_work());
-	}
+         assert(cur_node->in_queue());
+         assert(cur_node->has_work());
       }
-  }
+   }
+}
 
 void
 serial_local::gather_next_tuples(db::node *node, simple_tuple_list& ls)
 {
    (void)node;
    (void)ls;
-}
-
-void
-serial_local::fill_temporary_store(db::node *node, temporary_store& ts)
-{
-   serial_node *no((serial_node*)node);
-
-   swap(ts.lists, no->store.lists);
-   swap(ts.size, no->store.size);
-   swap(ts.persistent_tuples, no->store.persistent_tuples);
-   swap(ts.action_tuples, no->store.action_tuples);
-   assert(no->store.size == 0);
 }
 
 }

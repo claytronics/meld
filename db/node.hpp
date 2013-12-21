@@ -22,6 +22,8 @@
 #include "utils/atomic.hpp"
 #include "vm/rule_matcher.hpp"
 #include "vm/all.hpp"
+#include "db/lists.hpp"
+#include "vm/temporary.hpp"
 
 
 namespace sched { class base; class mpi_handler; }
@@ -108,8 +110,12 @@ public:
 	json_spirit::Value dump_json(void) const;
 #endif
 
-    vm::rule_matcher matcher;	// used to take the program as an argument, but they all use the same program so we don't need to do that anymore
+   bool empty(void) const;
 
+   db::lists db;
+   vm::temporary_store store;
+   bool unprocessed_facts;
+   
     // first arg is id, second is user friendly translated id
     explicit node(const node_id
 #ifdef USERFRIENDLY
@@ -117,12 +123,11 @@ public:
 #endif
                   );
 
-    bool empty(void) const;
 
     virtual ~node(void);
-  };
+};
 
-  std::ostream& operator<<(std::ostream&, const node&);
+std::ostream& operator<<(std::ostream&, const node&);
 
 }
 

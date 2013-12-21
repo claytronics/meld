@@ -21,7 +21,7 @@ class remote
 {
 public:
    
-   typedef int remote_id;
+   typedef uint64_t remote_id;
    
    static const remote_id LEADER_RANK = 0;
    static remote *self;
