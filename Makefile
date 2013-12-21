@@ -20,7 +20,7 @@ else
 	OPTIMIZATIONS = -O0
 endif
 
-WARNINGS = -Wall -Wextra #-Werror
+WARNINGS = -Wall -Wextra -Werror
 C0X = -std=c++0x
 
 
