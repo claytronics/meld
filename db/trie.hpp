@@ -68,9 +68,9 @@ public:
    
    size_t count_refs(void) const;
    
-   trie_node *match(const vm::tuple_field&, vm::type*, vm::val_stack&, vm::type_stack&, size_t&) const;
+   trie_node *match(const vm::tuple_field&, vm::type*, vm::match_stack&, size_t&) const;
    
-   trie_node *insert(const vm::tuple_field&, vm::type*, vm::val_stack&, vm::type_stack&);
+   trie_node *insert(const vm::tuple_field&, vm::type*, vm::match_stack&);
    
    explicit trie_node(const vm::tuple_field& _data):
       parent(NULL),
@@ -466,7 +466,7 @@ protected:
    virtual trie_leaf* create_leaf(void *data, const vm::ref_count many, const vm::depth_t depth) = 0;
    void inner_delete_by_leaf(trie_leaf *, const vm::derivation_count, const vm::depth_t);
    
-   trie_node *check_insert(void *, const vm::derivation_count, const vm::depth_t, vm::val_stack&, vm::type_stack&, bool&);
+   trie_node *check_insert(void *, const vm::derivation_count, const vm::depth_t, vm::match_stack&, bool&);
    
 public:
    
@@ -533,8 +533,7 @@ public:
 };
 
 struct trie_continuation_frame {
-   vm::match_val_stack vals_stack;
-   vm::match_type_stack typs_stack;
+   vm::match_stack mstack;
    trie_node *next_node;
 };
 
@@ -543,7 +542,7 @@ typedef utils::stack<trie_continuation_frame> trie_continuation_stack;
 class tuple_trie: public trie, public mem::base
 {
 private:
-   
+
    const vm::predicate *pred;
    
    virtual trie_leaf* create_leaf(void *data, const vm::ref_count many, const vm::depth_t depth)
@@ -606,12 +605,6 @@ public:
          {
 				increment();
 				return *this;
-         }
-         
-         inline tuple_search_iterator operator++(int)
-         {
-				increment();
-            return *this;
          }
 
 		   inline tuple_trie_leaf* operator*(void) const
