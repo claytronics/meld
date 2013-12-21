@@ -40,22 +40,23 @@ namespace sched
     }
 #endif
    
-    virtual void gather_next_tuples(db::node *, db::simple_tuple_list&);
-
-    virtual db::node* get_work(void);
-
-    virtual void init(const size_t);
-    virtual void end(void) {}
-    virtual bool terminate_iteration(void);
-
-    static db::node* create_node(const db::node::node_id id, const db::node::node_id trans)
-    {
+   virtual void gather_next_tuples(db::node *, db::simple_tuple_list&);
+   virtual void fill_temporary_store(db::node *, vm::temporary_store&);
+   
+   virtual db::node* get_work(void);
+   
+   virtual void init(const size_t);
+   virtual void end(void) {}
+   virtual bool terminate_iteration(void);
+   
+   static db::node* create_node(const db::node::node_id id, const db::node::node_id trans)
+   {
       return dynamic_cast<db::node*>(new sched::serial_node(id, trans));
-    }
-
-    serial_local *find_scheduler(const db::node *) { return this; }
-
-    explicit serial_local(void):
+   }
+   
+   serial_local *find_scheduler(const db::node *) { return this; }
+   
+   explicit serial_local(void):
       sched::base(0),
       current_node(NULL)
     {
