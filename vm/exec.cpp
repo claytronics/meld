@@ -50,7 +50,7 @@ enum return_type {
    RETURN_NO_RETURN
 };
 
-static inline return_type execute(pcounter, state&);
+static inline return_type execute(pcounter, state&, const reg_num, tuple*);
 
 static inline node_val
 get_node_val(pcounter& m)
@@ -70,6 +70,12 @@ get_node_val(const pcounter& m)
    return pcounter_node(m);
 }
 
+static inline tuple*
+get_tuple_field(state& state, const pcounter& pc)
+{
+   return state.get_tuple(val_field_reg(pc));
+}
+
 static inline void
 move_to_reg(const pcounter& m, state& state,
    const reg_num& reg, const instr_val& from)
@@ -80,8 +86,7 @@ move_to_reg(const pcounter& m, state& state,
       state.set_int(reg, pcounter_int(m));
    else if(val_is_field(from)) {
       const field_num field(val_field_num(m));
-      const reg_num from_reg(val_field_reg(m));
-      const tuple *tuple(state.get_tuple(from_reg));
+      const tuple *tuple(get_tuple_field(state, m));
 
       switch(tuple->get_field_type(field)->get_type()) {
          case FIELD_INT: state.set_int(reg, tuple->get_int(field)); break;
@@ -98,14 +103,7 @@ move_to_reg(const pcounter& m, state& state,
       state.set_node(reg, get_node_val(m));
    else if(val_is_reg(from))
       state.copy_reg(val_reg(from), reg);
-   else if(val_is_tuple(from)) {
-		if(state.tuple_leaf != NULL)
-      	state.set_leaf(reg, state.tuple_leaf);
-		else if(state.tuple_queue != NULL)
-			state.set_tuple_queue(reg, state.tuple_queue);
-      assert(!(state.tuple_leaf != NULL && state.tuple_queue != NULL));
-		state.set_tuple(reg, state.tuple);
-   } else if(val_is_stack(from)) {
+   else if(val_is_stack(from)) {
       const offset_num off(pcounter_offset_num(m));
       state.set_reg(reg, *state.get_stack_at(off));
    } else if(val_is_ptr(from)) {
@@ -124,53 +122,51 @@ move_to_field(pcounter m, state& state, const instr_val& from)
 
       pcounter_move_bool(&m);
 
-      tuple *tuple(state.get_tuple(val_field_reg(m)));
+      tuple *tuple(get_tuple_field(state, m));
 
       tuple->set_bool(val_field_num(m), b);
    } else if(val_is_float(from)) {
       const float_val flt(pcounter_float(m));
 
       pcounter_move_float(&m);
-
-      tuple* tuple(state.get_tuple(val_field_reg(m)));
-
+      tuple *tuple(get_tuple_field(state, m));
+      
       tuple->set_float(val_field_num(m), flt);
    } else if(val_is_int(from)) {
       const int_val i(pcounter_int(m));
 
       pcounter_move_int(&m);
-
-      tuple *tuple(state.get_tuple(val_field_reg(m)));
-
+      tuple *tuple(get_tuple_field(state, m));
+      
       tuple->set_int(val_field_num(m), i);
    } else if(val_is_node(from)) {
       const node_val val(get_node_val(m));
-
-      tuple *tuple(state.get_tuple(val_field_reg(m)));
-
+      
+      tuple *tuple(get_tuple_field(state, m));
+      
       tuple->set_node(val_field_num(m), val);
 	} else if(val_is_string(from)) {
 		const uint_val id(pcounter_uint(m));
 
 		pcounter_move_uint(&m);
-
-		tuple *tuple(state.get_tuple(val_field_reg(m)));
-
+		
+      tuple *tuple(get_tuple_field(state, m));
+		
 		tuple->set_string(val_field_num(m), vm::All->PROGRAM->get_default_string(id));
 	} else if(val_is_arg(from)) {
 		const argument_id id(pcounter_argument_id(m));
 
 		pcounter_move_argument_id(&m);
-
-		tuple *tuple(state.get_tuple(val_field_reg(m)));
-
+		
+      tuple *tuple(get_tuple_field(state, m));
+		
 		tuple->set_string(val_field_num(m), vm::All->get_argument(id));
    } else if(val_is_stack(from)) {
       const offset_num off(pcounter_offset_num(m));
 
       pcounter_move_offset_num(&m);
 
-		tuple *tuple(state.get_tuple(val_field_reg(m)));
+      tuple *tuple(get_tuple_field(state, m));
 
 		const field_num to_field(val_field_num(m));
 
@@ -179,9 +175,9 @@ move_to_field(pcounter m, state& state, const instr_val& from)
 		const const_id cid(pcounter_const_id(m));
 
 		pcounter_move_const_id(&m);
-
-		tuple *tuple(state.get_tuple(val_field_reg(m)));
-
+		
+      tuple *tuple(get_tuple_field(state, m));
+		
 		const field_num to_field(val_field_num(m));
 		const field_type typ(tuple->get_field_type(to_field)->get_type());
 		
@@ -205,31 +201,31 @@ move_to_field(pcounter m, state& state, const instr_val& from)
       const field_num from_field(val_field_num(m));
 
       pcounter_move_field(&m);
-
-      tuple *to_tuple(state.get_tuple(val_field_reg(m)));
+      
+      tuple *tuple(get_tuple_field(state, m));
       const field_num to_field(val_field_num(m));
       
-      switch(to_tuple->get_field_type(to_field)->get_type()) {
+      switch(tuple->get_field_type(to_field)->get_type()) {
          case FIELD_INT:
-            to_tuple->set_int(to_field, from_tuple->get_int(from_field));
+            tuple->set_int(to_field, from_tuple->get_int(from_field));
             break;
          case FIELD_FLOAT:
-            to_tuple->set_float(to_field, from_tuple->get_float(from_field));
+            tuple->set_float(to_field, from_tuple->get_float(from_field));
             break;
          case FIELD_LIST:
-            to_tuple->set_cons(to_field, from_tuple->get_cons(from_field));
+            tuple->set_cons(to_field, from_tuple->get_cons(from_field));
             break;
          case FIELD_NODE:
-            to_tuple->set_node(to_field, from_tuple->get_node(from_field));
+            tuple->set_node(to_field, from_tuple->get_node(from_field));
             break;
          case FIELD_STRING:
-            to_tuple->set_string(to_field, from_tuple->get_string(from_field));
+            tuple->set_string(to_field, from_tuple->get_string(from_field));
             break;
          default:
             throw vm_exec_error("don't know how to move to field (move_to_field)");
       }
    } else {
-      tuple* tuple(state.get_tuple(val_field_reg(m)));
+      tuple *tuple(get_tuple_field(state, m));
       const field_num field(val_field_num(m));
 
       if(val_is_host(from))
@@ -408,37 +404,31 @@ execute_send_self(tuple *tuple, state& state)
       return;
    }
 
-   if(state.use_local_tuples || state.persistent_only) {
-      const predicate *pred(tuple->get_predicate());
+   const predicate *pred(tuple->get_predicate());
 
 #ifdef USE_UI
-      if(state::UI) {
-         if(tuple->is_persistent()) {
-            LOG_PERSISTENT_DERIVATION(state.node, tuple);
-         } else if(tuple->is_linear() && !tuple->is_action()) {
-            LOG_LINEAR_DERIVATION(state.node, tuple);
-         }
-      }
-#endif
+   if(state::UI) {
       if(tuple->is_persistent()) {
+         LOG_PERSISTENT_DERIVATION(state.node, tuple);
+      } else if(tuple->is_linear() && !tuple->is_action()) {
+         LOG_LINEAR_DERIVATION(state.node, tuple);
+      }
+   }
+#endif
+   if(tuple->is_persistent()) {
+      simple_tuple *stuple(new simple_tuple(tuple, state.count, state.depth));
+      state.generated_persistent_tuples.push_back(stuple);
+   } else {
+      if(tuple->is_reused()) { // push into persistent list, since it is a reused tuple
          simple_tuple *stuple(new simple_tuple(tuple, state.count, state.depth));
          state.generated_persistent_tuples.push_back(stuple);
       } else {
-         if(tuple->is_reused()) { // push into persistent list, since it is a reused tuple
-            simple_tuple *stuple(new simple_tuple(tuple, state.count, state.depth));
-            state.generated_persistent_tuples.push_back(stuple);
-         } else {
-            simple_tuple *stuple(new simple_tuple(tuple, state.count, state.depth));
-            state.generated_tuples.push_back(stuple);
-         }
-
-         state.node->matcher.register_tuple(tuple, 1);
-         state.mark_predicate_to_run(pred);
+         simple_tuple *stuple(new simple_tuple(tuple, state.count, state.depth));
+         state.generated_tuples.push_back(stuple);
       }
-   } else {
-      simple_tuple *stuple(new simple_tuple(tuple, state.count, state.depth));
-      vm::All->MACHINE->route_self(state.sched, state.node, stuple);
-      state.add_generated_tuple(stuple);
+
+      state.node->matcher.register_tuple(tuple, 1);
+      state.mark_predicate_to_run(pred);
    }
 }
 
@@ -1203,7 +1193,7 @@ public:
 };
 
 static inline return_type
-execute_iter(match* m, pcounter pc, const utils::byte options, const utils::byte options_arguments,
+execute_iter(const reg_num reg, match* m, pcounter pc, const utils::byte options, const utils::byte options_arguments,
 		pcounter first, state& state, tuple_trie::tuple_search_iterator tuples_it, const predicate *pred)
 {
    const bool old_is_linear = state.is_linear;
@@ -1217,22 +1207,14 @@ execute_iter(match* m, pcounter pc, const utils::byte options, const utils::byte
 
 
 #define PUSH_CURRENT_STATE(TUPLE, TUPLE_LEAF, TUPLE_QUEUE, NEW_DEPTH)		\
-	tuple *old_tuple = state.tuple;										            \
-   tuple_trie_leaf *old_tuple_leaf = state.tuple_leaf;		            	\
-	simple_tuple *old_tuple_queue = state.tuple_queue;				            \
    const depth_t old_depth = state.depth;                                  \
 																					            \
-   state.tuple = TUPLE;													            	\
-   state.tuple_leaf = TUPLE_LEAF;										            \
-	state.tuple_queue = TUPLE_QUEUE;										            \
 	state.is_linear = this_is_linear || state.is_linear;                    \
-   state.depth = !pred->is_cycle_pred() ? state.depth : max((NEW_DEPTH)+1, state.depth)
-
-
+   state.depth = !pred->is_cycle_pred() ? state.depth : max((NEW_DEPTH)+1, state.depth); \
+   if((TUPLE_LEAF) != NULL) state.set_leaf(reg, (TUPLE_LEAF));  \
+   if((TUPLE_QUEUE) != NULL) state.set_tuple_queue(reg, (TUPLE_QUEUE))
+	
 #define POP_STATE()								\
-	state.tuple = old_tuple;					\
-   state.tuple_leaf = old_tuple_leaf;		\
-	state.tuple_queue = old_tuple_queue;	\
    state.is_linear = old_is_linear;       \
    state.depth = old_depth
 
@@ -1299,7 +1281,7 @@ execute_iter(match* m, pcounter pc, const utils::byte options, const utils::byte
 
 					PUSH_CURRENT_STATE(match_tuple, tuple_leaf, NULL, tuple_leaf->get_min_depth());
 
-			      ret = execute(first, state);
+			      ret = execute(first, state, reg, match_tuple);
 
 					POP_STATE();
 
@@ -1320,9 +1302,9 @@ execute_iter(match* m, pcounter pc, const utils::byte options, const utils::byte
 					if(iter_options_to_delete(options)) {
 						stpl->will_delete();
 					}
-
-					ret = execute(first, state);
-
+					
+					ret = execute(first, state, reg, match_tuple);
+					
 					POP_STATE();
 
 					if(!(ret == RETURN_LINEAR || ret == RETURN_DERIVED)) {
@@ -1369,7 +1351,7 @@ execute_iter(match* m, pcounter pc, const utils::byte options, const utils::byte
 
          return_type ret;
 
-         ret = execute(first, state);
+         ret = execute(first, state, reg, match_tuple);
 
          POP_STATE();
 
@@ -1424,8 +1406,8 @@ execute_iter(match* m, pcounter pc, const utils::byte options, const utils::byte
 			}
 
 			// execute...
-			return_type ret = execute(first, state);
-
+			return_type ret = execute(first, state, reg, match_tuple);
+		
 			POP_STATE();
 
          if(pred->is_linear_pred()) {
@@ -2035,17 +2017,32 @@ execute_struct_val(pcounter pc, state& state)
    move_typed_data(pc, t, s->get_data(idx), to, state);
 }
 
-static inline return_type
-execute(pcounter pc, state& state)
+static inline void
+execute_mvintfield(pcounter pc, state& state)
 {
+   tuple *tuple(get_tuple_field(state, pc + instr_size + int_size));
+   
+   tuple->set_int(val_field_num(pc + instr_size + int_size), pcounter_int(pc + instr_size));
+}
+
+static inline void
+execute_mvintreg(pcounter pc, state& state)
+{
+   state.set_int(val_reg(val_get(pc, instr_size + int_size)), pcounter_int(pc + instr_size));
+}
+
+static inline return_type
+execute(pcounter pc, state& state, const reg_num reg, tuple *tpl)
+{
+	if(tpl != NULL) {
+      state.set_tuple(reg, tpl);
 #ifdef CORE_STATISTICS
-	if(state.tuple != NULL) {
 		state.stat.stat_tuples_used++;
-      if(state.tuple->is_linear()) {
-         state.stat.stat_predicate_applications[state.tuple->get_predicate_id()]++;
+      if(tpl->is_linear()) {
+         state.stat.stat_predicate_applications[tpl->get_predicate_id()]++;
       }
-   }
 #endif
+   }
 
    for(; ; pc = advance(pc))
    {
@@ -2105,8 +2102,8 @@ eval_loop:
                const bool old_is_linear(state.is_linear);
 
                state.is_linear = false;
-
-               return_type ret(execute(pc + RESET_LINEAR_BASE, state));
+               
+               return_type ret(execute(pc + RESET_LINEAR_BASE, state, 0, NULL));
 
 					assert(ret == RETURN_END_LINEAR);
                (void)ret;
@@ -2122,6 +2119,8 @@ eval_loop:
          case ITER_INSTR: {
                const predicate_id pred_id(iter_predicate(pc));
                const predicate *pred(vm::All->PROGRAM->get_predicate(pred_id));
+               const reg_num reg(iter_reg(pc));
+
                match *mobj(NULL);
                vm::state::match_store_type::iterator match_found(state.match_store.find(pc));
                if(match_found == state.match_store.end()) {
@@ -2148,7 +2147,7 @@ eval_loop:
 #endif
                tuple_trie::tuple_search_iterator it = state.node->match_predicate(pred_id, mobj);
 
-               const return_type ret(execute_iter(mobj, pc + ITER_BASE,
+               const return_type ret(execute_iter(reg, mobj, pc + ITER_BASE,
 								iter_options(pc), iter_options_argument(pc),
 								pc + iter_inner_jump(pc), state, it, pred));
                   
@@ -2291,16 +2290,24 @@ eval_loop:
            execute_struct_val(pc, state);
            break;
 
+         case MVINTFIELD_INSTR:
+           execute_mvintfield(pc, state);
+           break;
+
+         case MVINTREG_INSTR:
+           execute_mvintreg(pc, state);
+           break;
+
          default: throw vm_exec_error("unsupported instruction");
       }
    }
 }
 
 static inline return_type
-do_execute(byte_code code, state& state)
+do_execute(byte_code code, state& state, const reg_num reg, tuple *tpl)
 {
    assert(state.stack.empty());
-   const return_type ret(execute((pcounter)code, state));
+   const return_type ret(execute((pcounter)code, state, reg, tpl));
 
    state.cleanup();
    assert(state.stack.empty());
@@ -2308,9 +2315,9 @@ do_execute(byte_code code, state& state)
 }
 
 execution_return
-execute_bytecode(byte_code code, state& state)
+execute_bytecode(byte_code code, state& state, tuple *tpl)
 {
-   const return_type ret(do_execute(code, state));
+   const return_type ret(do_execute(code, state, 0, tpl));
 	
 #ifdef CORE_STATISTICS
 #endif
@@ -2336,7 +2343,7 @@ execute_rule(const rule_id rule_id, state& state)
    execution_time::scope s(state.stat.rule_times[rule_id]);
 #endif
    
-   do_execute(rule->get_bytecode(), state);
+   do_execute(rule->get_bytecode(), state, 0, NULL);
 
 #ifdef CORE_STATISTICS
    if(state.stat.stat_rules_activated == 0)

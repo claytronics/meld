@@ -215,16 +215,16 @@ namespace process
     }
 
   }
-
-  void
-  machine::execute_const_code(void)
-  {
-    vm::state st;
-
-    // no node or tuple whatsoever
-    st.setup(NULL, NULL, 0, 0);
-    execute_bytecode(vm::All->PROGRAM->get_const_bytecode(), st);
-  }
+void
+machine::execute_const_code(void)
+{
+	state st(all);
+	
+	// no node or tuple whatsoever
+	st.setup(NULL, NULL, 0, 0);
+	
+	execute_bytecode(vm::all->PROGRAM->get_const_bytecode(), st, NULL);
+}
 
   // Start all schedulers in the VM
   void

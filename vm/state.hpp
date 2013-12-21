@@ -55,31 +55,25 @@ namespace vm {
     bool *predicates;
     queue::heap_queue<vm::rule_id> rule_queue;
 	
-    void purge_runtime_objects(void);
-    void start_matching(void);
-#ifdef CORE_STATISTICS
-    void init_core_statistics(void);
-#endif
-    db::simple_tuple* search_for_negative_tuple_partial_agg(db::simple_tuple *);
-    db::simple_tuple* search_for_negative_tuple_full_agg(db::simple_tuple *);
-    db::simple_tuple* search_for_negative_tuple_normal(db::simple_tuple *);
+   void purge_runtime_objects(void);
+   void start_matching(void);
+   db::simple_tuple* search_for_negative_tuple_partial_agg(db::simple_tuple *);
+   db::simple_tuple* search_for_negative_tuple_full_agg(db::simple_tuple *);
+   db::simple_tuple* search_for_negative_tuple_normal(db::simple_tuple *);
 
-  public:
+public:
 
-    typedef tuple_field reg;
-    reg regs[NUM_REGS];
-    std::vector<tuple_field> stack;
-    vm::tuple *tuple;
-    db::tuple_trie_leaf *tuple_leaf;
-    db::simple_tuple *tuple_queue;
-    db::node *node;
-    derivation_count count;
-    vm::depth_t depth;
-    sched::base *sched;
-    bool is_linear;
-    list_linear used_linear_tuples;
-    utils::randgen randgen;
-    size_t current_rule;
+   typedef tuple_field reg;
+   reg regs[NUM_REGS];
+   std::vector<tuple_field> stack;
+   db::node *node;
+   derivation_count count;
+   vm::depth_t depth;
+   sched::base *sched;
+   bool is_linear;
+   list_linear used_linear_tuples;
+	utils::randgen randgen;
+   size_t current_rule;
 #ifdef DEBUG_MODE
     bool print_instrs;
 #endif
