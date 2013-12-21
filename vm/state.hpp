@@ -6,6 +6,7 @@
 #include <iostream>
 #include <functional>
 #include <tr1/unordered_map>
+#include <tr1/unordered_set>
 
 #include "conf.hpp"
 #include "vm/tuple.hpp"
@@ -82,9 +83,9 @@ public:
    typedef std::tr1::unordered_map<vm::pcounter, vm::match*, std::tr1::hash<vm::pcounter>, std::equal_to<vm::pcounter>, mem::allocator< std::pair< const vm::pcounter, vm::match*> > > match_store_type;
    match_store_type match_store;
 
-#ifdef CORE_STATISTICS
-   core_statistics stat;
-#endif
+   bool hash_removes;
+   typedef std::tr1::unordered_set<db::simple_tuple*, std::tr1::hash<db::simple_tuple*>, std::equal_to<db::simple_tuple*>, mem::allocator<db::simple_tuple*> > removed_hash;
+   removed_hash removed;
    bool use_local_tuples;
    temporary_store store;
    db::simple_tuple_list local_tuples; // current available tuples not yet in the database
@@ -94,6 +95,9 @@ public:
    // we cannot delete them immediately because then the tuple would be deleted
    std::list< std::pair<vm::predicate*, db::tuple_trie_leaf*> > leaves_for_deletion;
    bool persistent_only; // we are running one persistent tuple (not a rule)
+#ifdef CORE_STATISTICS
+   core_statistics stat;
+#endif
 
 #define define_get(WHAT, RET, BODY)                                     \
    inline RET get_ ## WHAT (const reg_num& num) const { BODY; }

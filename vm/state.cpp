@@ -47,6 +47,7 @@ void
 state::cleanup(void)
 {
    purge_runtime_objects();
+   removed.clear();
 }
 
 void
@@ -368,35 +369,9 @@ state::process_local_tuples(void)
 }
 
 void
-state::process_consumed_local_tuples(void)
+state::print_local_tuples(ostream& cout)
 {
-#ifdef CORE_STATISTICS
-	execution_time::scope s(stat.clean_temporary_store_time);
-#endif
-
-   for(size_t i(0); i < store.num_lists; ++i) {
-      // process current set of tuples
-      db::simple_tuple_list *list(store.get_list(i));
-      for(db::simple_tuple_list::iterator it(list->begin()), end(list->end());
-         it != end; )
-      {
-         simple_tuple *stpl(*it);
-         if(!stpl->can_be_consumed()) {
-            vm::tuple *tpl(stpl->get_tuple());
-            node->matcher.deregister_tuple(tpl, stpl->get_count());
-            delete tpl;
-            delete stpl;
-            it = list->erase(it);
-         } else
-            it++;
-      }
-   }
-}
-
-
-void
-state::print_local_tuples(ostream& cout){
-
+#if 0 /// XXX
   if (generated_tuples.empty())
     cout << "(empty)" << endl;
 
@@ -407,12 +382,14 @@ state::print_local_tuples(ostream& cout){
       simple_tuple *stpl(*it);
       cout << *stpl << endl;
     }
+#endif
 }
 
 
 void
-state::print_generated_tuples(ostream& cout){
-
+state::print_generated_tuples(ostream& cout)
+{
+#if 0 /// XXX
   if (generated_tuples.empty())
     cout << "(empty)" << endl;
 
@@ -423,8 +400,8 @@ state::print_generated_tuples(ostream& cout){
       simple_tuple *stpl(*it);
       cout << *stpl << endl;
     }
+#endif
 }
-
 
 void
 state::add_to_aggregate(db::simple_tuple *stpl)
@@ -600,9 +577,6 @@ state::run_node(db::node *no)
       persistent_only = false;
 		execute_rule(rule, *this);
 
-#ifdef USE_TEMPORARY_STORE
-		process_consumed_local_tuples();
-#endif
       delete_leaves();
       //node->assert_tries();
 #ifdef USE_SIM
