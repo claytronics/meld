@@ -691,7 +691,7 @@ namespace api
     if(!neighbor_pred)
       return;
 
-    vm::tuple *tpl(new vm::tuple(neighbor_pred));
+    vm::tuple *tpl(vm::tuple::create(neighbor_pred));
     tpl->set_node(0, out);
     tpl->set_int(1, static_cast<int_val>(face));
 
@@ -707,7 +707,7 @@ namespace api
     if(!neighbor_count_pred)
       return;
 
-    vm::tuple *tpl(new vm::tuple(neighbor_count_pred));
+    vm::tuple *tpl(vm::tuple::create(neighbor_count_pred));
     tpl->set_int(0, (int_val)total);
     cout <<id<< ":Adding tuple:" << tpl << endl;
 
@@ -739,7 +739,7 @@ namespace api
     if(!vacant_pred)
       return;
 
-    vm::tuple *tpl(new vm::tuple(vacant_pred));
+    vm::tuple *tpl(vm::tuple::create(vacant_pred));
     tpl->set_int(0, static_cast<int_val>(face));
 
     db::simple_tuple *stpl(new db::simple_tuple(tpl, count));
@@ -895,7 +895,7 @@ namespace api
     serial_node *no(dynamic_cast<serial_node*>(vm::All->DATABASE->find_node(node)));
 
     if(tap_pred) {
-      vm::tuple *tpl(new vm::tuple(tap_pred));
+      vm::tuple *tpl(vm::tuple::create(tap_pred));
       db::simple_tuple *stpl(new db::simple_tuple(tpl, 1));
 
       addReceivedTuple(no, ts, stpl);
@@ -911,7 +911,7 @@ namespace api
     serial_node *no(dynamic_cast<serial_node*>(vm::All->DATABASE->find_node(node)));
 
     if(accel_pred) {
-      vm::tuple *tpl(new vm::tuple(accel_pred));
+      vm::tuple *tpl(vm::tuple::create(accel_pred));
       tpl->set_int(0, f);
 
       db::simple_tuple *stpl(new db::simple_tuple(tpl, 1));
@@ -930,7 +930,7 @@ namespace api
     serial_node *no(dynamic_cast<serial_node*>(vm::All->DATABASE->find_node(node)));
 
     if(shake_pred) {
-      vm::tuple *tpl(new vm::tuple(shake_pred));
+      vm::tuple *tpl(vm::tuple::create(shake_pred));
       tpl->set_int(0, x);
       tpl->set_int(1, y);
       tpl->set_int(2, z);

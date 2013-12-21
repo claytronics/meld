@@ -81,7 +81,7 @@ get_tuple_field(state& state, const pcounter& pc)
 static inline void
 execute_alloc(const pcounter& pc, state& state)
 {
-   tuple *tuple(new vm::tuple(vm::All->PROGRAM->get_predicate(alloc_predicate(pc))));
+   tuple *tuple(vm::tuple::create(vm::All->PROGRAM->get_predicate(alloc_predicate(pc))));
 
    state.set_tuple(alloc_reg(pc), tuple);
 }
@@ -104,7 +104,7 @@ execute_send_self(tuple *tuple, state& state)
          vm::All->MACHINE->run_action(state.sched,
                state.node, tuple);
       else
-         delete tuple;
+         vm::tuple::destroy(tuple);
       return;
    }
 
@@ -147,7 +147,7 @@ execute_send(const pcounter& pc, state& state)
    tuple *tuple(state.get_tuple(msg));
 
    if(state.count < 0 && tuple->is_linear() && !tuple->is_reused()) {
-      delete tuple;
+      vm::tuple::destroy(tuple);
       return;
    }
 
@@ -754,7 +754,7 @@ execute_iter(const reg_num reg, match* m, const utils::byte options, const utils
                                          if(TO_FINISH(ret)) {
                                             tuple_list::iterator it(p.iterator);
                                             state.store->deregister_tuple_fact(match_tuple, state.count);
-                                            delete match_tuple;
+                                            vm::tuple::destroy(match_tuple);
                                             local_tuples->erase(it);
                                          } else {
                                             match_tuple->will_not_delete();
@@ -881,7 +881,7 @@ next_every_tuple:
                match_tuple->will_not_delete(); // oops, revert
             } else if(to_delete && TO_FINISH(ret)) {
                state.store->deregister_tuple_fact(match_tuple, state.count);
-               delete match_tuple;
+               vm::tuple::destroy(match_tuple);
                it = local_tuples->erase(it);
                next_iter = false;
             }
@@ -1337,7 +1337,7 @@ execute_new_axioms(pcounter pc, state& state)
       // read axions until the end!
       predicate_id pid(predicate_get(pc, 0));
       predicate *pred(vm::All->PROGRAM->get_predicate(pid));
-      tuple *tpl(new tuple(pred));
+      tuple *tpl(vm::tuple::create(pred));
 
       pc++;
 

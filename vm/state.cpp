@@ -439,7 +439,7 @@ state::process_persistent_tuple(db::simple_tuple *stpl, vm::tuple *tpl)
       if(is_new) {
          store->mark(tpl->get_predicate());
       } else {
-        	delete tpl;
+         vm::tuple::destroy(tpl);
       }
       delete stpl;
    } else {
@@ -495,7 +495,7 @@ state::process_persistent_tuple(db::simple_tuple *stpl, vm::tuple *tpl)
                   (char*)tpl->pred_name().c_str(),
                   (int)node->get_translated_id());
             store->matcher.deregister_tuple(tpl, -stpl->get_count());
-            delete tpl;
+            vm::tuple::destroy(tpl);
          }
          delete stpl;
 

@@ -83,7 +83,7 @@ namespace sched
 
    virtual void init_node(db::node *node)
    {
-      vm::tuple *init_tuple(new vm::tuple(vm::All->PROGRAM->get_init_predicate()));
+      vm::tuple *init_tuple(vm::tuple::create(vm::All->PROGRAM->get_init_predicate()));
       db::simple_tuple *stpl(db::simple_tuple::create_new(init_tuple, 0));
       new_work_self(node, stpl);
       node->init();

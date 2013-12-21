@@ -396,7 +396,7 @@ public:
    {
       if(depths != NULL)
          delete depths;
-      delete tpl;
+      vm::tuple::destroy(tpl);
    }
 };
 

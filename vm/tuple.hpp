@@ -17,9 +17,9 @@
 namespace vm
 {
 
-  class tuple: public mem::base
-  {
-  private:
+class tuple//: public mem::base
+{
+private:
 
 	bool to_delete;
 	predicate* pred;
@@ -103,7 +103,20 @@ namespace vm
    inline void will_delete(void) { to_delete = true; }
    inline void will_not_delete(void) { to_delete = false; }
    inline bool can_be_consumed(void) const { return !to_delete; }
+
+   static tuple* create(const predicate* pred) {
+      vm::tuple *ptr((vm::tuple*)mem::center::allocate(sizeof(vm::tuple), 1));
+      new (ptr) vm::tuple(pred);
+      return ptr;
+   }
+
+   static void destroy(tuple *tpl) {
+      mem::center::deallocate(tpl, sizeof(vm::tuple), 1);
+      tpl->~tuple();
+   }
    
+private:
+
 	explicit tuple(const predicate* pred);
 	
    ~tuple(void);
