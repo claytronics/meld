@@ -79,7 +79,7 @@ namespace sched
 
    public:
 
-      inline bool leader_thread(void) const { return get_id() == 0; }
+   inline bool leader_thread(void) const { return get_id() == 0; }
 
    virtual void init_node(db::node *node)
    {
@@ -130,52 +130,54 @@ namespace sched
       processed_facts++;
 #endif
    }
+   
+   virtual void assert_end(void) const = 0;
+   virtual void assert_end_iteration(void) const = 0;
+   
+   inline bool end_iteration(void)
+   {
+      ++iteration;
+      return terminate_iteration();
+   }
+   
+   inline vm::process_id get_id(void) const { return id; }
+   
+   inline size_t num_iterations(void) const { return iteration; }
 
-      virtual void assert_end(void) const = 0;
-      virtual void assert_end_iteration(void) const = 0;
+   inline vm::process_id get_id(void) const { return id; }
 
-      inline bool end_iteration(void)
-      {
-         ++iteration;
-         return terminate_iteration();
-      }
+   inline size_t num_iterations(void) const { return iteration; }
 
-      virtual base* find_scheduler(const db::node*) { return NULL; }
+   inline void join(void) { thread->join(); }
 
-      inline vm::process_id get_id(void) const { return id; }
+   void start(void);
 
-      inline size_t num_iterations(void) const { return iteration; }
-
-      inline void join(void) { thread->join(); }
-
-      void start(void);
-
-      virtual void write_slice(statistics::slice& sl) const
-      {
+   virtual void write_slice(statistics::slice& sl) const
+   {
 #ifdef INSTRUMENTATION
-         sl.state = ins_state;
-         sl.processed_facts = processed_facts;
-         sl.sent_facts = sent_facts;
+      sl.state = ins_state;
+      sl.processed_facts = processed_facts;
+      sl.sent_facts = sent_facts;
 
       // reset stats
-         processed_facts = 0;
-         sent_facts = 0;
+      processed_facts = 0;
+      sent_facts = 0;
 #else
-         (void)sl;
+      (void)sl;
 #endif
-      }
+   }
 
-      static base* get_scheduler(void);
+   static base* get_scheduler(void);
 
-      explicit base(const vm::process_id);
+   explicit base(const vm::process_id);
 
-      virtual ~base(void);
+   virtual ~base(void);
 
 #ifdef SIMD
-   private:
-		virtual bool has_work(void) const = 0;
+private:
+   virtual bool has_work(void) const = 0;
 #endif
-   };
+};
 
 }
 
