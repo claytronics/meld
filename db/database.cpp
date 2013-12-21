@@ -112,6 +112,7 @@ database::create_node_id(const db::node::node_id id)
    reverse_translation[max_translated_id] = max_node_id;
 #endif
    nodes[max_node_id] = ret;
+   nodes_total++;
 
    return ret;
 }

@@ -30,11 +30,11 @@ public:
    MEM_METHODS(cons)
 
 private:
-
+   
+   utils::atomic<vm::ref_count> refs;
    list_ptr tail;
    const vm::tuple_field head;
    
-   utils::atomic<vm::ref_count> refs;
    vm::list_type *type;
    
 
@@ -261,7 +261,7 @@ public:
 	}
 
    explicit cons(list_ptr _tail, const vm::tuple_field _head, vm::list_type *_type):
-      head(_head), refs(0), type(_type)
+      refs(0), head(_head), type(_type)
    {
       assert(type != NULL);
       increment_runtime_data(head, type->get_subtype());

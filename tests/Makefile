@@ -13,4 +13,6 @@ test-mpi:
 compiled:
 	@mkdir -p code
 	@meld-compile-directory progs code
-	@rm -f code/*.ast code/*.code
+
+clean:
+	rm -f code/*.m

@@ -13,7 +13,6 @@
 
 #include "vm/defs.hpp"
 
-
 namespace runtime
 {
 
@@ -28,11 +27,11 @@ public:
 	
 private:
 	
-	const std::string content;
 	utils::atomic<vm::ref_count> refs;
+	const std::string content;
 	
 	explicit rstring(const std::string& _content, const size_t _refs):
-		content(_content), refs(_refs)
+      refs(_refs), content(_content)
 	{
 	}
 	

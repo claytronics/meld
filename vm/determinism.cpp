@@ -120,6 +120,7 @@ namespace vm {
 		
 		uint* initOpCycleTab() {
 			uint *t = new uint[NB_OP];
+#if 0 // XXX
 			t[OP_NEQF] = OP_NEQF_CYCLES;
 			t[OP_NEQI] = OP_NEQI_CYCLES;
 			t[OP_EQF] = OP_EQF_CYCLES;
@@ -146,6 +147,7 @@ namespace vm {
 			t[OP_EQA] = OP_EQA_CYCLES;
 			t[OP_GREATERA] = OP_GREATERA_CYCLES;
 			t[OP_ORB] = OP_ORB_CYCLES;
+#endif
 			return t;
 		}
 		
@@ -154,6 +156,7 @@ namespace vm {
 			for(uint i=0; i < NB_INSTR; i++) {
 				t[i] = 0;
 			}
+#if 0 // XXX
 			t[RETURN_INSTR] = RETURN_INSTR_CYCLES;
 			t[NEXT_INSTR] = NEXT_INSTR_CYCLES;
 			t[ELSE_INSTR] = ELSE_INSTR_CYCLES;
@@ -191,17 +194,20 @@ namespace vm {
 			t[OP_INSTR] = OP_INSTR_CYCLES;
 			t[RETURN_LINEAR_INSTR] = RETURN_LINEAR_INSTR_CYCLES;
 			t[RETURN_DERIVED_INSTR] = RETURN_DERIVED_INSTR_CYCLES;
+#endif
 			return t;
 		}
 		
 		void incrCurrentLocalTime(pcounter pc){
 			uint cycles = 0;
 			instr_type inst = fetch(pc);
+#if 0 /// XXX
 			if(inst == OP_INSTR) {
 				cycles = opCycleTab[op_op(pc)];
 			} else {
 				cycles = instrCycleTab[inst];
 			}
+#endif
 			currentLocalTime += cycles/CPU_FRENQUENCY;
 		}
 		
