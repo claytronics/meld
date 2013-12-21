@@ -91,53 +91,53 @@ namespace sched
    }
    
    // a new work was created for the current executing node
-      inline void new_work_self(db::node *node, db::simple_tuple *stpl, const process::work_modifier mod = process::mods::NOTHING)
-      {
-         process::work work(node, stpl, process::mods::LOCAL_TUPLE | mod);
-         new_work(node, work);
-      }
+   inline void new_work_self(db::node *node, db::simple_tuple *stpl, const process::work_modifier mod = process::mods::NOTHING)
+   {
+      process::work work(node, stpl, process::mods::LOCAL_TUPLE | mod);
+      new_work(node, work);
+   }
 
    // a new aggregate is to be inserted into the work queue
-      inline void new_work_agg(db::node *node, db::simple_tuple *stpl)
-      {
-         process::work work(node, stpl, process::mods::LOCAL_TUPLE | process::mods::FORCE_AGGREGATE);
-         new_agg(work);
-      }
+   inline void new_work_agg(db::node *node, db::simple_tuple *stpl)
+   {
+      process::work work(node, stpl, process::mods::LOCAL_TUPLE | process::mods::FORCE_AGGREGATE);
+      new_agg(work);
+   }
 
    // work to be sent to the same thread
-      virtual void new_work(const db::node *from, process::work&) = 0;
+   virtual void new_work(const db::node *from, process::work&) = 0;
    // delayed work to be sent to the target thread
-      virtual void new_work_delay(sched::base *, const db::node *, process::work&, const vm::uint_val)
-      {
-         assert(false);
-      }
+   virtual void new_work_delay(sched::base *, const db::node *, vm::tuple*, const vm::ref_count, const vm::depth_t, const vm::uint_val)
+   {
+      assert(false);
+   }
 
    // new aggregate
-      virtual void new_agg(process::work&) = 0;
+   virtual void new_agg(process::work&) = 0;
    // work to be sent to a different thread
-      virtual void new_work_other(sched::base *, process::work&) = 0;
+   virtual void new_work_other(sched::base *, process::work&) = 0;
 
    // ACTIONS
-      virtual void set_node_priority(db::node *, const double) { }
-      virtual void add_node_priority(db::node *, const double) { }
-      virtual void add_node_priority_other(db::node *, const double) { }
-      virtual void set_node_priority_other(db::node *, const double) { }
-      virtual void schedule_next(db::node *) { }
+   virtual void set_node_priority(db::node *, const double) { }
+   virtual void add_node_priority(db::node *, const double) { }
+   virtual void add_node_priority_other(db::node *, const double) { }
+   virtual void set_node_priority_other(db::node *, const double) { }
+   virtual void schedule_next(db::node *) { }
 
 	// GATHER QUEUE FACTS FROM NODE
    virtual void gather_next_tuples(db::node *, db::simple_tuple_list&) { }
 
-      virtual void init(const size_t) = 0;
-      virtual void end(void) = 0;
+   virtual void init(const size_t) = 0;
+   virtual void end(void) = 0;
 
-      virtual db::node *get_work(void) = 0;
+   virtual db::node *get_work(void) = 0;
 
-      virtual void finish_work(db::node *)
-      {
+   virtual void finish_work(db::node *)
+   {
 #ifdef INSTRUMENTATION
-         processed_facts++;
+      processed_facts++;
 #endif
-      }
+   }
 
       virtual void assert_end(void) const = 0;
       virtual void assert_end_iteration(void) const = 0;
