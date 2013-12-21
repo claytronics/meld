@@ -1241,16 +1241,100 @@ execute_remove(pcounter pc, state& state)
 }
 
 static inline void
-execute_call(pcounter pc, state& state)
+set_call_return(const reg_num reg, const tuple_field ret, external_function* f, state& state)
 {
-   pcounter m(pc + CALL_BASE);
+   type *ret_type(f->get_return_type());
+   switch(ret_type->get_type()) {
+      case FIELD_INT:
+         state.set_int(reg, FIELD_INT(ret));
+         break;
+      case FIELD_FLOAT:
+         state.set_float(reg, FIELD_FLOAT(ret));
+         break;
+      case FIELD_NODE:
+         state.set_node(reg, FIELD_NODE(ret));
+         break;
+		case FIELD_STRING: {
+			rstring::ptr s(FIELD_STRING(ret));
+			
+			state.set_string(reg, s);
+			state.add_string(s);
+			
+			break;
+		}
+      case FIELD_LIST: {
+         cons *l(FIELD_CONS(ret));
+
+         state.set_cons(reg, l);
+         if(!cons::is_null(l))
+            state.add_cons(l);
+         break;
+      }
+      default:
+         throw vm_exec_error("invalid return type in call (set_call_return)");
+   }
+}
+
+static inline void
+execute_call0(pcounter& pc, state& state)
+{
    const external_function_id id(call_extern_id(pc));
-   const size_t num_args(call_num_args(pc));
-   const reg_num reg(call_dest(pc));
    external_function *f(lookup_external_function(id));
-   const type* ret_type(f->get_return_type());
+
+   assert(f->get_num_args() == 0);
+
+   argument ret = f->get_fun_ptr()();
+   set_call_return(call_dest(pc), ret, f, state);
+}
+
+static inline void
+execute_call1(pcounter& pc, state& state)
+{
+   const external_function_id id(call_extern_id(pc));
+   external_function *f(lookup_external_function(id));
+
+   assert(f->get_num_args() == 1);
+
+   argument ret = ((external_function_ptr1)f->get_fun_ptr())(state.get_reg(pcounter_reg(pc + call_size)));
+   set_call_return(call_dest(pc), ret, f, state);
+}
+
+static inline void
+execute_call2(pcounter& pc, state& state)
+{
+   const external_function_id id(call_extern_id(pc));
+   external_function *f(lookup_external_function(id));
+
+   assert(f->get_num_args() == 2);
+
+   argument ret = ((external_function_ptr2)f->get_fun_ptr())(state.get_reg(pcounter_reg(pc + call_size)),
+         state.get_reg(pcounter_reg(pc + call_size + reg_val_size)));
+   set_call_return(call_dest(pc), ret, f, state);
+}
+
+static inline void
+execute_call3(pcounter& pc, state& state)
+{
+   const external_function_id id(call_extern_id(pc));
+   external_function *f(lookup_external_function(id));
+
+   assert(f->get_num_args() == 3);
+
+   argument ret = ((external_function_ptr3)f->get_fun_ptr())(state.get_reg(pcounter_reg(pc + call_size)),
+         state.get_reg(pcounter_reg(pc + call_size + reg_val_size)),
+         state.get_reg(pcounter_reg(pc + call_size + 2 * reg_val_size)));
+   set_call_return(call_dest(pc), ret, f, state);
+}
+
+static inline void
+execute_call(pcounter& pc, state& state)
+{
+   const external_function_id id(call_extern_id(pc));
+   external_function *f(lookup_external_function(id));
+   const size_t num_args(call_num_args(pc));
    argument args[num_args];
    
+   pcounter m(pc + CALL_BASE);
    for(size_t i(0); i < num_args; ++i) {
       args[i] = state.get_reg(pcounter_reg(m));
       m += reg_val_size;
@@ -1277,36 +1361,8 @@ execute_call(pcounter pc, state& state)
       default:
          throw vm_exec_error("vm does not support external functions with more than 3 arguments");
    }
-   
-   switch(ret_type->get_type()) {
-      case FIELD_INT:
-         state.set_int(reg, FIELD_INT(ret));
-         break;
-      case FIELD_FLOAT:
-         state.set_float(reg, FIELD_FLOAT(ret));
-         break;
-      case FIELD_NODE:
-         state.set_node(reg, FIELD_NODE(ret));
-         break;
-		case FIELD_STRING: {
-			rstring::ptr s(FIELD_STRING(ret));
-			
-			state.set_string(reg, s);
-			state.add_string(s);
 
-			break;
-		}
-      case FIELD_LIST: {
-         cons *l(FIELD_CONS(ret));
-
-         state.set_cons(reg, l);
-         if(!cons::is_null(l))
-            state.add_cons(l);
-         break;
-      }
-      default:
-         throw vm_exec_error("invalid return type in call (execute_call)");
-   }
+   set_call_return(call_dest(pc), ret, f, state);
 }
 
 static inline void
@@ -2370,6 +2426,18 @@ eval_loop:
 
          case CALL_INSTR:
             execute_call(pc, state);
+            break;
+         case CALL0_INSTR:
+            execute_call0(pc, state);
+            break;
+         case CALL1_INSTR:
+            execute_call1(pc, state);
+            break;
+         case CALL2_INSTR:
+            execute_call2(pc, state);
+            break;
+         case CALL3_INSTR:
+            execute_call3(pc, state);
             break;
 
          case CALLE_INSTR:
