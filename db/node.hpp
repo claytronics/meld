@@ -29,52 +29,54 @@ namespace process { class process; class machine; }
 
 namespace db {
 
-  class node: public mem::base
-  {
-  public:
+class node: public mem::base
+{
+public:
 
-    typedef vm::node_val node_id;
+   typedef vm::node_val node_id;
 
-    typedef trie::delete_info delete_info;
+   typedef trie::delete_info delete_info;
 
-  private:
-
-    node_id id;
+private:
+   
+   node_id id;
 #ifdef USERFRIENDLY
-    node_id translation;
+   node_id translation;
 #endif
+	
+   typedef std::map<vm::predicate_id, tuple_trie*,
+               std::less<vm::predicate_id>,
+               mem::allocator<std::pair<const vm::predicate_id,
+                                 tuple_trie*> > > simple_tuple_map;
+                                 
+   typedef std::map<vm::predicate_id, tuple_aggregate*,
+               std::less<vm::predicate_id>,
+               mem::allocator<std::pair<const vm::predicate_id,
+                                 tuple_aggregate*> > > aggregate_map;
+	
+	// tuple database
+   simple_tuple_map tuples;
+   
+   // sets of tuple aggregates
+   aggregate_map aggs;
+   
+   tuple_trie* get_storage(const vm::predicate*);
+   
+   // code to handle local stratification
+   friend class sched::base;
+   friend class process::process;
+   friend class process::machine;
+   
+   sched::base *owner;
+   
+public:
 
-    typedef std::map<vm::predicate_id, tuple_trie*,
-		     std::less<vm::predicate_id>,
-		     mem::allocator<std::pair<const vm::predicate_id,
-					      tuple_trie*> > > simple_tuple_map;
-
-    typedef std::map<vm::predicate_id, tuple_aggregate*,
-		     std::less<vm::predicate_id>,
-		     mem::allocator<std::pair<const vm::predicate_id,
-					      tuple_aggregate*> > > aggregate_map;
-
-    // tuple database
-    simple_tuple_map tuples;
-
-    // sets of tuple aggregates
-    aggregate_map aggs;
-
-    tuple_trie* get_storage(const vm::predicate*);
-
-    // code to handle local stratification
-    friend class sched::base;
-    friend class process::process;
-    friend class process::machine;
-
-    sched::base *owner;
-
-  public:
-
-    inline node_id get_id(void) const { return id; }
+   void assert_tries(void);
+   
+   inline node_id get_id(void) const { return id; }
 
 #ifdef USERFRIENDLY
-    inline node_id get_translated_id(void) const { return translation; }
+   inline node_id get_translated_id(void) const { return translation; }
 #endif
 
    inline void set_owner(sched::base *_owner) { owner = _owner; }
