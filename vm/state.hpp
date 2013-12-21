@@ -4,6 +4,8 @@
 
 #include <list>
 #include <iostream>
+#include <functional>
+#include <tr1/unordered_map>
 
 #include "conf.hpp"
 #include "vm/tuple.hpp"
@@ -79,6 +81,10 @@ namespace vm {
 #ifdef DEBUG_MODE
     bool print_instrs;
 #endif
+   // for storing iterate match objects
+   typedef std::tr1::unordered_map<vm::pcounter, vm::match*, std::tr1::hash<vm::pcounter>, std::equal_to<vm::pcounter>, mem::allocator< std::pair< const vm::pcounter, vm::match*> > > match_store_type;
+   match_store_type match_store;
+
 #ifdef CORE_STATISTICS
    core_statistics stat;
 #endif

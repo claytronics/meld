@@ -310,7 +310,6 @@ state::search_for_negative_tuple_full_agg(db::simple_tuple *stpl)
 bool
 state::do_persistent_tuples(void)
 {
-   // we grab the stratification level here
    while(!generated_persistent_tuples.empty()) {
 
       db::simple_tuple *stpl(generated_persistent_tuples.front());
