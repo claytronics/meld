@@ -319,46 +319,6 @@ node_val get_op_function<node_val>(const instr_val& val, pcounter& m, state& sta
 }
 
 template <>
-ptr_val get_op_function<ptr_val>(const instr_val& val, pcounter& m, state& state)
-{
-   if(val_is_reg(val))
-      return state.get_ptr(val_reg(val));
-   else if(val_is_field(val)) {
-      const tuple *tuple(state.get_tuple(val_field_reg(m)));
-      const field_num field(val_field_num(m));
-
-      pcounter_move_field(&m);
-
-      return tuple->get_ptr(field);
-   } else
-      throw vm_exec_error("invalid ptr for ptr op");
-}
-
-template <>
-cons* get_op_function<cons*>(const instr_val& val, pcounter& m, state& state)
-{
-   if(val_is_reg(val))
-      return state.get_cons(val_reg(val));
-   else if(val_is_field(val)) {
-      const tuple *tuple(state.get_tuple(val_field_reg(m)));
-      const field_num field(val_field_num(m));
-
-      pcounter_move_field(&m);
-      
-      return tuple->get_cons(field);
-   } else if(val_is_nil(val))
-      return cons::null_list();
-	else if(val_is_const(val)) {
-		const const_id cid(pcounter_const_id(m));
-
-		pcounter_move_const_id(&m);
-		
-		return vm::All->get_const_cons(cid);
-	} else
-      throw vm_exec_error("unable to get a cons (get_op_function<cons*>)");
-}
-
-template <>
 struct1* get_op_function<struct1*>(const instr_val& val, pcounter& m, state& state)
 {
    if(val_is_reg(val))
@@ -378,43 +338,6 @@ struct1* get_op_function<struct1*>(const instr_val& val, pcounter& m, state& sta
 		return vm::All->get_const_struct(cid);
 	} else
       throw vm_exec_error("unable to get a struct (get_op_function<struct1*>)");
-}
-
-template <>
-rstring::ptr get_op_function<rstring::ptr>(const instr_val& val, pcounter& m, state& state)
-{
-	if(val_is_reg(val))
-		return state.get_string(val_reg(val));
-	else if(val_is_field(val)) {
-		const tuple *tuple(state.get_tuple(val_field_reg(m)));
-		const field_num field(val_field_num(m));
-
-		pcounter_move_field(&m);
-
-		return tuple->get_string(field);
-	} else if(val_is_string(val)) {
-		const uint_val id(pcounter_uint(m));
-
-		pcounter_move_uint(&m);
-
-		return vm::All->PROGRAM->get_default_string(id);
-	} else if(val_is_arg(val)) {
-		const argument_id id(pcounter_argument_id(m));
-
-		pcounter_move_argument_id(&m);
-
-		rstring::ptr s(vm::All->get_argument(id));
-		state.add_string(s);
-
-		return s;
-   } else if(val_is_const(val)) {
-		const const_id cid(pcounter_const_id(m));
-
-		pcounter_move_const_id(&m);
-
-		return vm::All->get_const_string(cid);
-	} else
-		throw vm_exec_error("unable to get a string");
 }
 
 template <typename T>
@@ -449,20 +372,6 @@ void set_op_function<rstring*>(const pcounter& m, const instr_val& dest,
       tuple->set_string(field, s);
    } else
       throw vm_exec_error("invalid destination for a string value");
-}
-
-template <>
-void set_op_function<bool_val>(const pcounter& m, const instr_val& dest,
-   bool_val val, state& state)
-{
-   (void)m;
-
-   if(val_is_reg(dest))
-      state.set_bool(val_reg(dest), val);
-   else if(val_is_field(dest))
-      throw vm_exec_error("can't put a bool in a tuple field - yet");
-   else
-      throw vm_exec_error("invalid destination for bool value");
 }
 
 template <>
@@ -1160,44 +1069,6 @@ execute_delete(const pcounter pc, state& state)
 }
 
 static inline void
-read_call_arg(argument& arg, const field_type type, pcounter& m, state& state)
-{
-   const instr_val val_type(call_val(m));
-
-   m += val_size;
-
-   switch(type) {
-      case FIELD_INT: {
-         const int_val val(get_op_function<int_val>(val_type, m, state));
-         SET_FIELD_INT(arg, val);
-      }
-      break;
-      case FIELD_FLOAT: {
-         const float_val val(get_op_function<float_val>(val_type, m, state));
-         SET_FIELD_FLOAT(arg, val);
-      }
-      break;
-      case FIELD_NODE: {
-         const node_val val(get_op_function<node_val>(val_type, m, state));
-         SET_FIELD_NODE(arg, val);
-      }
-      break;
-      case FIELD_LIST: {
-         const cons *val(get_op_function<cons*>(val_type, m, state));
-         SET_FIELD_CONS(arg, val);
-      }
-      break;
-		case FIELD_STRING: {
-			const rstring::ptr val(get_op_function<rstring::ptr>(val_type, m, state));
-         SET_FIELD_STRING(arg, val);
-		}
-		break;
-      default:
-         throw vm_exec_error("can't read this external function argument (read_call_arg)");
-   }
-}
-
-static inline void
 execute_remove(pcounter pc, state& state)
 {
   ostringstream debugMsg;
@@ -1368,6 +1239,9 @@ execute_call(pcounter& pc, state& state)
 static inline void
 execute_calle(pcounter pc, state& state)
 {
+   assert(false);
+
+#if 0 // XXX
    #define REGISTER_OFFSET 38
    pcounter m(pc + CALL_BASE);
    const external_function_id id(call_extern_id(pc) + REGISTER_OFFSET);
@@ -1439,6 +1313,7 @@ execute_calle(pcounter pc, state& state)
       default:
          throw vm_exec_error("invalid return type in call (execute_calle)");
    }
+#endif
 }
 
 static inline void
