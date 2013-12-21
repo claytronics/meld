@@ -215,21 +215,6 @@ template <typename T>
 static inline T get_op_function(const instr_val& val, pcounter& m, state& state);
 
 template <>
-bool_val get_op_function<bool_val>(const instr_val& val, pcounter& m, state& state)
-{
-   if(val_is_reg(val)) {
-      return state.get_bool(val_reg(val));
-   } else if(val_is_field(val)) {
-      const tuple *tuple(state.get_tuple(val_field_reg(m)));
-      const field_num field(val_field_num(m));
-
-      pcounter_move_field(&m);
-      return tuple->get_bool(field);
-   } else
-      throw vm_exec_error("invalid bool for bool op");
-}
-
-template <>
 float_val get_op_function<float_val>(const instr_val& val, pcounter& m, state& state)
 {
    if(val_is_float(val)) {
@@ -1071,22 +1056,6 @@ execute_iter(const reg_num reg, match* m, pcounter pc, const utils::byte options
 }
 
 static inline void
-execute_cons(pcounter pc, state& state)
-{
-   pcounter m = pc + CONS_BASE;
-   const instr_val head(cons_head(pc));
-   const instr_val tail(cons_tail(pc));
-   const instr_val dest(cons_dest(pc));
-   list_type *ltype((list_type*)vm::All->PROGRAM->get_type(cons_type(pc)));
-   
-   const tuple_field head_val(get_op_function<tuple_field>(head, m, state));
-   cons *ls(get_op_function<cons*>(tail, m, state));
-   cons *new_list(new cons(ls, head_val, ltype));
-	state.add_cons(new_list);
-   set_op_function(m, dest, new_list, state);
-}
-
-static inline void
 execute_testnil(pcounter pc, state& state)
 {
    const reg_num op(test_nil_op(pc));
@@ -1128,12 +1097,10 @@ move_typed_data(const pcounter& pc, type *t, const tuple_field& data,
 static inline void
 execute_float(pcounter& pc, state& state)
 {
-   pcounter m = pc + FLOAT_BASE;
-   const instr_val op(float_op(pc));
-   const instr_val dest(float_dest(pc));
-   const int_val val(get_op_function<int_val>(op, m, state));
+   const reg_num src(pcounter_reg(pc + instr_size));
+   const reg_num dst(pcounter_reg(pc + instr_size + reg_val_size));
 
-   set_op_function(m, dest, static_cast<float_val>(val), state);
+   state.set_float(dst, static_cast<float_val>(state.get_int(src)));
 }
 
 static inline pcounter
@@ -1149,24 +1116,6 @@ execute_select(pcounter pc, state& state)
       return pc + select_size(pc);
    else
       return select_hash_code(hash_start, select_hash_size(pc), hashed);
-}
-
-static inline void
-execute_colocated(pcounter pc, state& state)
-{
-   //pcounter m = pc + COLOCATED_BASE;
-
-   //const instr_val first(colocated_first(pc));
-   //const instr_val second(colocated_second(pc));
-   const reg_num dest(colocated_dest(pc));
-
-   //const node_val n1(get_op_function<node_val>(first, m, state));
-   //const node_val n2(get_op_function<node_val>(second, m, state));
-
-   //state.set_bool(dest, vm::All->MACHINE->same_place(n1, n2));
-   // TODO machine::same_place should probably be replaced by the API
-   // interface
-   state.set_bool(dest, true);
 }
 
 static inline void
@@ -2152,6 +2101,112 @@ execute_tailrf(pcounter& pc, state& state)
    tuple->set_cons(field, state.get_cons(src)->get_tail());
 }
 
+static inline void
+execute_consrrr(pcounter& pc, state& state)
+{
+   const reg_num head(pcounter_reg(pc + instr_size + type_size));
+   const reg_num tail(pcounter_reg(pc + instr_size + type_size + reg_val_size));
+   const reg_num dest(pcounter_reg(pc + instr_size + type_size + 2 * reg_val_size));
+
+   list_type *ltype((list_type*)vm::All->PROGRAM->get_type(cons_type(pc)));
+   cons *new_list(new cons(state.get_cons(tail), state.get_reg(head), ltype));
+	state.add_cons(new_list);
+   state.set_cons(dest, new_list);
+}
+
+static inline void
+execute_consrff(pcounter& pc, state& state)
+{
+   const reg_num head(pcounter_reg(pc + instr_size));
+   tuple *tail(get_tuple_field(state, pc + instr_size + reg_val_size));
+   const field_num tail_field(val_field_num(pc + instr_size + reg_val_size));
+   tuple *dest(get_tuple_field(state, pc + instr_size + reg_val_size + field_size));
+   const field_num dest_field(val_field_num(pc + instr_size + reg_val_size + field_size));
+
+   cons *new_list(new cons(tail->get_cons(tail_field), state.get_reg(head), (list_type*)tail->get_field_type(tail_field)));
+   dest->set_cons(dest_field, new_list);
+}
+
+static inline void
+execute_consfrf(pcounter& pc, state& state)
+{
+   tuple *head(get_tuple_field(state, pc + instr_size));
+   const field_num head_field(val_field_num(pc + instr_size));
+   const reg_num tail(pcounter_reg(pc + instr_size + field_size));
+   tuple *dest(get_tuple_field(state, pc + instr_size + field_size + reg_val_size));
+   const field_num dest_field(val_field_num(pc + instr_size + field_size + reg_val_size));
+
+   cons *new_list(new cons(state.get_cons(tail), head->get_field(head_field), (list_type*)dest->get_field_type(dest_field)));
+   dest->set_cons(dest_field, new_list);
+}
+
+static inline void
+execute_consffr(pcounter& pc, state& state)
+{
+   tuple *head(get_tuple_field(state, pc + instr_size));
+   const field_num head_field(val_field_num(pc + instr_size));
+   tuple *tail(get_tuple_field(state, pc + instr_size + field_size));
+   const field_num tail_field(val_field_num(pc + instr_size + field_size));
+   const reg_num dest(pcounter_reg(pc + instr_size + 2 * field_size));
+
+   cons *new_list(new cons(tail->get_cons(tail_field), head->get_field(head_field), (list_type*)tail->get_field_type(tail_field)));
+	state.add_cons(new_list);
+   state.set_cons(dest, new_list);
+}
+
+static inline void
+execute_consrrf(pcounter& pc, state& state)
+{
+   const reg_num head(pcounter_reg(pc + instr_size));
+   const reg_num tail(pcounter_reg(pc + instr_size + reg_val_size));
+   tuple *dest(get_tuple_field(state, pc + instr_size + 2 * reg_val_size));
+   const field_num field(val_field_num(pc + instr_size + 2 * reg_val_size));
+
+   cons *new_list(new cons(state.get_cons(tail), state.get_reg(head), (list_type*)dest->get_field_type(field)));
+   dest->set_cons(field, new_list);
+}
+
+static inline void
+execute_consrfr(pcounter& pc, state& state)
+{
+   const reg_num head(pcounter_reg(pc + instr_size));
+   tuple *tail(get_tuple_field(state, pc + instr_size + reg_val_size));
+   const field_num field(val_field_num(pc + instr_size + reg_val_size));
+   const reg_num dest(pcounter_reg(pc + instr_size + reg_val_size + field_size));
+
+   cons *new_list(new cons(tail->get_cons(field), state.get_reg(head), (list_type*)tail->get_field_type(field)));
+   state.add_cons(new_list);
+   state.set_cons(dest, new_list);
+}
+
+static inline void
+execute_consfrr(pcounter& pc, state& state)
+{
+   tuple *head(get_tuple_field(state, pc + instr_size + type_size));
+   const field_num field(val_field_num(pc + instr_size + type_size));
+   const reg_num tail(pcounter_reg(pc + instr_size + type_size + field_size));
+   const reg_num dest(pcounter_reg(pc + instr_size + type_size + field_size + reg_val_size));
+
+   list_type *ltype((list_type*)vm::All->PROGRAM->get_type(cons_type(pc)));
+   cons *new_list(new cons(state.get_cons(tail), head->get_field(field), ltype));
+   state.add_cons(new_list);
+   state.set_cons(dest, new_list);
+}
+
+static inline void
+execute_consfff(pcounter& pc, state& state)
+{
+   tuple *head(get_tuple_field(state, pc + instr_size));
+   const field_num field_head(val_field_num(pc + instr_size));
+   tuple *tail(get_tuple_field(state, pc + instr_size + field_size));
+   const field_num field_tail(val_field_num(pc + instr_size + field_size));
+   tuple *dest(get_tuple_field(state, pc + instr_size + 2 * field_size));
+   const field_num field_dest(val_field_num(pc + instr_size + 2 * field_size));
+
+   cons *new_list(new cons(tail->get_cons(field_tail), head->get_field(field_head), (list_type*)tail->get_field_type(field_tail)));
+   dest->set_cons(field_dest, new_list);
+}
+
 static inline return_type
 execute(pcounter pc, state& state, const reg_num reg, vm::tuple *tpl)
 {
@@ -2295,10 +2350,6 @@ eval_loop:
             execute_not(pc, state);
             break;
             
-         case CONS_INSTR:
-            execute_cons(pc, state);
-            break;
-            
          case TESTNIL_INSTR:
             execute_testnil(pc, state);
             break;
@@ -2310,10 +2361,6 @@ eval_loop:
          case SELECT_INSTR:
             pc = execute_select(pc, state);
             goto eval_loop;
-
-         case COLOCATED_INSTR:
-            execute_colocated(pc, state);
-            break;
 
          case DELETE_INSTR:
             execute_delete(pc, state);
@@ -2704,6 +2751,38 @@ eval_loop:
 
          case MVCONSTREG_INSTR:
            execute_mvconstreg(pc, state);
+           break;
+
+         case CONSRRR_INSTR:
+           execute_consrrr(pc, state);
+           break;
+
+         case CONSRFF_INSTR:
+           execute_consrff(pc, state);
+           break;
+
+         case CONSFRF_INSTR:
+           execute_consfrf(pc, state);
+           break;
+
+         case CONSFFR_INSTR:
+           execute_consffr(pc, state);
+           break;
+
+         case CONSRRF_INSTR:
+           execute_consrrf(pc, state);
+           break;
+
+         case CONSRFR_INSTR:
+           execute_consrfr(pc, state);
+           break;
+
+         case CONSFRR_INSTR:
+           execute_consfrr(pc, state);
+           break;
+
+         case CONSFFF_INSTR:
+           execute_consfff(pc, state);
            break;
 
          default: throw vm_exec_error("unsupported instruction");
