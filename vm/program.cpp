@@ -3,7 +3,7 @@
 #include <sys/stat.h>
 #include <iostream>
 #include <boost/static_assert.hpp>
-#include<dlfcn.h>
+#include <dlfcn.h>
 
 #include "vm/program.hpp"
 #include "db/tuple.hpp"
@@ -12,6 +12,7 @@
 #include "utils/types.hpp"
 #include "vm/state.hpp"
 #include "vm/reader.hpp"
+#include "vm/external.hpp"
 #include "version.hpp"
 
 
@@ -36,6 +37,32 @@ static inline bool
 predicate_sorter(const predicate* p1, const predicate* p2)
 {
 	return p1->get_name() < p2->get_name();
+}
+
+static inline ptr_val 
+get_function_pointer(char *lib_path, char* func_name)
+{
+   void *handle = dlopen(lib_path, RTLD_LAZY);
+
+   if(!handle) {
+      cerr<<"Cannot Open Library : "<<dlerror()<<endl;
+      return 0;
+   }
+
+   typedef void (*func_t)();
+
+   //reset errors
+   dlerror();
+
+   func_t func = (func_t)dlsym(handle, func_name);
+   const char *dlsym_error = dlerror();
+
+   if(dlsym_error) {
+      dlclose(handle);
+      return 0;
+   }
+
+   return (ptr_val)func;
 }
 
 program::program(const string& _filename):
@@ -233,8 +260,6 @@ program::program(const string& _filename):
 
       read.read_type<ptr_val>(&skip_ptr);
 
-      //dlopen call
-      //dlsym call
       skip_ptr = get_function_pointer(skip_filename,extern_name);
       uint32_t num_args;
 
@@ -242,20 +267,15 @@ program::program(const string& _filename):
 
       type *ret_type = read_type_id_from_reader(read, types);
 
-      cout << "Id " << extern_id << " " << extern_name << " ";
-      cout <<"Num_args "<<num_args<<endl;
-
-      type *arg_type[num_args];
       if(num_args) {
+         type *arg_type[num_args];
          for(uint32_t j(0); j != num_args; ++j) {
             arg_type[j] = read_type_id_from_reader(read, types);
-            cout << arg_type[j]->string() << " ";
          }
 
-         add_external_function((external_function_ptr)skip_ptr,num_args,ret_type,arg_type);             
-      }else
-         add_external_function((external_function_ptr)skip_ptr,0,ret_type,NULL);
-      cout << endl;
+         register_custom_external_function((external_function_ptr)skip_ptr,num_args,ret_type,arg_type);             
+      } else
+         register_custom_external_function((external_function_ptr)skip_ptr,0,ret_type,NULL);
    }
 
    // read predicate information
@@ -403,68 +423,6 @@ program::~program(void)
       delete imported_predicates[i];
    }
    MAX_STRAT_LEVEL = 0;
-}
-
-void 
-program::add_external_function(external_function_ptr ptr,size_t num_args,type *ret,type **arg){
-
-#define EXTERN(NAME) (external_function_ptr) NAME
-#define EXTERNAL0(NAME, RET) external0(EXTERN(NAME), RET)
-#define EXTERNAL1(NAME, RET, ARG1) external1(EXTERN(NAME), RET, ARG1)
-#define EXTERNAL2(NAME, RET, ARG1, ARG2) external2(EXTERN(NAME), RET, ARG1, ARG2)
-#define EXTERNAL3(NAME, RET, ARG1, ARG2, ARG3) external3(EXTERN(NAME), RET, ARG1, ARG2, ARG3)
-
-    switch(num_args){
-
-        case 0 : cout<<"arg0 register_func_id :"<<register_external_function(EXTERNAL0(ptr,ret));
-                 cout<<endl;
-                 break;
-
-        case 1 :  cout<<"arg1 register_func_id:"<< register_external_function(EXTERNAL1(ptr, ret, arg[0]));
-                  cout<<endl;  
-                  break;  
-
-        case 2 : cout<<"arg2 register_func_id:"<<register_external_function(EXTERNAL2(ptr,ret,arg[0],arg[1]));
-                 cout<<endl;
-                 break;
-
-        case 3 :cout<<"arg3 register_func_id:"<<register_external_function(EXTERNAL3(ptr,ret,arg[0],arg[1],arg[2]));
-                 cout<<endl;   
-                 break;
-
-        default : break;
-    }
-
-}
-
-ptr_val 
-program::get_function_pointer(char *lib_path,char* func_name){
-
-    cout<<"Opening shared object file..."<<lib_path<<endl;
-    void *handle = dlopen(lib_path,RTLD_LAZY);
-
-    if(!handle){
-        cerr<<"Cannot Open Library : "<<dlerror()<<endl;
-        return 1;
-    }
-
-    cout<<"Loading symbol..."<<func_name<<endl;
-    typedef void (*func_t)();
-
-    //reset errors
-    dlerror();
-
-    func_t func = (func_t)dlsym(handle,func_name);
-    const char *dlsym_error = dlerror();
-
-    if(dlsym_error){
-        cerr<<"Cannot load symbol..."<<dlsym_error<<endl;
-        dlclose(handle);
-        return 0;
-    }
-
-    return (ptr_val)func;
-
 }
 
 predicate*

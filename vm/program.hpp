@@ -166,9 +166,6 @@ public:
 
    bool add_data_file(vm::program&);
 
-    void add_external_function(external_function_ptr ptr, size_t num_args, type *ret_type, type **arg_type);
-    ptr_val get_function_pointer(char *lib_path,char* func_name);
-   
    explicit program(const std::string&);
    
    ~program(void);
