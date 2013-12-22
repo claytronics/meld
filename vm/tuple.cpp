@@ -18,8 +18,7 @@ namespace vm
 {
 
 tuple::tuple(const predicate* _pred):
-   to_delete(false), pred((predicate*)_pred),
-   fields(allocator<tuple_field>().allocate(pred->num_fields()))
+   to_delete(false), pred((predicate*)_pred)
 {
    assert(pred != NULL);
    memset(getfp(), 0, sizeof(tuple_field) * pred->num_fields());
@@ -115,9 +114,9 @@ tuple*
 tuple::copy(void) const
 {
    assert(pred != NULL);
-
-   tuple *ret(new tuple(get_predicate()));
-
+   
+   tuple *ret(tuple::create(get_predicate()));
+   
    for(size_t i(0); i < num_fields(); ++i)
       copy_field(ret, i);
 
@@ -128,9 +127,9 @@ tuple*
 tuple::copy_except(const field_num field) const
 {
    assert(pred != NULL);
-
-   tuple *ret(new tuple(get_predicate()));
-
+   
+   tuple *ret(tuple::create(get_predicate()));
+   
    for(size_t i(0); i < num_fields(); ++i) {
       if(i != field)
          copy_field(ret, i);
@@ -318,10 +317,7 @@ tuple::~tuple(void)
          default: assert(false); break;
       }
    }
-   
-   allocator<tuple_field>().deallocate(getfp(), pred->num_fields());
 }
-
 
 size_t
 tuple::get_storage_size(void) const
@@ -420,9 +416,9 @@ tuple::unpack(byte *buf, const size_t buf_size, int *pos, vm::program *prog)
    predicate_id pred_id;
 
    utils::unpack<predicate_id>(buf, buf_size, pos, &pred_id, 1);
-
-   tuple *ret(new tuple(prog->get_predicate(pred_id)));
-
+   
+   tuple *ret(tuple::create(prog->get_predicate(pred_id)));
+   
    ret->load(buf, buf_size, pos);
 
    return ret;
