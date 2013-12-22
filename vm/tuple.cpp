@@ -22,7 +22,7 @@ tuple::tuple(const predicate* _pred):
    fields(allocator<tuple_field>().allocate(pred->num_fields()))
 {
    assert(pred != NULL);
-   memset(fields, 0, sizeof(tuple_field) * pred->num_fields());
+   memset(getfp(), 0, sizeof(tuple_field) * pred->num_fields());
 }
 
 static inline bool
@@ -318,8 +318,8 @@ tuple::~tuple(void)
          default: assert(false); break;
       }
    }
-
-   allocator<tuple_field>().deallocate(fields, pred->num_fields());
+   
+   allocator<tuple_field>().deallocate(getfp(), pred->num_fields());
 }
 
 
