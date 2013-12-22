@@ -213,9 +213,6 @@ program::program(const string& _filename):
       functions[i] = new vm::function(fun_code, fun_size);
    }
 
-    //init functions defined in external namespace
-    init_external_functions();
-
     // get external functions definitions
    uint32_t n_externs;
    read.read_type<uint32_t>(&n_externs);

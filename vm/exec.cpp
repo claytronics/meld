@@ -1124,6 +1124,27 @@ execute_call3(pcounter& pc, state& state)
    set_call_return(call_dest(pc), ret, f, state);
 }
 
+static inline argument
+do_call(external_function *f, argument *args)
+{
+   switch(f->get_num_args()) {
+      case 0:
+         return f->get_fun_ptr()();
+      case 1:
+         return ((external_function_ptr1)f->get_fun_ptr())(args[0]);
+      case 2:
+         return ((external_function_ptr2)f->get_fun_ptr())(args[0], args[1]);
+      case 3:
+         return ((external_function_ptr3)f->get_fun_ptr())(args[0], args[1], args[2]);
+      default:
+         throw vm_exec_error("vm does not support external functions with more than 3 arguments");
+   }
+   
+   // undefined
+   argument ret;
+   return ret;
+}
+
 static inline void
 execute_call(pcounter& pc, state& state)
 {
@@ -1139,108 +1160,27 @@ execute_call(pcounter& pc, state& state)
    }
    
    assert(num_args == f->get_num_args());
-
-   argument ret;
-
-   // call function
-   switch(num_args) {
-      case 0:
-         ret = f->get_fun_ptr()();
-         break;
-      case 1:
-         ret = ((external_function_ptr1)f->get_fun_ptr())(args[0]);
-         break;
-      case 2:
-         ret = ((external_function_ptr2)f->get_fun_ptr())(args[0], args[1]);
-         break;
-      case 3:
-         ret = ((external_function_ptr3)f->get_fun_ptr())(args[0], args[1], args[2]);
-         break;
-      default:
-         throw vm_exec_error("vm does not support external functions with more than 3 arguments");
-   }
-
-   set_call_return(call_dest(pc), ret, f, state);
+   
+   set_call_return(call_dest(pc), do_call(f, args), f, state);
 }
 
 static inline void
 execute_calle(pcounter pc, state& state)
 {
-   assert(false);
-
-#if 0 // XXX
-   #define REGISTER_OFFSET 38
-   pcounter m(pc + CALL_BASE);
-   const external_function_id id(call_extern_id(pc) + REGISTER_OFFSET);
-   const size_t num_args(call_num_args(pc));
-   const reg_num reg(call_dest(pc));
+   const external_function_id id(calle_extern_id(pc) + first_custom_external_function());
+   const size_t num_args(calle_num_args(pc));
    external_function *f(lookup_external_function(id));
-   type *ret_type(f->get_return_type());
    argument args[num_args];
 
-   for(size_t i(0); i < num_args; ++i)
-      read_call_arg(args[i], f->get_arg_type(i)->get_type(), m, state);
-
+   pcounter m(pc + CALLE_BASE);
+   for(size_t i(0); i < num_args; ++i) {
+      args[i] = state.get_reg(pcounter_reg(m));
+      m += reg_val_size;
+   }
+   
    assert(num_args == f->get_num_args());
 
-   argument ret;
-
-   // call function
-   switch(num_args) {
-      case 0:
-         ret = f->get_fun_ptr()();
-         break;
-      case 1:
-         ret = ((external_function_ptr1)f->get_fun_ptr())(args[0]);
-         break;
-      case 2:
-         ret = ((external_function_ptr2)f->get_fun_ptr())(args[0], args[1]);
-         break;
-      case 3:
-         ret = ((external_function_ptr3)f->get_fun_ptr())(args[0], args[1], args[2]);
-         break;
-      default:
-         throw vm_exec_error("vm does not support external functions with more than 3 arguments");
-   }
-
-   switch(ret_type->get_type()) {
-      case FIELD_INT:
-         state.set_int(reg, FIELD_INT(ret));
-         break;
-      case FIELD_FLOAT:
-         state.set_float(reg, FIELD_FLOAT(ret));
-         break;
-      case FIELD_NODE:
-         state.set_node(reg, FIELD_NODE(ret));
-         break;
-		case FIELD_STRING: {
-			rstring::ptr s(FIELD_STRING(ret));
-
-			state.set_string(reg, s);
-			state.add_string(s);
-
-			break;
-		}
-      case FIELD_LIST: {
-         runtime::cons *l(FIELD_CONS(ret));
-
-         state.set_cons(reg, l);
-         if(!runtime::cons::is_null(l))
-            state.add_cons(l);
-
-			break;
-		}
-      case FIELD_STRUCT: {
-         runtime::struct1 *s(FIELD_STRUCT(ret));
-
-         state.set_struct(reg, s);
-         state.add_struct(s);
-         break;
-      }
-      default:
-         throw vm_exec_error("invalid return type in call (execute_calle)");
-   }
-#endif
+   set_call_return(calle_dest(pc), do_call(f, args), f, state);
 }
 
 static inline void
@@ -3019,7 +2959,9 @@ eval_loop:
          ENDOP()
 
          CASE(CALLE_INSTR)
-            COMPLEX_JUMP(calle)
+            JUMP(calle, CALLE_BASE * calle_num_args(pc))
+            execute_calle(pc, state);
+            ADVANCE()
          ENDOP()
 
          COMPLEX_JUMP(not_found)

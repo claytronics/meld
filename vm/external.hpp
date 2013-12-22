@@ -60,13 +60,13 @@ public:
    ~external_function(void);
 };
    
+external_function_id first_custom_external_function(void);
 external_function_id register_external_function(external_function *);
 external_function* lookup_external_function(const external_function_id);
 external_function* external0(external_function_ptr ptr, type *ret);
 external_function* external1(external_function_ptr ptr, type *ret, type *arg1);
 external_function* external2(external_function_ptr ptr, type *ret, type *arg1, type *arg2);
 external_function* external3(external_function_ptr ptr, type *ret, type *arg1, type *arg2, type *arg3);
-bool init_external_functions(void);
 
 }
 

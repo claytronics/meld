@@ -24,11 +24,11 @@ using namespace std;
 
 typedef unordered_map<external_function_id, external_function*> hash_external_type;
 
-//static bool init_external_functions(void);
-static external_function_id external_counter(0);   
+static bool init_external_functions(void);
+static external_function_id external_counter(0);
+static external_function_id first_custom(0);
 static hash_external_type hash_external;
-//static bool dummy(init_external_functions());
-static bool external_functions_initialised(false);
+static bool dummy(init_external_functions());
 
 void
 external_function::set_arg_type(const size_t arg, type *typ)
@@ -116,13 +116,9 @@ cleanup_externals(void)
       delete it->second;
 }
 
-bool
+static bool
 init_external_functions(void)
 {
-   if(external_functions_initialised) 
-    return true;
-   else external_functions_initialised = true; 
-
 #define EXTERN(NAME) (external_function_ptr) external :: NAME
 #define EXTERNAL0(NAME, RET) external0(EXTERN(NAME), RET)
 #define EXTERNAL1(NAME, RET, ARG1) external1(EXTERN(NAME), RET, ARG1)
@@ -184,8 +180,16 @@ init_external_functions(void)
    register_external_function(EXTERNAL2(convolvestruct, st, st, st));
 
    atexit(cleanup_externals);
+
+   first_custom = external_counter;
    
    return true;
 }
+
+external_function_id first_custom_external_function(void)
+{
+   return first_custom;
+}
+
 
 }
