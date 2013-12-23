@@ -696,8 +696,16 @@ state::~state(void)
 	}
 #endif
 	assert(rule_queue.empty());
-   for(match_list::iterator it(matches_created.begin()), end(matches_created.end()); it != end; ++it)
-      delete *it;
+   for(match_list::iterator it(matches_created.begin()), end(matches_created.end()); it != end; ++it) {
+      match *obj(*it);
+      const size_t mem(obj->mem_size());
+      utils::byte *mdata((utils::byte*)obj);
+      for(size_t i(0); i < All->NUM_THREADS; ++i) {
+         match *t((match*)(mdata + i * mem));
+         t->destroy();
+      }
+      mem::allocator<utils::byte>().deallocate(mdata, obj->mem_size() * All->NUM_THREADS);
+   }
 }
 
 }
