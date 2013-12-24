@@ -60,8 +60,13 @@ public:
       assert(sched_caller != NULL);
       if (api::onLocalVM(id)){
          /* Belongs to the same process, does not require MPI */
-         db::node *node(vm::All->DATABASE->find_node(id));
          const vm::predicate *pred(tpl->get_predicate());
+#ifdef USE_REAL_NODES
+         db::node *node((db::node*)id);
+#else
+         assert(id <= vm::All->DATABASE->max_id());
+         db::node *node(vm::All->DATABASE->find_node(id));
+#endif
 
          if(delay > 0)
             sched_caller->new_work_delay(from, node, tpl, count, depth, delay);

@@ -7,6 +7,10 @@
 #include "vm/state.hpp"
 #include "utils/serialization.hpp"
 #include "debug/debug_handler.hpp"
+#ifdef USE_UI
+#include "ui/macros.hpp"
+#endif
+#include "db/node.hpp"
 
 using namespace vm;
 using namespace std;
@@ -159,7 +163,12 @@ print_node(ostream& out, const tuple_field& val)
     out << "@" << vm::All->DATABASE->translate_fake_to_real_id(FIELD_NODE(val));
   }
   else{
-    out<<"@"<<FIELD_NODE(val);
+   out << "@";
+#ifdef USE_REAL_NODES
+   out << ((db::node*)FIELD_NODE(val))->get_id();
+#else
+   out << FIELD_NODE(val);
+#endif
   }
 }
 

@@ -261,6 +261,9 @@ machine::machine(const string& file, const size_t th,
    vm::All->ARGUMENTS = margs;
    vm::All->DATABASE = new database(added_data_file ? data_file : filename, get_creation_function(_sched_type));
    vm::All->NUM_THREADS = th;
+#ifdef USE_REAL_NODES
+   this->all->PROGRAM->fix_node_addresses(this->all->DATABASE);
+#endif
 
    // Instantiate the scheduler object
    switch(sched_type) {
