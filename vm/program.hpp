@@ -21,6 +21,12 @@
 #include "queue/heap_implementation.hpp"
 #include "vm/import.hpp"
 
+#ifdef USE_UI
+#include <json_spirit.h>
+#endif
+#ifdef USE_REAL_NODES
+#include <unordered_map>
+#endif
 
 namespace process {
    class router;
@@ -98,7 +104,7 @@ private:
 
 #ifdef USE_REAL_NODES
    // node references in the byte code
-   std::vector<byte_code> node_references;
+   std::vector<byte_code> *node_references;
 #endif
 
    void print_predicate_code(std::ostream&, predicate*) const;
