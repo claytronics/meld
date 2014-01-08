@@ -66,7 +66,6 @@ state::copy_reg2const(const reg_num& reg_from, const const_id& cid)
 void
 state::setup(vm::tuple *tpl, db::node *n, const derivation_count count, const depth_t depth)
 {
-   this->use_local_tuples = false;
    this->node = n;
    this->count = count;
    if(tpl != NULL) {
@@ -233,27 +232,6 @@ state::search_for_negative_tuple_full_agg(db::simple_tuple *stpl)
 }
 
 
-void
-state::delete_leaves(void)
-{
-   while(!leaves_for_deletion.empty()) {
-      pair<vm::predicate*, db::tuple_trie_leaf*> p(leaves_for_deletion.front());
-      vm::predicate* pred(p.first);
-
-#ifdef CORE_STATISTICS
-   	execution_time::scope s(stat.db_deletion_time_predicate[pred->get_id()]);
-#endif
-      db::tuple_trie_leaf *leaf(p.second);
-      
-      leaves_for_deletion.pop_front();
-      
-      leaf->reset_ref_use();
-      node->delete_by_leaf(pred, leaf, 0);
-   }
-      
-	assert(leaves_for_deletion.empty());
-}
-
 bool
 state::do_persistent_tuples(void)
 {
@@ -321,7 +299,6 @@ state::do_persistent_tuples(void)
       }
    }
    store->persistent_tuples.clear();
-   delete_leaves();
    
    return true;
 }
@@ -437,9 +414,7 @@ state::process_persistent_tuple(db::simple_tuple *stpl, vm::tuple *tpl)
 
       if(is_new) {
          setup(tpl, node, stpl->get_count(), stpl->get_depth());
-         use_local_tuples = false;
-         persistent_only = true;
-         execute_bytecode(vm::All->PROGRAM->get_predicate_bytecode(tpl->get_predicate_id()), *this, tpl);
+         execute_process(vm::All->PROGRAM->get_predicate_bytecode(tpl->get_predicate_id()), *this, tpl);
       }
 
       if(tpl->is_reused()) {
@@ -458,9 +433,7 @@ state::process_persistent_tuple(db::simple_tuple *stpl, vm::tuple *tpl)
    } else {
 		if(tpl->is_reused()) {
 			setup(tpl, node, stpl->get_count(), stpl->get_depth());
-			persistent_only = true;
-			use_local_tuples = false;
-			execute_bytecode(vm::All->PROGRAM->get_predicate_bytecode(tpl->get_predicate_id()), *this, tpl);
+			execute_process(vm::All->PROGRAM->get_predicate_bytecode(tpl->get_predicate_id()), *this, tpl);
          delete stpl;
 		} else {
       	node::delete_info deleter(node->delete_tuple(tpl, -stpl->get_count(), stpl->get_depth()));
@@ -470,9 +443,7 @@ state::process_persistent_tuple(db::simple_tuple *stpl, vm::tuple *tpl)
          } else if(deleter.to_delete()) { // to be removed
             store->matcher.deregister_tuple(tpl, -stpl->get_count());
          	setup(tpl, node, stpl->get_count(), stpl->get_depth());
-         	persistent_only = true;
-         	use_local_tuples = false;
-         	execute_bytecode(vm::All->PROGRAM->get_predicate_bytecode(tpl->get_predicate_id()), *this, tpl);
+         	execute_process(vm::All->PROGRAM->get_predicate_bytecode(tpl->get_predicate_id()), *this, tpl);
          	deleter();
 
 		debugger::runBreakPoint("factRet",
@@ -494,9 +465,7 @@ state::process_persistent_tuple(db::simple_tuple *stpl, vm::tuple *tpl)
 	      deleter.delete_depths_above(stpl->get_depth());
                if(deleter.to_delete()) {
                   setup(tpl, node, stpl->get_count(), stpl->get_depth());
-                  persistent_only = true;
-                  use_local_tuples = false;
-                  execute_bytecode(vm::All->PROGRAM->get_predicate_bytecode(tpl->get_predicate_id()), *this, tpl);
+                  execute_process(vm::All->PROGRAM->get_predicate_bytecode(tpl->get_predicate_id()), *this, tpl);
                   deleter();
          debugger::runBreakPoint("factRet","Fact has been retracted",
          (char*)tpl->pred_name().c_str(),
@@ -572,12 +541,8 @@ state::run_node(db::node *no)
 		}
 		
 		setup(NULL, node, 1, 0);
-
-		use_local_tuples = true;
-      persistent_only = false;
 		execute_rule(rule, *this);
 
-      delete_leaves();
       //node->assert_tries();
 #ifdef USE_SIM
       if(sim_instr_use && !check_instruction_limit()) {
@@ -678,7 +643,6 @@ state::state(void):
 #ifdef DEBUG_MODE
    , print_instrs(false)
 #endif
-   , persistent_only(false)
 #ifdef CORE_STATISTICS
    , stat(vm::All)
 #endif

@@ -76,18 +76,14 @@ public:
 #endif
 
    bool generated_facts;
+   bool running_rule;
    bool hash_removes;
    typedef std::tr1::unordered_set<vm::tuple*, std::tr1::hash<vm::tuple*>, std::equal_to<vm::tuple*>, mem::allocator<vm::tuple*> > removed_hash;
    removed_hash removed;
    typedef std::list<match*> match_list;
    match_list matches_created;
-   bool use_local_tuples;
    temporary_store *store;
    db::lists *lists;
-	// leaves scheduled for deletion (for use with reused linear tuples + retraction)
-	// we cannot delete them immediately because then the tuple would be deleted
-	std::list< std::pair<vm::predicate*, db::tuple_trie_leaf*> > leaves_for_deletion;
-   bool persistent_only; // we are running one persistent tuple (not a rule)
 #ifdef CORE_STATISTICS
    core_statistics stat;
 #endif
@@ -127,11 +123,6 @@ public:
     inline void set_nil(const reg_num& num) { set_ptr(num, null_ptr_val); }
     inline reg get_reg(const reg_num& num) { return regs[num]; }
    
-   inline void set_leaf(const reg_num& num, db::tuple_trie_leaf* leaf) { is_leaf[num] = true; saved_leaves[num] = leaf; }
-   inline db::tuple_trie_leaf* get_leaf(const reg_num& num) const { return saved_leaves[num]; }
-	inline void set_tuple_queue(const reg_num& num, vm::tuple *) { is_leaf[num] = false; }
-	inline bool is_it_a_leaf(const reg_num& num) const { return is_leaf[num]; }
-
    inline void copy_reg(const reg_num& reg_from, const reg_num& reg_to) {
       regs[reg_to] = regs[reg_from];
     }
@@ -159,7 +150,6 @@ public:
 #endif
    void process_action_tuples(void);
    void process_incoming_tuples(void);
-   void delete_leaves(void);
 	void run_node(db::node *);
    void setup(vm::tuple*, db::node*, const vm::derivation_count, const vm::depth_t);
    void cleanup(void);

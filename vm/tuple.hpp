@@ -23,7 +23,7 @@ public:
    DECLARE_LIST_INTRUSIVE(tuple);
 
 private:
-	bool to_delete;
+   utils::byte flags;
 	predicate* pred;
 
     void copy_field(tuple *, const field_num) const;
@@ -55,25 +55,25 @@ public:
    inline void set_field(const field_num& field, const tuple_field& f) { getfp()[field] = f; }
 #undef define_set
 
-    size_t num_fields(void) const { return pred->num_fields(); }
+   inline size_t num_fields(void) const { return pred->num_fields(); }
 
-    std::string pred_name(void) const { return pred->get_name(); }
+   inline std::string pred_name(void) const { return pred->get_name(); }
 
-    inline const predicate* get_predicate(void) const { return pred; }
+   inline const predicate* get_predicate(void) const { return pred; }
 
-    inline predicate_id get_predicate_id(void) const { return pred->get_id(); }
+   inline predicate_id get_predicate_id(void) const { return pred->get_id(); }
 
-    size_t get_storage_size(void) const;
+   size_t get_storage_size(void) const;
 
-    void pack(utils::byte *, const size_t, int *) const;
-    void load(utils::byte *, const size_t, int *);
+   void pack(utils::byte *, const size_t, int *) const;
+   void load(utils::byte *, const size_t, int *);
 
    void copy_runtime(void);
 
-    static tuple* unpack(utils::byte *, const size_t, int *, vm::program *);
-   type* get_field_type(const field_num& field) const { return pred->get_field_type(field); }
+   static tuple* unpack(utils::byte *, const size_t, int *, vm::program *);
+   inline type* get_field_type(const field_num& field) const { return pred->get_field_type(field); }
 
-   tuple_field get_field(const field_num& field) const { return getfp()[field]; }
+   inline tuple_field get_field(const field_num& field) const { return getfp()[field]; }
    
 #define define_get(RET, NAME, VAL) \
    inline RET get_ ## NAME (const field_num& field) const { return VAL; }
@@ -103,19 +103,23 @@ public:
    tuple *copy_except(const field_num) const;
    tuple *copy(void) const;
 
-   inline bool must_be_deleted(void) const { return to_delete; }
-   inline void will_delete(void) { to_delete = true; }
-   inline void will_not_delete(void) { to_delete = false; }
-   inline bool can_be_consumed(void) const { return !to_delete; }
+#define TUPLE_DELETE_FLAG 0x01
+#define TUPLE_UPDATED_FLAG 0x02
+   inline bool must_be_deleted(void) const { return flags & TUPLE_DELETE_FLAG; }
+   inline void will_delete(void) { flags |= TUPLE_DELETE_FLAG; }
+   inline void will_not_delete(void) { flags &= ~TUPLE_DELETE_FLAG; }
+   inline void set_updated(void) { flags |= TUPLE_UPDATED_FLAG; }
+   inline void set_not_updated(void) { flags &= ~TUPLE_UPDATED_FLAG; }
+   inline bool is_updated(void) const { return flags & TUPLE_UPDATED_FLAG; }
 
-   static tuple* create(const predicate* pred) {
+   inline static tuple* create(const predicate* pred) {
       const size_t size(sizeof(vm::tuple) + sizeof(tuple_field) * pred->num_fields());
       vm::tuple *ptr((vm::tuple*)mem::center::allocate(size, 1));
       new (ptr) vm::tuple(pred);
       return ptr;
    }
 
-   static void destroy(tuple *tpl) {
+   inline static void destroy(tuple *tpl) {
       const size_t size(sizeof(vm::tuple) + sizeof(tuple_field) * tpl->num_fields());
       mem::center::deallocate(tpl, size, 1);
       tpl->~tuple();
