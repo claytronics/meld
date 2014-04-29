@@ -10,7 +10,7 @@ else
 endif
 
 CXXFLAGS += -DMULTI_NODE_PER_PROC=1
-LIBRARIES +=  -lboost_serialization-mt -lboost_mpi-mt
+LIBRARIES +=  -lboost_serialization -lboost_mpi
 
 -include Makefile.common
 

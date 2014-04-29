@@ -15,14 +15,6 @@
 #include "process/machine.hpp"
 #include "debug/debug_handler.hpp"
 
-//#define DEBUG_SENDS
-//#define DEBUG_INSTRS
-//#define DEBUG_RULES
-//#define DEBUG_REMOVE
-
-#if defined(DEBUG_SENDS)
-static boost::mutex print_mtx;
-#endif
 
 using namespace vm;
 using namespace vm::instr;
@@ -32,10 +24,6 @@ using namespace runtime;
 using namespace utils;
 
 #include "compileInfo.hpp"
-
-#ifdef SIMD
-declareCompileInfo(deterministicMode, "on");
-#endif
 
 namespace vm
 {
