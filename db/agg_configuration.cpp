@@ -1,4 +1,3 @@
-
 #include "db/agg_configuration.hpp"
 
 using namespace std;

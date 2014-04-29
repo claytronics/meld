@@ -52,6 +52,7 @@ SRCS = 	vm/exec.cpp \
 	vm/dummy-state.cpp \
 	vm/dummy-rule_matcher.cpp \
 	vm/dummy-tuple.cpp \
+	vm/dummy-predicate.cpp \
 	vm/dummy-types.cpp \
 	mem/dummy-center.cpp \
 	process/dummy-machine.cpp \
@@ -59,6 +60,8 @@ SRCS = 	vm/exec.cpp \
 	db/dummy-node.cpp \
 	db/dummy-tuple.cpp \
 	db/dummy-database.cpp \
+	db/dummy-agg_configuration.cpp \
+	db/dummy-trie.cpp \
 	debug/dummy-debug_handler.cpp \
 	dummy-meld.cpp
 
