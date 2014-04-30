@@ -5,7 +5,7 @@
 #include <boost/static_assert.hpp>
 #include<dlfcn.h>
 
-#include "vm/dummy-program.hpp"
+#include "vm/program.hpp"
 #include "db/tuple.hpp"
 #include "vm/instr.hpp"
 #include "db/database.hpp"
