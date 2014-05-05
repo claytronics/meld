@@ -1,0 +1,19 @@
+MELDVM FOR BB
+=============
+
+* Replace "all" object by a struct containing pointers to global variables using a macro.
+* Choose a scheduler to use with the bb => serial seems best.
+
+1-
+  * Could we create a bb-meld.cpp file which would concentrate all of the following vm initialization stuff into one single file?
+    - Initialize global variables struct (formerly all object)
+    - Initialize api (formerly interface.cpp)
+    - Extract constants / rules / functions / predicates bytecodes from bytecode file (by calling a file similar to program.cpp)
+    - Create the current node's database (formerly database.cpp)
+    - Call vm core functions.
+  * Gather rule matching, checks for work and calls to execution functions into a bb-core.cpp file. 
+  * Exec.cpp file stays the same.
+2- 
+  * All the files stay the same and we use includes/defines to filter the code.
+
+* Replace current map<predicate_id, trie<tuple>> in db/node by a map<predicate_id,list<tuple>> (same for the map of tuple aggregate). Move the functions in db/node to db/database since there is only one node per Meld program when using Blinky Blocks.
